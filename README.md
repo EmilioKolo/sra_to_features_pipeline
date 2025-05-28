@@ -6,6 +6,8 @@ Pipeline to go from an SRA ID to features used to train an LLM.
 - Run 0_install.sh as executable. It downloads the Homo_sapiens.GRCh38.109 genome from Ensembl by default.
 - Run 1_main.py with python passing a valid SRA ID with either single end or paired end sequencing reads. Intended to work on cfDNA sequencing using Illumina.
 
+# Output
+
 The script will generate a file with the following features:
 * Small fragment lengths and their mean, median and st. deviation
 * Number of variants in genome bins through the entire genome
