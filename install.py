@@ -17,18 +17,29 @@ bed_genes = '/home/emilio/content/data/only_genes.bed'
 
 # Creation of genome.sizes file
 print(f'Creating {genome_sizes} file...')
-with open(fasta_file) as f:
+with open(fasta_file, 'r') as f:
     dict_fasta = {}
-    for line in f.readlines():
+    name = None
+    length = 0
+    for line in f:
+        line = line.strip()
         if line.startswith('>'):
-            curr_item = line.lstrip('>').rstrip('\n').split(' ')[0]
-            dict_fasta[curr_item] = ''
+            # Save records when finding a new one
+            if name is not None:
+                dict_fasta[name] = length
+            name = line[1:].split()[0]
+            length = 0
         else:
-            dict_fasta[curr_item] += line.rstrip('\n')
-    with open(genome_sizes, 'w') as f:
-        for key, value in dict_fasta.items():
-            str_out = f'{key}\t{len(value)}\n'
-            f.write(str_out)
+            length += len(line)
+    # Save last record
+    if name is not None:
+        dict_fasta[name] = length
+# Save dict to file
+with open(genome_sizes, 'w') as f:
+    for key, value in dict_fasta.items():
+        str_out = f'{key}\t{value}\n'
+        f.write(str_out)
+
 print(f'{genome_sizes} file created.')
 
 # Create list of genes from gff file
