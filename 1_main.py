@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
 
-from collections import defaultdict
+from collections import defaultdict, Counter
 from os import environ
 from pybedtools import BedTool
-import cnvpytor
 import json
 import os
 import pandas as pd
@@ -582,32 +581,32 @@ print("Histograms and partitioning complete.")
 
 # Call CNVs
 
+cnv_call_file = f'{output_prefix}/cnv_calls_{BIN_SIZES}.txt'
 print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -call {BIN_SIZES}")
-l = f'cnvpytor -root {ROOT_FILE} -call {BIN_SIZES}'
+l = f'cnvpytor -root {ROOT_FILE} -call {BIN_SIZES} > {cnv_call_file}'
 os.system(l)
 print("CNV calling complete.")
 
-# Read CNVpytor output with python package
-
-# Load the root file
-pytor = cnvpytor.RootFile(ROOT_FILE, 'r')
-pytor.read_call(cnv_bin_size)
-
-# Get the calls
-calls = pytor.calls[cnv_bin_size]
+# Read CNVpytor output with python 
+calls = []
+with open(cnv_call_file, 'r') as f:
+    for line in f.readlines():
+        calls.append(line.rstrip('\n').split('\t'))
 
 # Count CNVs per chromosome
-from collections import Counter
 cnv_counts = Counter()
-
 for call in calls:
-    chrom = call[0]
+    chrom = call[1].split(':')[0]
     cnv_counts[chrom] += 1
 
-# Print result
+# Save result
 for chrom, count in sorted(cnv_counts.items()):
-    print(f"{chrom}: {count} CNVs")
-    key = f'contig_{chrom}_cnv_count'
+    if str(chrom).startswith('chr'):
+        print(f"{chrom}: {count} CNVs")
+        key = f'{chrom}_cnv_count'
+    else:
+        print(f"chr{chrom}: {count} CNVs")
+        key = f'chr{chrom}_cnv_count'
     dict_features[key] = count
 
 print(dict_features)
