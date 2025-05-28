@@ -4,6 +4,7 @@
 from collections import defaultdict
 from os import environ
 from pybedtools import BedTool
+import cnvpytor
 import json
 import os
 import pandas as pd
@@ -64,6 +65,9 @@ vcf_file = compressed_snpeff_vcf # vcf file used (must be snpeff, may be compres
 bed_variants = f'{output_dir}/variants.bed'
 bed_intersect = f'{output_dir}/intersect.bed'
 bed_genes = f'{output_dir}/only_genes.bed'
+
+# Bin sizes for CNVpytor (recommended: 1k, 10k, 100k)
+cnv_bin_size = 100*1000
 
 # Create base output directory
 l = f'mkdir -p {output_dir}'
@@ -584,17 +588,13 @@ os.system(l)
 print("CNV calling complete.")
 
 # Read CNVpytor output with python package
-import cnvpytor
-
-# Bin sizes for CNVpytor (recommended: 1k, 10k, 100k)
-bin_size = 100*1000
 
 # Load the root file
 pytor = cnvpytor.RootFile(ROOT_FILE, 'r')
-pytor.read_call(bin_size)
+pytor.read_call(cnv_bin_size)
 
 # Get the calls
-calls = pytor.calls[bin_size]
+calls = pytor.calls[cnv_bin_size]
 
 # Count CNVs per chromosome
 from collections import Counter

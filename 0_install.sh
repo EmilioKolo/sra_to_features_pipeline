@@ -19,6 +19,7 @@ python3 -m pip install numpy==1.26.4
 python3 -m pip install pandas==2.1.4
 python3 -m pip install pybedtools
 python3 -m pip install requests
+python3 -m pip install cnvpytor
 
 # Genome downloads and directory setup
 
