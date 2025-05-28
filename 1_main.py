@@ -538,8 +538,8 @@ elif USE_BAF and not (os.path.exists(f"{VCF_PATH}.tbi") or os.path.exists(f"{VCF
 # CNVpytor Parameters
 # Smaller bins offer more resolution, larger bins offer more robustness and detect larger events.
 # It's recommended to use a range.
-BIN_SIZES = "1000 10000 100000" # Example: 1kb, 10kb, 100kb bins
-#BIN_SIZES = "1000"
+#BIN_SIZES = "1000 10000 100000" # Example: 1kb, 10kb, 100kb bins
+BIN_SIZES = str(cnv_bin_size)
 
 # Process Read Depth (RD) Data
 print("\n3. Processing Read Depth (RD) data...")
