@@ -10,12 +10,14 @@ sudo apt-get install -y \
   sra-toolkit \
   tabix \
   bedtools \
-  python3-pip
+  python3-pip \
+  unzip \
+  default-jre
 
 # Python packages
-python3 -m pip install pybedtools
 python3 -m pip install numpy==1.26.4
-python3 -m pip install --force-reinstall pandas==2.2.3
+python3 -m pip install pandas==2.1.4
+python3 -m pip install pybedtools
 
 # Genome downloads and directory setup
 
