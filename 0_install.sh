@@ -73,8 +73,6 @@ echo "Reference genome indexing complete."
 python3 install.py
 
 # Install cnvpytor
-echo "Installing cnvpytor..."
-git clone https://github.com/abyzovlab/CNVpytor.git ~/content/data/CNVpytor
-cd ~/content/data/CNVpytor; python3 setup.py install --user
-cd -
+echo "Downloading cnvpytor data..."
+cnvpytor -download
 echo "CNVpytor installed."
