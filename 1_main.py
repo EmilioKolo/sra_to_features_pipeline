@@ -134,6 +134,7 @@ sra_data = get_sra_from_ncbi(sra_id)
 # Check for files
 l_ftp = sra_data['fastq_ftp'].split(';')
 if len(l_ftp)==2: # Paired end
+    paired_end = True
     # Extract fastq files
     print(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
     # fastq-dump options:
@@ -158,6 +159,7 @@ if len(l_ftp)==2: # Paired end
     l = f'bwa mem -M -t 2 {reference_genome} {reads_file_r1} {reads_file_r2} > {output_sam}'
     os.system(l)
 elif len(l_ftp)==1: # Single end
+    paired_end = False
     # Extract fastq files
     print(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
     # fastq-dump options:
@@ -327,23 +329,28 @@ for row in df_vg_bins.itertuples():
 environ['sorted_bam'] = sorted_bam
 environ['sra_id'] = sra_id
 
-# Obtain fragment lengths with samtools
-l = 'samtools view -f 0x2 $sorted_bam | awk \'{if ($9>0 && $9<1000) print $9}\' > \"~/content/data/fl_\"$sra_id\".txt\"'
-os.system(l)
-
-# Open the created file to obtain values
-fragment_lengths = open(f"~/content/data/fl_{sra_id}.txt", "r").read().splitlines()
-
-# Convert to integers
-fragment_lengths = list(map(int, fragment_lengths))
-
-# Get mean, median and standard deviation of fragment lengths (fl)
-fl_mean = statistics.mean(fragment_lengths)
-fl_median = statistics.median(fragment_lengths)
-fl_stdv = statistics.stdev(fragment_lengths)
-
-print('Fragment mean, median and standard deviation:')
-print(fl_mean, '/', fl_median, '/', fl_stdv)
+# Obtain fragment lengths with samtools (only works with paired ends)
+if paired_end:
+    l = 'samtools view -f '
+    l += '0x2 $sorted_bam |'
+    l += ' awk \'{if ($9>0 && $9<1000) print $9}\''
+    l += ' > \"~/content/data/fl_\"$sra_id\".txt\"'
+    os.system(l)
+    # Open the created file to obtain values
+    fragment_lengths = open(f"~/content/data/fl_{sra_id}.txt", "r").read().splitlines()
+    # Convert to integers
+    fragment_lengths = list(map(int, fragment_lengths))
+    # Get mean, median and standard deviation of fragment lengths (fl)
+    fl_mean = statistics.mean(fragment_lengths)
+    fl_median = statistics.median(fragment_lengths)
+    fl_stdv = statistics.stdev(fragment_lengths)
+    print('Fragment mean, median and standard deviation:')
+    print(fl_mean, '/', fl_median, '/', fl_stdv)
+else:
+    fl_mean = 'NA'
+    fl_median = 'NA'
+    fl_stdv = 'NA'
+    print('Single-end reads. Fragment length not calculated.')
 
 dict_features['fragment_lengths_mean'] = fl_mean
 dict_features['fragment_lengths_median'] = fl_median
