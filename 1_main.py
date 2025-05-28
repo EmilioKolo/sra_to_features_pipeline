@@ -4,23 +4,33 @@
 from collections import defaultdict
 from os import environ
 from pybedtools import BedTool
+import json
 import os
+import pandas as pd
+import requests
 import statistics
+import sys
 
+if len(sys.argv) > 1:
+    sra_id = sys.argv[1]
+    print(f"The provided SRA ID is: {sra_id}")
+else:
+    print("No SRA ID provided.")
+    raise ValueError
 
 # Base variables
-sra_id = "SRR16993732"
 dict_features = {}
-output_dir = "/home/emilio/content/data"
+output_dir = "/content/data"
 
 # Define fasta reference and corresponding gff file
-fasta_file = '/home/emilio/content/data/reference.fasta'
-gff_file = '/home/emilio/content/data/reference.gff'
+fasta_file = '/content/data/reference.fasta'
+gff_file = '/content/data/reference.gff'
 reference_genome = fasta_file
 
 # Variables for fastq files
 reads_file_r1 = f"{output_dir}/{sra_id}_1.fastq.gz"
 reads_file_r2 = f"{output_dir}/{sra_id}_2.fastq.gz"
+reads_file_single = f"{output_dir}/{sra_id}.fastq.gz"
 
 # Variables for sam/bam files
 output_prefix = f"{output_dir}/{sra_id}"
@@ -34,7 +44,7 @@ output_vcf = f"{output_prefix}.vcf"
 compressed_vcf = f'{output_vcf}.gz'
 
 # Variables for snpEff
-snpeff_dir = '/home/emilio/content/data/bin'
+snpeff_dir = '/content/data/bin'
 genome_name = 'custom_ref'
 snpeff_vcf = f"{output_prefix}.snpeff.vcf"
 compressed_snpeff_vcf = f"{snpeff_vcf}.gz"
@@ -44,45 +54,131 @@ genome_sizes = "genome.sizes"
 bin_size_gvs = 100*1000
 
 # Variables for regions of interest
-bed_file = '/home/emilio/content/data/regions.bed'
-tmp_output = '/home/emilio/content/data/tmp/counts.csv'
+bed_file = '/content/data/regions.bed'
+tmp_output = '/content/data/tmp/counts.csv'
 
 # Variables to be used for Synonymous/Nonsynonymous variant proportion
 vcf_file = compressed_snpeff_vcf # vcf file used (must be snpeff, may be compressed)
 # bed files
-bed_variants = '/home/emilio/content/data/variants.bed'
-bed_intersect = '/home/emilio/content/data/intersect.bed'
-bed_genes = '/home/emilio/content/data/only_genes.bed'
+bed_variants = '/content/data/variants.bed'
+bed_intersect = '/content/data/intersect.bed'
+bed_genes = '/content/data/only_genes.bed'
 
 # Create base output directory
 l = f'mkdir -p {output_dir}'
 os.system(l)
 
-# Extract fastq files
-print(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
-# fastq-dump options:
-# --split-files: Creates _1.fastq and _2.fastq for paired-end reads
-# --gzip: Compresses the output FASTQ files
-# -O: Output directory
-l = f'fastq-dump --split-files --gzip -O {output_dir} {sra_id}'
-os.system(l)
-print(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
 
-# Verify file sizes
-print("\nChecking file sizes:")
-l = f'du -h {reads_file_r1} {reads_file_r2}'
-os.system(l)
+def get_sra_from_ncbi(sra_accession_id: str) -> dict | None:
+    """
+    Retrieves SRA (Sequence Read Archive) metadata and download links
+    from NCBI via the European Nucleotide Archive (ENA) API.
 
+    Args:
+        sra_accession_id (str): The SRA accession ID (e.g., 'SRR000001', 'ERR000001', 'DRR000001').
 
-# Run alignment
-print(f"Aligning reads to {reference_genome} and processing output...")
-# -M: Mark shorter split hits as secondary (recommended for Picard compatibility)
-# -t: Number of threads (Colab generally has 2 CPU cores available for free tier)
-# The '|' pipes the SAM output of bwa to samtools view for conversion to BAM
-# samtools sort sorts the BAM file
-# samtools index creates the .bai index for quick access
-l = f'bwa mem -M -t 2 {reference_genome} {reads_file_r1} {reads_file_r2} > {output_sam}'
-os.system(l)
+    Returns:
+        dict | None: A dictionary containing SRA metadata and download links if successful,
+                     otherwise None.
+    """
+    # ENA's API endpoint for searching read runs.
+    # We request JSON format and specify the fields we want to retrieve.
+    # 'fastq_ftp' and 'sra_ftp' provide direct download links.
+    # 'limit=1' ensures we only get one result for a specific accession.
+    base_url = "https://www.ebi.ac.uk/ena/portal/api/search"
+    params = {
+        "result": "read_run",
+        "query": f"run_accession={sra_accession_id}",
+        "fields": "run_accession,fastq_ftp,sra_ftp,experiment_accession,sample_accession,study_accession,library_name,library_strategy,library_source,library_selection,instrument_platform,instrument_model,base_count,read_count,scientific_name,tax_id",
+        "format": "json",
+        "limit": 1
+    }
+
+    print(f"Attempting to retrieve SRA data for: {sra_accession_id}")
+    try:
+        # Make the HTTP GET request to the ENA API.
+        response = requests.get(base_url, params=params)
+        response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
+
+        # Parse the JSON response.
+        data = response.json()
+
+        # The ENA API returns a list of results. For a single accession, it should be a list
+        # with one dictionary, or an empty list if not found.
+        if data:
+            sra_info = data[0]
+            print(f"Successfully retrieved data for {sra_accession_id}.")
+            return sra_info
+        else:
+            print(f"No SRA data found for accession ID: {sra_accession_id}. Please check the ID.")
+            return None
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err} - Status Code: {response.status_code}")
+    except requests.exceptions.ConnectionError as conn_err:
+        print(f"Connection error occurred: {conn_err} - Unable to connect to ENA API.")
+    except requests.exceptions.Timeout as timeout_err:
+        print(f"Timeout error occurred: {timeout_err} - Request to ENA API timed out.")
+    except requests.exceptions.RequestException as req_err:
+        print(f"An unexpected error occurred during the request: {req_err}")
+    except json.JSONDecodeError as json_err:
+        print(f"Error decoding JSON response: {json_err}. Response content: {response.text}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+    return None
+
+# Obtain SRA data
+sra_data = get_sra_from_ncbi(sra_id)
+# Check for files
+l_ftp = sra_data['fastq_ftp'].split(';')
+if len(l_ftp)==2: # Paired end
+    # Extract fastq files
+    print(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
+    # fastq-dump options:
+    # --split-files: Creates _1.fastq and _2.fastq for paired-end reads
+    # --gzip: Compresses the output FASTQ files
+    # -O: Output directory
+    l = f'fastq-dump --split-files --gzip -O {output_dir} {sra_id}'
+    os.system(l)
+    print(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
+    # Verify file sizes
+    print("\nChecking file sizes:")
+    l = f'du -h {reads_file_r1} {reads_file_r2}'
+    os.system(l)
+
+    # Run alignment
+    print(f"Aligning reads to {reference_genome} and processing output...")
+    # -M: Mark shorter split hits as secondary (recommended for Picard compatibility)
+    # -t: Number of threads (Colab generally has 2 CPU cores available for free tier)
+    # The '|' pipes the SAM output of bwa to samtools view for conversion to BAM
+    # samtools sort sorts the BAM file
+    # samtools index creates the .bai index for quick access
+    l = f'bwa mem -M -t 2 {reference_genome} {reads_file_r1} {reads_file_r2} > {output_sam}'
+    os.system(l)
+elif len(l_ftp)==1: # Single end
+    # Extract fastq files
+    print(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
+    # fastq-dump options:
+    # --gzip: Compresses the output FASTQ files
+    # -O: Output directory
+    l = f'fastq-dump --gzip -O {output_dir} {sra_id}'
+    os.system(l)
+    print(f"Reads downloaded and extracted to: {reads_file_single}")
+    # Verify file sizes
+    print("\nChecking file size:")
+    l = f'du -h {reads_file_single}'
+    os.system(l)
+
+    # Run alignment
+    print(f"Aligning reads to {reference_genome} and processing output...")
+    # -M: Mark shorter split hits as secondary (recommended for Picard compatibility)
+    # -t: Number of threads (Colab generally has 2 CPU cores available for free tier)
+    # The '|' pipes the SAM output of bwa to samtools view for conversion to BAM
+    # samtools sort sorts the BAM file
+    # samtools index creates the .bai index for quick access
+    l = f'bwa mem -M -t 2 {reference_genome} {reads_file_single} > {output_sam}'
+    os.system(l)
 
 print(f"Alignment to SAM file complete: {output_sam}")
 
@@ -397,7 +493,6 @@ for gene, counts in gene_counts.items():
 
 
 # CNV calling
-
 # Construct full paths
 BAM_PATH = sorted_bam
 VCF_PATH = snpeff_vcf
@@ -476,3 +571,34 @@ print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -call {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -call {BIN_SIZES}'
 os.system(l)
 print("CNV calling complete.")
+
+import cnvpytor
+
+# Bin sizes for CNVpytor (recommended: 1k, 10k, 100k)
+bin_size = 100*1000
+
+# Load the root file
+pytor = cnvpytor.RootFile(ROOT_FILE, 'r')
+pytor.read_call(bin_size)
+
+# Get the calls
+calls = pytor.calls[bin_size]
+
+# Count CNVs per chromosome
+from collections import Counter
+cnv_counts = Counter()
+
+for call in calls:
+    chrom = call[0]
+    cnv_counts[chrom] += 1
+
+# Print result
+for chrom, count in sorted(cnv_counts.items()):
+    print(f"{chrom}: {count} CNVs")
+    key = f'contig_{chrom}_cnv_count'
+    dict_features[key] = count
+
+print(dict_features)
+
+df_features = pd.DataFrame([dict_features])
+df_features.to_csv(f'features{sra_id}.csv', sep=';')

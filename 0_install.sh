@@ -11,9 +11,9 @@ pip install --force-reinstall pandas==2.2.3
 # Genome downloads and directory setup
 
 # Create data directory
-mkdir -p /home/emilio/content/data
+mkdir -p /content/data
 # Create temporary directory
-mkdir -p /home/emilio/content/data/tmp
+mkdir -p /content/data/tmp
 
 # Download Reference Genome
 
@@ -21,8 +21,8 @@ mkdir -p /home/emilio/content/data/tmp
 genome_url="https://ftp.ensembl.org/pub/release-109/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
 gff_url="https://ftp.ensembl.org/pub/release-109/gff3/homo_sapiens/Homo_sapiens.GRCh38.109.gff3.gz"
 # Define fasta reference and corresponding gff file
-fasta_file="/home/emilio/content/data/reference.fasta"
-gff_file="/home/emilio/content/data/reference.gff"
+fasta_file="/content/data/reference.fasta"
+gff_file="/content/data/reference.gff"
 
 echo "Downloading reference genome..."
 wget -O {fasta_file}.gz {genome_url}
@@ -32,7 +32,7 @@ gunzip -f {gff_file}.gz
 echo "Reference genome downloaded and unzipped to: {fasta_file}"
 
 # Define snpEff variables
-snpeff_dir="/home/emilio/content/data/bin"
+snpeff_dir="/content/data/bin"
 genome_name="custom_ref"
 snpeff_url='https://sourceforge.net/projects/snpeff/files/snpEff_v4_3t_core.zip'
 
@@ -61,6 +61,6 @@ python3 install.py
 
 # Install cnvpytor
 echo "Installing cnvpytor..."
-pip install cnvpytor==1.3.1
-cnvpytor -download
-echo "cnvpytor installed."
+git clone https://github.com/abyzovlab/CNVpytor.git /content/data
+cd /content/data/CNVpytor; python setup.py install --user
+echo "CNVpytor installed."
