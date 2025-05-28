@@ -139,7 +139,31 @@ def get_sra_from_ncbi(sra_accession_id: str) -> dict | None:
 sra_data = get_sra_from_ncbi(sra_id)
 # Check for files
 l_ftp = sra_data['fastq_ftp'].split(';')
-if len(l_ftp)==2: # Paired end
+if len(l_ftp)==1: # Single end
+    paired_end = False
+    # Extract fastq files
+    print(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
+    # fastq-dump options:
+    # --gzip: Compresses the output FASTQ files
+    # -O: Output directory
+    l = f'fastq-dump --gzip -O {tmp_folder} {sra_id}'
+    os.system(l)
+    print(f"Reads downloaded and extracted to: {reads_file_single}")
+    # Verify file sizes
+    print("\nChecking file size:")
+    l = f'du -h {reads_file_single}'
+    os.system(l)
+
+    # Run alignment
+    print(f"Aligning reads to {reference_genome} and processing output...")
+    # -M: Mark shorter split hits as secondary (recommended for Picard compatibility)
+    # -t: Number of threads (Colab generally has 2 CPU cores available for free tier)
+    # The '|' pipes the SAM output of bwa to samtools view for conversion to BAM
+    # samtools sort sorts the BAM file
+    # samtools index creates the .bai index for quick access
+    l = f'bwa mem -M -t 2 {reference_genome} {reads_file_single} > {output_sam}'
+    os.system(l)
+elif len(l_ftp)==2: # Paired end
     paired_end = True
     # Extract fastq files
     print(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
@@ -147,7 +171,7 @@ if len(l_ftp)==2: # Paired end
     # --split-files: Creates _1.fastq and _2.fastq for paired-end reads
     # --gzip: Compresses the output FASTQ files
     # -O: Output directory
-    l = f'fastq-dump --split-files --gzip -O {output_dir} {sra_id}'
+    l = f'fastq-dump --split-files --gzip -O {tmp_folder} {sra_id}'
     os.system(l)
     print(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
     # Verify file sizes
@@ -164,19 +188,21 @@ if len(l_ftp)==2: # Paired end
     # samtools index creates the .bai index for quick access
     l = f'bwa mem -M -t 2 {reference_genome} {reads_file_r1} {reads_file_r2} > {output_sam}'
     os.system(l)
-elif len(l_ftp)==1: # Single end
-    paired_end = False
+else:
+    print('WARNING: More than two elements in l_ftp.', l_ftp)
+    paired_end = True
     # Extract fastq files
     print(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
     # fastq-dump options:
+    # --split-files: Creates _1.fastq and _2.fastq for paired-end reads
     # --gzip: Compresses the output FASTQ files
     # -O: Output directory
-    l = f'fastq-dump --gzip -O {output_dir} {sra_id}'
+    l = f'fastq-dump --split-files --gzip -O {tmp_folder} {sra_id}'
     os.system(l)
-    print(f"Reads downloaded and extracted to: {reads_file_single}")
+    print(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
     # Verify file sizes
-    print("\nChecking file size:")
-    l = f'du -h {reads_file_single}'
+    print("\nChecking file sizes:")
+    l = f'du -h {reads_file_r1} {reads_file_r2}'
     os.system(l)
 
     # Run alignment
@@ -186,7 +212,7 @@ elif len(l_ftp)==1: # Single end
     # The '|' pipes the SAM output of bwa to samtools view for conversion to BAM
     # samtools sort sorts the BAM file
     # samtools index creates the .bai index for quick access
-    l = f'bwa mem -M -t 2 {reference_genome} {reads_file_single} > {output_sam}'
+    l = f'bwa mem -M -t 2 {reference_genome} {reads_file_r1} {reads_file_r2} > {output_sam}'
     os.system(l)
 
 print(f"Alignment to SAM file complete: {output_sam}")
