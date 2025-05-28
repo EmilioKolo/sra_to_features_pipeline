@@ -22,6 +22,7 @@ else:
 dict_features = {}
 HOME_DIR = os.path.expanduser("~")
 output_dir = os.path.join(HOME_DIR, "content/data")
+tmp_folder = f'{output_dir}/tmp_{sra_id}'
 
 # Define fasta reference and corresponding gff file
 fasta_file = f'{output_dir}/reference.fasta'
@@ -29,12 +30,12 @@ gff_file = f'{output_dir}/reference.gff'
 reference_genome = fasta_file
 
 # Variables for fastq files
-reads_file_r1 = f"{output_dir}/{sra_id}_1.fastq.gz"
-reads_file_r2 = f"{output_dir}/{sra_id}_2.fastq.gz"
-reads_file_single = f"{output_dir}/{sra_id}.fastq.gz"
+reads_file_r1 = f"{tmp_folder}/{sra_id}_1.fastq.gz"
+reads_file_r2 = f"{tmp_folder}/{sra_id}_2.fastq.gz"
+reads_file_single = f"{tmp_folder}/{sra_id}.fastq.gz"
 
 # Variables for sam/bam files
-output_prefix = f"{output_dir}/{sra_id}"
+output_prefix = f"{tmp_folder}/{sra_id}"
 output_sam = f"{output_prefix}.sam"
 output_bam = f"{output_prefix}.bam"
 sorted_bam =f"{output_prefix}.sorted.bam"
@@ -56,13 +57,13 @@ bin_size_gvs = 100*1000
 
 # Variables for regions of interest
 bed_file = f'regions.bed'
-tmp_output = f'{output_dir}/tmp/counts.csv'
+tmp_output = f'{tmp_folder}/counts.csv'
 
 # Variables to be used for Synonymous/Nonsynonymous variant proportion
 vcf_file = compressed_snpeff_vcf # vcf file used (must be snpeff, may be compressed)
 # bed files
 bed_variants = f'{output_dir}/variants.bed'
-bed_intersect = f'{output_dir}/intersect.bed'
+bed_intersect = f'{tmp_folder}/intersect.bed'
 bed_genes = f'{output_dir}/only_genes.bed'
 
 # Bin sizes for CNVpytor (recommended: 1k, 10k, 100k)
@@ -70,6 +71,8 @@ cnv_bin_size = 100*1000
 
 # Create base output directory
 l = f'mkdir -p {output_dir}'
+os.system(l)
+l = f'mkdir -p {tmp_folder}'
 os.system(l)
 
 
@@ -609,7 +612,16 @@ for chrom, count in sorted(cnv_counts.items()):
         key = f'chr{chrom}_cnv_count'
     dict_features[key] = count
 
-print(dict_features)
+print(f'{sra_id} features:')
+for key, value in dict_features.items():
+    print(key, value)
 
 df_features = pd.DataFrame([dict_features])
-df_features.to_csv(f'features{sra_id}.csv', sep=';')
+df_features.transpose().to_csv(f'{output_dir}/{sra_id}_features.csv', sep=';', header=[sra_id])
+
+print('Features loaded and saved.', '\nRemoving temporary files...')
+
+l = f'rm -r {tmp_folder}'
+os.system(l)
+
+print('Temporary files removed.')
