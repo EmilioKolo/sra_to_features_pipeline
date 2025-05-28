@@ -1,12 +1,21 @@
 #!/bin/bash
 
-apt-get update
-apt-get install -y bwa samtools bcftools sra-toolkit tabix bedtools
+# Update packages
+sudo apt-get update
+# Install system dependencies
+sudo apt-get install -y \
+  bwa \
+  samtools \
+  bcftools \
+  sra-toolkit \
+  tabix \
+  bedtools \
+  python3-pip
 
-pip install pybedtools
-pip install numpy==1.26.4
-# Reinstall pandas
-pip install --force-reinstall pandas==2.2.3
+# Python packages
+python3 -m pip install pybedtools
+python3 -m pip install numpy==1.26.4
+python3 -m pip install --force-reinstall pandas==2.2.3
 
 # Genome downloads and directory setup
 
