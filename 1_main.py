@@ -55,7 +55,7 @@ genome_sizes = f'{output_dir}/genome.sizes'
 bin_size_gvs = 100*1000
 
 # Variables for regions of interest
-bed_file = f'{output_dir}/regions.bed'
+bed_file = f'regions.bed'
 tmp_output = f'{output_dir}/tmp/counts.csv'
 
 # Variables to be used for Synonymous/Nonsynonymous variant proportion
