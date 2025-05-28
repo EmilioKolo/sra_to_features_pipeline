@@ -522,20 +522,21 @@ if USE_BAF and not os.path.exists(VCF_PATH):
 elif USE_BAF and not (os.path.exists(f"{VCF_PATH}.tbi") or os.path.exists(f"{VCF_PATH}.gz.tbi")):
     print(f"Warning: VCF/GVCF index file not found. Ensure '{VCF_PATH}.tbi' or '{VCF_PATH}.gz.tbi' exists alongside the VCF/GVCF. BAF analysis might fail or be inaccurate.")
 
-# --- CNVpytor Parameters ---
+
+# CNVpytor Parameters
 # Smaller bins offer more resolution, larger bins offer more robustness and detect larger events.
 # It's recommended to use a range.
 BIN_SIZES = "1000 10000 100000" # Example: 1kb, 10kb, 100kb bins
 #BIN_SIZES = "1000"
 
-# --- 3. Process Read Depth (RD) Data ---
+# Process Read Depth (RD) Data
 print("\n3. Processing Read Depth (RD) data...")
 l = f'cnvpytor -root {ROOT_FILE} -rd {BAM_PATH}'
 os.system(l)
 print("Read Depth processing complete.")
 
-# --- 4. Process BAF (BAF) Data ---
 
+# Process BAF (BAF) Data
 if USE_BAF:
     print("\n4. Processing B-allele Frequency (BAF) data...")
     # First, add SNPs from VCF to the root file
@@ -550,7 +551,8 @@ if USE_BAF:
 else:
     print("\n4. BAF analysis skipped as specified or due to missing VCF/index.")
 
-# --- 5. Create Histograms and Partitioning ---
+
+# Create Histograms and Partitioning
 print("\n5. Generating histograms and partitioning data...")
 
 # Create histograms for RD and BAF (if used)
@@ -565,13 +567,15 @@ os.system(l)
 
 print("Histograms and partitioning complete.")
 
-# --- 6. Call CNVs ---
+
+# Call CNVs
 
 print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -call {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -call {BIN_SIZES}'
 os.system(l)
 print("CNV calling complete.")
 
+# Read CNVpytor output with python package
 import cnvpytor
 
 # Bin sizes for CNVpytor (recommended: 1k, 10k, 100k)
