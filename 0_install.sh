@@ -18,6 +18,7 @@ sudo apt-get install -y \
 python3 -m pip install numpy==1.26.4
 python3 -m pip install pandas==2.1.4
 python3 -m pip install pybedtools
+python3 -m pip install requests
 
 # Genome downloads and directory setup
 
@@ -72,6 +73,7 @@ python3 install.py
 
 # Install cnvpytor
 echo "Installing cnvpytor..."
-git clone https://github.com/abyzovlab/CNVpytor.git ~/content/data
-cd ~/content/data/CNVpytor; python setup.py install --user
+git clone https://github.com/abyzovlab/CNVpytor.git ~/content/data/CNVpytor
+cd ~/content/data/CNVpytor; python3 setup.py install --user
+cd -
 echo "CNVpytor installed."

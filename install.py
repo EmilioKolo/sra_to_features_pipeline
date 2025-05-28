@@ -7,13 +7,15 @@ It creates a genome.sizes file to be used in bin creation.
 It creates a bed file with all genes in the genome.
 """
 
+import os
 from os import environ
 
 # Needed variables
-genome_sizes = 'genome.sizes'
-fasta_file = '/home/emilio/content/data/reference.fasta'
-gff_file = '/home/emilio/content/data/reference.gff'
-bed_genes = '/home/emilio/content/data/only_genes.bed'
+HOME_DIR = os.path.expanduser("~")
+genome_sizes = os.path.join(HOME_DIR, 'content/data/genome.sizes')
+fasta_file = os.path.join(HOME_DIR, 'content/data/reference.fasta')
+gff_file = os.path.join(HOME_DIR, 'content/data/reference.gff')
+bed_genes = os.path.join(HOME_DIR, 'content/data/only_genes.bed')
 
 # Creation of genome.sizes file
 print(f'Creating {genome_sizes} file...')

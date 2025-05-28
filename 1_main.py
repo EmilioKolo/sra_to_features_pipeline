@@ -18,13 +18,14 @@ else:
     print("No SRA ID provided.")
     raise ValueError
 
-# Base variables
+# Base values and variables
 dict_features = {}
-output_dir = "~/content/data"
+HOME_DIR = os.path.expanduser("~")
+output_dir = os.path.join(HOME_DIR, "content/data")
 
 # Define fasta reference and corresponding gff file
-fasta_file = '~/content/data/reference.fasta'
-gff_file = '~/content/data/reference.gff'
+fasta_file = f'{output_dir}/reference.fasta'
+gff_file = f'{output_dir}/reference.gff'
 reference_genome = fasta_file
 
 # Variables for fastq files
@@ -44,25 +45,25 @@ output_vcf = f"{output_prefix}.vcf"
 compressed_vcf = f'{output_vcf}.gz'
 
 # Variables for snpEff
-snpeff_dir = '~/content/data/bin'
+snpeff_dir = f'{output_dir}/bin'
 genome_name = 'custom_ref'
 snpeff_vcf = f"{output_prefix}.snpeff.vcf"
 compressed_snpeff_vcf = f"{snpeff_vcf}.gz"
 
 # Variables for bin creation
-genome_sizes = "genome.sizes"
+genome_sizes = f'{output_dir}/genome.sizes'
 bin_size_gvs = 100*1000
 
 # Variables for regions of interest
-bed_file = '~/content/data/regions.bed'
-tmp_output = '~/content/data/tmp/counts.csv'
+bed_file = f'{output_dir}/regions.bed'
+tmp_output = f'{output_dir}/tmp/counts.csv'
 
 # Variables to be used for Synonymous/Nonsynonymous variant proportion
 vcf_file = compressed_snpeff_vcf # vcf file used (must be snpeff, may be compressed)
 # bed files
-bed_variants = '~/content/data/variants.bed'
-bed_intersect = '~/content/data/intersect.bed'
-bed_genes = '~/content/data/only_genes.bed'
+bed_variants = f'{output_dir}/variants.bed'
+bed_intersect = f'{output_dir}/intersect.bed'
+bed_genes = f'{output_dir}/only_genes.bed'
 
 # Create base output directory
 l = f'mkdir -p {output_dir}'
