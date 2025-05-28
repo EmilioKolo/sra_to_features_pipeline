@@ -20,11 +20,11 @@ else:
 
 # Base variables
 dict_features = {}
-output_dir = "/content/data"
+output_dir = "~/content/data"
 
 # Define fasta reference and corresponding gff file
-fasta_file = '/content/data/reference.fasta'
-gff_file = '/content/data/reference.gff'
+fasta_file = '~/content/data/reference.fasta'
+gff_file = '~/content/data/reference.gff'
 reference_genome = fasta_file
 
 # Variables for fastq files
@@ -44,7 +44,7 @@ output_vcf = f"{output_prefix}.vcf"
 compressed_vcf = f'{output_vcf}.gz'
 
 # Variables for snpEff
-snpeff_dir = '/content/data/bin'
+snpeff_dir = '~/content/data/bin'
 genome_name = 'custom_ref'
 snpeff_vcf = f"{output_prefix}.snpeff.vcf"
 compressed_snpeff_vcf = f"{snpeff_vcf}.gz"
@@ -54,15 +54,15 @@ genome_sizes = "genome.sizes"
 bin_size_gvs = 100*1000
 
 # Variables for regions of interest
-bed_file = '/content/data/regions.bed'
-tmp_output = '/content/data/tmp/counts.csv'
+bed_file = '~/content/data/regions.bed'
+tmp_output = '~/content/data/tmp/counts.csv'
 
 # Variables to be used for Synonymous/Nonsynonymous variant proportion
 vcf_file = compressed_snpeff_vcf # vcf file used (must be snpeff, may be compressed)
 # bed files
-bed_variants = '/content/data/variants.bed'
-bed_intersect = '/content/data/intersect.bed'
-bed_genes = '/content/data/only_genes.bed'
+bed_variants = '~/content/data/variants.bed'
+bed_intersect = '~/content/data/intersect.bed'
+bed_genes = '~/content/data/only_genes.bed'
 
 # Create base output directory
 l = f'mkdir -p {output_dir}'
@@ -327,11 +327,11 @@ environ['sorted_bam'] = sorted_bam
 environ['sra_id'] = sra_id
 
 # Obtain fragment lengths with samtools
-l = 'samtools view -f 0x2 $sorted_bam | awk \'{if ($9>0 && $9<1000) print $9}\' > \"/content/data/fl_\"$sra_id\".txt\"'
+l = 'samtools view -f 0x2 $sorted_bam | awk \'{if ($9>0 && $9<1000) print $9}\' > \"~/content/data/fl_\"$sra_id\".txt\"'
 os.system(l)
 
 # Open the created file to obtain values
-fragment_lengths = open(f"/content/data/fl_{sra_id}.txt", "r").read().splitlines()
+fragment_lengths = open(f"~/content/data/fl_{sra_id}.txt", "r").read().splitlines()
 
 # Convert to integers
 fragment_lengths = list(map(int, fragment_lengths))
