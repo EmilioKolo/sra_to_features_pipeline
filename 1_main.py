@@ -18,6 +18,11 @@ else:
     print("No SRA ID provided.")
     raise ValueError
 
+def run_silent(cmd, log):
+    # Wrap the command in a bash subshell, redirect stdout and stderr
+    full_cmd = f"bash -c \"{cmd}\" >> {log} 2>&1"
+    os.system(full_cmd)
+
 # Base values and variables
 dict_features = {}
 HOME_DIR = os.path.expanduser("~")
@@ -151,12 +156,14 @@ if len(l_ftp)==1: # Single end
     # --gzip: Compresses the output FASTQ files
     # -O: Output directory
     l = f'fastq-dump --gzip -O {tmp_folder} {sra_id}'
-    os.system(l+f' > {log_file} 2>&1')
+    run_silent(l, log_file)
+    #os.system(l+f' > {log_file} 2>&1')
     print(f"Reads downloaded and extracted to: {reads_file_single}")
     # Verify file sizes
-    print("\nChecking file size:")
+    print("\nChecking file size.")
     l = f'du -h {reads_file_single}'
-    os.system(l+f' > {log_file} 2>&1')
+    run_silent(l, log_file)
+    #os.system(l+f' > {log_file} 2>&1')
 
     # Run alignment
     print(f"Aligning reads to {reference_genome} and processing output...")
@@ -166,7 +173,8 @@ if len(l_ftp)==1: # Single end
     # samtools sort sorts the BAM file
     # samtools index creates the .bai index for quick access
     l = f'bwa mem -M -t 2 {reference_genome} {reads_file_single} > {output_sam}'
-    os.system(l)
+    run_silent(l, log_file)
+    #os.system(l)
 elif len(l_ftp)==2: # Paired end
     paired_end = True
     # Extract fastq files
@@ -176,12 +184,14 @@ elif len(l_ftp)==2: # Paired end
     # --gzip: Compresses the output FASTQ files
     # -O: Output directory
     l = f'fastq-dump --split-files --gzip -O {tmp_folder} {sra_id}'
-    os.system(l+f' > {log_file} 2>&1')
+    run_silent(l, log_file)
+    #os.system(l+f' > {log_file} 2>&1')
     print(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
     # Verify file sizes
-    print("\nChecking file sizes:")
+    print("\nChecking file sizes.")
     l = f'du -h {reads_file_r1} {reads_file_r2}'
-    os.system(l+f' > {log_file} 2>&1')
+    run_silent(l, log_file)
+    #os.system(l+f' > {log_file} 2>&1')
 
     # Run alignment
     print(f"Aligning reads to {reference_genome} and processing output...")
@@ -191,7 +201,8 @@ elif len(l_ftp)==2: # Paired end
     # samtools sort sorts the BAM file
     # samtools index creates the .bai index for quick access
     l = f'bwa mem -M -t 2 {reference_genome} {reads_file_r1} {reads_file_r2} > {output_sam}'
-    os.system(l)
+    run_silent(l, log_file)
+    #os.system(l)
 else:
     print('WARNING: More than two elements in l_ftp.', l_ftp)
     paired_end = True
@@ -202,12 +213,14 @@ else:
     # --gzip: Compresses the output FASTQ files
     # -O: Output directory
     l = f'fastq-dump --split-files --gzip -O {tmp_folder} {sra_id}'
-    os.system(l+f' > {log_file} 2>&1')
+    run_silent(l, log_file)
+    #os.system(l+f' > {log_file} 2>&1')
     print(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
     # Verify file sizes
-    print("\nChecking file sizes:")
+    print("\nChecking file sizes.")
     l = f'du -h {reads_file_r1} {reads_file_r2}'
-    os.system(l+f' > {log_file} 2>&1')
+    run_silent(l, log_file)
+    #os.system(l+f' > {log_file} 2>&1')
 
     # Run alignment
     print(f"Aligning reads to {reference_genome} and processing output...")
@@ -217,54 +230,64 @@ else:
     # samtools sort sorts the BAM file
     # samtools index creates the .bai index for quick access
     l = f'bwa mem -M -t 2 {reference_genome} {reads_file_r1} {reads_file_r2} > {output_sam}'
-    os.system(l)
+    run_silent(l, log_file)
+    #os.system(l)
 
 print(f"Alignment to SAM file complete: {output_sam}")
 
 # Check if the SAM file was created and has content
-print("\nChecking SAM file content (first 20 lines):")
+print("\nChecking SAM file content...")
 l = f'head -n 10 {output_sam}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 # Check file size
 l = f'ls -lh {output_sam}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 print(f"\nConverting SAM to BAM: {output_sam} -> {output_bam}...")
 # -b: output BAM
 # -S: input is SAM (optional, but good for clarity)
 l = f'samtools view -bS {output_sam} -o {output_bam}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 print(f"SAM to BAM conversion complete: {output_bam}")
 # Check file size
 l = f'ls -lh {output_bam}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 print(f"\nSorting BAM file: {output_bam} -> {sorted_bam}...")
 # -o: Output file
 l = f'samtools sort {output_bam} -o {sorted_bam}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 print(f"BAM sorting complete: {sorted_bam}")
 # Check file size
 l = f'ls -lh {sorted_bam}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 print(f"\nIndexing sorted BAM file: {sorted_bam}...")
 l = f'samtools index {sorted_bam}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 print(f"BAM indexing complete. Index file: {sorted_bam}.bai")
 # Check index file size
 l = f'ls -lh {sorted_bam}.bai'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 print(f"\nAlignment and processing complete. Output BAM: {output_prefix}.sorted.bam")
 print(f"BAM index: {output_prefix}.sorted.bam.bai")
 
-print("\nAlignment statistics:")
+print("\nAlignment statistics...")
 l = f'samtools flagstat {output_prefix}.sorted.bam'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 
 # Run variant calling
@@ -274,13 +297,15 @@ print(f"Generating pileup and BCF file for {sorted_bam}...")
 # -f: Reference genome file
 # -o: Output file
 l = f'bcftools mpileup -f {reference_genome} {sorted_bam} > {output_bcf}'
-os.system(l)
+run_silent(l, log_file)
+#os.system(l)
 
 print(f"Pileup and BCF file generated: {output_bcf}")
 
 # Check bcf file
 l = f'tail {output_bcf}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 
 # Do calls with BCFtools
@@ -290,49 +315,60 @@ print(f"Calling variants from {output_bcf}...")
 # -v: Output only variant sites (not homozygous reference sites)
 # -o: Output file
 l = f'bcftools call -mv -o {output_vcf} {output_bcf}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 print(f"Variant calling complete. Output VCF: {output_vcf}")
 l = f'tail {output_vcf}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 # Compress and index VCF
 print(f"Compressing {output_vcf} with bgzip...")
 l = f'bgzip -c {output_vcf} > {compressed_vcf}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 print(f"Compressed VCF: {compressed_vcf}")
 
 print(f"Indexing {compressed_vcf} with tabix...")
 l = f'tabix -p vcf {compressed_vcf}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 print(f"VCF index: {compressed_vcf}.tbi")
 
 # View the first 50 lines of the VCF (header + some variants)
-print("\nFirst 50 lines of the VCF file:")
+print("\nFirst lines of the VCF file.")
 l = f'zcat {compressed_vcf} | tail'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
-print("\nVariant calling statistics:")
+print("\nVariant calling statistics.")
 l = f'bcftools stats {compressed_vcf} > {output_vcf}.stats'
-os.system(l)
+run_silent(l, log_file)
+#os.system(l)
 l = f'cat {output_vcf}.stats'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 
 # Analyze variants in VCF with snpeff
 l = f'java -Xmx4g -jar {snpeff_dir}/snpEff/snpEff.jar {genome_name} {output_vcf} > {snpeff_vcf}'
-os.system(l)
+run_silent(l, log_file)
+#os.system(l)
 l = f'tail {snpeff_vcf}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 print(f"Compressing {snpeff_vcf} with bgzip...")
 l = f'bgzip -c {snpeff_vcf} > {compressed_snpeff_vcf}'
-os.system(l)
+run_silent(l, log_file)
+#os.system(l)
 print(f"Compressed VCF: {compressed_snpeff_vcf}")
 
 print(f"Indexing {compressed_snpeff_vcf} with tabix...")
 l = f'tabix -p vcf {compressed_snpeff_vcf}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 print(f"VCF index: {compressed_snpeff_vcf}.tbi")
 
 
@@ -371,7 +407,8 @@ if paired_end:
     l += '0x2 $sorted_bam |'
     l += ' awk \'{if ($9>0 && $9<1000) print $9}\''
     l += ' > \"~/content/data/fl_\"$sra_id\".txt\"'
-    os.system(l)
+    run_silent(l, log_file)
+    #os.system(l)
     # Open the created file to obtain values
     fragment_lengths = open(f"~/content/data/fl_{sra_id}.txt", "r").read().splitlines()
     # Convert to integers
@@ -434,7 +471,8 @@ for chrom, start, end, name in regions:
     environ['tmp_output'] = tmp_output
     # Use bcftools to check how many variables are in region_str
     l = 'bcftools view -r "$region_str" "$vcf_file" | grep -vc "^#" >> "$tmp_output"'
-    os.system(l)
+    run_silent(l, log_file)
+    #os.system(l)
 
 # Read counts back into Python variable
 counts = []
@@ -465,11 +503,13 @@ environ['bed_intersect'] = bed_intersect
 
 # Generate bed_variants file
 l = 'bcftools query -f \'%CHROM\t%POS\t%END\t%INFO/ANN\n\' $vcf_file | awk \'BEGIN{OFS=\"\t\"} {print $1, $2-1, $2, $4}\' > $bed_variants'
-os.system(l)
+run_silent(l, log_file)
+#os.system(l)
 print(bed_variants, 'created.')
 
 l = 'bedtools intersect -a $bed_variants -b $bed_genes -wa -wb > $bed_intersect'
-os.system(l)
+run_silent(l, log_file)
+#os.system(l)
 print(bed_intersect, 'created.')
 
 # Define effect categories
@@ -545,7 +585,8 @@ OUTPUT_DIR = f"{output_prefix}/cnvpytor_results" # Specific output dir for this 
 
 # Create the output directory if it doesn't exist
 l = f'mkdir -p {OUTPUT_DIR}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 print(f"Output directory for results: {OUTPUT_DIR}")
 
 # Define the root file for CNVpytor
@@ -576,7 +617,8 @@ BIN_SIZES = str(cnv_bin_size)
 # Process Read Depth (RD) Data
 print("\n3. Processing Read Depth (RD) data...")
 l = f'cnvpytor -root {ROOT_FILE} -rd {BAM_PATH}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 print("Read Depth processing complete.")
 
 
@@ -586,11 +628,13 @@ if USE_BAF:
     # First, add SNPs from VCF to the root file
     print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -snp \"{VCF_PATH}\" -sample \"{SAMPLE_NAME}\"")
     l = f'cnvpytor -root {ROOT_FILE} -snp {VCF_PATH} -sample {SAMPLE_NAME}'
-    os.system(l+f' > {log_file} 2>&1')
+    run_silent(l, log_file)
+    #os.system(l+f' > {log_file} 2>&1')
     # Then, perform BAF analysis with specified bin sizes
     print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -baf {BIN_SIZES}")
     l = f'cnvpytor -root {ROOT_FILE} -baf {BIN_SIZES}'
-    os.system(l+f' > {log_file} 2>&1')
+    run_silent(l, log_file)
+    #os.system(l+f' > {log_file} 2>&1')
     print("B-allele Frequency processing complete.")
 else:
     print("\n4. BAF analysis skipped as specified or due to missing VCF/index.")
@@ -602,12 +646,14 @@ print("\n5. Generating histograms and partitioning data...")
 # Create histograms for RD and BAF (if used)
 print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -his {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -his {BIN_SIZES} --verbose debug'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 # Partition data for CNV calling
 print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -partition {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -partition {BIN_SIZES} --verbose debug'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 print("Histograms and partitioning complete.")
 
@@ -617,7 +663,8 @@ print("Histograms and partitioning complete.")
 cnv_call_file = f'{output_prefix}/cnv_calls_{BIN_SIZES}.txt'
 print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -call {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -call {BIN_SIZES} > {cnv_call_file}'
-os.system(l)
+run_silent(l, log_file)
+#os.system(l)
 print("CNV calling complete.")
 
 # Read CNVpytor output with python 
@@ -655,6 +702,7 @@ except:
 print('Features loaded and saved.', '\nRemoving temporary files...')
 
 l = f'rm -r {tmp_folder}'
-os.system(l+f' > {log_file} 2>&1')
+run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
 
 print('Temporary files removed.')
