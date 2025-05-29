@@ -166,7 +166,7 @@ if len(l_ftp)==1: # Single end
     # samtools sort sorts the BAM file
     # samtools index creates the .bai index for quick access
     l = f'bwa mem -M -t 2 {reference_genome} {reads_file_single} > {output_sam}'
-    os.system(l+f' > {log_file} 2>&1')
+    os.system(l)
 elif len(l_ftp)==2: # Paired end
     paired_end = True
     # Extract fastq files
@@ -191,7 +191,7 @@ elif len(l_ftp)==2: # Paired end
     # samtools sort sorts the BAM file
     # samtools index creates the .bai index for quick access
     l = f'bwa mem -M -t 2 {reference_genome} {reads_file_r1} {reads_file_r2} > {output_sam}'
-    os.system(l+f' > {log_file} 2>&1')
+    os.system(l)
 else:
     print('WARNING: More than two elements in l_ftp.', l_ftp)
     paired_end = True
@@ -217,7 +217,7 @@ else:
     # samtools sort sorts the BAM file
     # samtools index creates the .bai index for quick access
     l = f'bwa mem -M -t 2 {reference_genome} {reads_file_r1} {reads_file_r2} > {output_sam}'
-    os.system(l+f' > {log_file} 2>&1')
+    os.system(l)
 
 print(f"Alignment to SAM file complete: {output_sam}")
 
