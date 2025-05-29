@@ -23,6 +23,8 @@ dict_features = {}
 HOME_DIR = os.path.expanduser("~")
 output_dir = os.path.join(HOME_DIR, "content/data")
 tmp_folder = f'{output_dir}/tmp_{sra_id}'
+log_dir = f'{output_dir}/logs'
+log_file = f'{log_dir}/{sra_id}.log'
 
 # Define fasta reference and corresponding gff file
 fasta_file = f'{output_dir}/reference.fasta'
@@ -69,10 +71,12 @@ bed_genes = f'{output_dir}/only_genes.bed'
 # Bin sizes for CNVpytor (recommended: 1k, 10k, 100k)
 cnv_bin_size = 100*1000
 
-# Create base output directory
+# Create base output directories
 l = f'mkdir -p {output_dir}'
 os.system(l)
 l = f'mkdir -p {tmp_folder}'
+os.system(l)
+l = f'mkdir -p {log_dir}'
 os.system(l)
 
 
@@ -147,12 +151,12 @@ if len(l_ftp)==1: # Single end
     # --gzip: Compresses the output FASTQ files
     # -O: Output directory
     l = f'fastq-dump --gzip -O {tmp_folder} {sra_id}'
-    os.system(l)
+    os.system(l+f' > {log_file} 2>&1')
     print(f"Reads downloaded and extracted to: {reads_file_single}")
     # Verify file sizes
     print("\nChecking file size:")
     l = f'du -h {reads_file_single}'
-    os.system(l)
+    os.system(l+f' > {log_file} 2>&1')
 
     # Run alignment
     print(f"Aligning reads to {reference_genome} and processing output...")
@@ -162,7 +166,7 @@ if len(l_ftp)==1: # Single end
     # samtools sort sorts the BAM file
     # samtools index creates the .bai index for quick access
     l = f'bwa mem -M -t 2 {reference_genome} {reads_file_single} > {output_sam}'
-    os.system(l)
+    os.system(l+f' > {log_file} 2>&1')
 elif len(l_ftp)==2: # Paired end
     paired_end = True
     # Extract fastq files
@@ -172,12 +176,12 @@ elif len(l_ftp)==2: # Paired end
     # --gzip: Compresses the output FASTQ files
     # -O: Output directory
     l = f'fastq-dump --split-files --gzip -O {tmp_folder} {sra_id}'
-    os.system(l)
+    os.system(l+f' > {log_file} 2>&1')
     print(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
     # Verify file sizes
     print("\nChecking file sizes:")
     l = f'du -h {reads_file_r1} {reads_file_r2}'
-    os.system(l)
+    os.system(l+f' > {log_file} 2>&1')
 
     # Run alignment
     print(f"Aligning reads to {reference_genome} and processing output...")
@@ -187,7 +191,7 @@ elif len(l_ftp)==2: # Paired end
     # samtools sort sorts the BAM file
     # samtools index creates the .bai index for quick access
     l = f'bwa mem -M -t 2 {reference_genome} {reads_file_r1} {reads_file_r2} > {output_sam}'
-    os.system(l)
+    os.system(l+f' > {log_file} 2>&1')
 else:
     print('WARNING: More than two elements in l_ftp.', l_ftp)
     paired_end = True
@@ -198,12 +202,12 @@ else:
     # --gzip: Compresses the output FASTQ files
     # -O: Output directory
     l = f'fastq-dump --split-files --gzip -O {tmp_folder} {sra_id}'
-    os.system(l)
+    os.system(l+f' > {log_file} 2>&1')
     print(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
     # Verify file sizes
     print("\nChecking file sizes:")
     l = f'du -h {reads_file_r1} {reads_file_r2}'
-    os.system(l)
+    os.system(l+f' > {log_file} 2>&1')
 
     # Run alignment
     print(f"Aligning reads to {reference_genome} and processing output...")
@@ -213,54 +217,54 @@ else:
     # samtools sort sorts the BAM file
     # samtools index creates the .bai index for quick access
     l = f'bwa mem -M -t 2 {reference_genome} {reads_file_r1} {reads_file_r2} > {output_sam}'
-    os.system(l)
+    os.system(l+f' > {log_file} 2>&1')
 
 print(f"Alignment to SAM file complete: {output_sam}")
 
 # Check if the SAM file was created and has content
 print("\nChecking SAM file content (first 20 lines):")
-l = f'head -n 20 {output_sam}'
-os.system(l)
+l = f'head -n 10 {output_sam}'
+os.system(l+f' > {log_file} 2>&1')
 # Check file size
 l = f'ls -lh {output_sam}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 print(f"\nConverting SAM to BAM: {output_sam} -> {output_bam}...")
 # -b: output BAM
 # -S: input is SAM (optional, but good for clarity)
 l = f'samtools view -bS {output_sam} -o {output_bam}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 print(f"SAM to BAM conversion complete: {output_bam}")
 # Check file size
 l = f'ls -lh {output_bam}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 print(f"\nSorting BAM file: {output_bam} -> {sorted_bam}...")
 # -o: Output file
 l = f'samtools sort {output_bam} -o {sorted_bam}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 print(f"BAM sorting complete: {sorted_bam}")
 # Check file size
 l = f'ls -lh {sorted_bam}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 print(f"\nIndexing sorted BAM file: {sorted_bam}...")
 l = f'samtools index {sorted_bam}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 print(f"BAM indexing complete. Index file: {sorted_bam}.bai")
 # Check index file size
 l = f'ls -lh {sorted_bam}.bai'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 print(f"\nAlignment and processing complete. Output BAM: {output_prefix}.sorted.bam")
 print(f"BAM index: {output_prefix}.sorted.bam.bai")
 
 print("\nAlignment statistics:")
 l = f'samtools flagstat {output_prefix}.sorted.bam'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 
 # Run variant calling
@@ -276,7 +280,7 @@ print(f"Pileup and BCF file generated: {output_bcf}")
 
 # Check bcf file
 l = f'tail {output_bcf}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 
 # Do calls with BCFtools
@@ -286,40 +290,40 @@ print(f"Calling variants from {output_bcf}...")
 # -v: Output only variant sites (not homozygous reference sites)
 # -o: Output file
 l = f'bcftools call -mv -o {output_vcf} {output_bcf}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 print(f"Variant calling complete. Output VCF: {output_vcf}")
 l = f'tail {output_vcf}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 # Compress and index VCF
 print(f"Compressing {output_vcf} with bgzip...")
 l = f'bgzip -c {output_vcf} > {compressed_vcf}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 print(f"Compressed VCF: {compressed_vcf}")
 
 print(f"Indexing {compressed_vcf} with tabix...")
 l = f'tabix -p vcf {compressed_vcf}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 print(f"VCF index: {compressed_vcf}.tbi")
 
 # View the first 50 lines of the VCF (header + some variants)
 print("\nFirst 50 lines of the VCF file:")
 l = f'zcat {compressed_vcf} | tail'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 print("\nVariant calling statistics:")
 l = f'bcftools stats {compressed_vcf} > {output_vcf}.stats'
 os.system(l)
 l = f'cat {output_vcf}.stats'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 
 # Analyze variants in VCF with snpeff
 l = f'java -Xmx4g -jar {snpeff_dir}/snpEff/snpEff.jar {genome_name} {output_vcf} > {snpeff_vcf}'
 os.system(l)
 l = f'tail {snpeff_vcf}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 print(f"Compressing {snpeff_vcf} with bgzip...")
 l = f'bgzip -c {snpeff_vcf} > {compressed_snpeff_vcf}'
@@ -328,7 +332,7 @@ print(f"Compressed VCF: {compressed_snpeff_vcf}")
 
 print(f"Indexing {compressed_snpeff_vcf} with tabix...")
 l = f'tabix -p vcf {compressed_snpeff_vcf}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 print(f"VCF index: {compressed_snpeff_vcf}.tbi")
 
 
@@ -541,7 +545,7 @@ OUTPUT_DIR = f"{output_prefix}/cnvpytor_results" # Specific output dir for this 
 
 # Create the output directory if it doesn't exist
 l = f'mkdir -p {OUTPUT_DIR}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 print(f"Output directory for results: {OUTPUT_DIR}")
 
 # Define the root file for CNVpytor
@@ -572,7 +576,7 @@ BIN_SIZES = str(cnv_bin_size)
 # Process Read Depth (RD) Data
 print("\n3. Processing Read Depth (RD) data...")
 l = f'cnvpytor -root {ROOT_FILE} -rd {BAM_PATH}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 print("Read Depth processing complete.")
 
 
@@ -582,11 +586,11 @@ if USE_BAF:
     # First, add SNPs from VCF to the root file
     print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -snp \"{VCF_PATH}\" -sample \"{SAMPLE_NAME}\"")
     l = f'cnvpytor -root {ROOT_FILE} -snp {VCF_PATH} -sample {SAMPLE_NAME}'
-    os.system(l)
+    os.system(l+f' > {log_file} 2>&1')
     # Then, perform BAF analysis with specified bin sizes
     print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -baf {BIN_SIZES}")
     l = f'cnvpytor -root {ROOT_FILE} -baf {BIN_SIZES}'
-    os.system(l)
+    os.system(l+f' > {log_file} 2>&1')
     print("B-allele Frequency processing complete.")
 else:
     print("\n4. BAF analysis skipped as specified or due to missing VCF/index.")
@@ -598,12 +602,12 @@ print("\n5. Generating histograms and partitioning data...")
 # Create histograms for RD and BAF (if used)
 print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -his {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -his {BIN_SIZES} --verbose debug'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 # Partition data for CNV calling
 print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -partition {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -partition {BIN_SIZES} --verbose debug'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 print("Histograms and partitioning complete.")
 
@@ -643,11 +647,14 @@ for key, value in dict_features.items():
     print(key, value)
 
 df_features = pd.DataFrame([dict_features])
-df_features.transpose().to_csv(f'{output_dir}/{sra_id}_features.csv', sep=';', header=[sra_id])
+try:
+    df_features.transpose().to_csv(f'{output_dir}/{sra_id}_features.csv', sep=';', header=[sra_id])
+except:
+    df_features.transpose().to_csv(f'{output_dir}/{sra_id}_features.csv', sep=';', header=False)
 
 print('Features loaded and saved.', '\nRemoving temporary files...')
 
 l = f'rm -r {tmp_folder}'
-os.system(l)
+os.system(l+f' > {log_file} 2>&1')
 
 print('Temporary files removed.')
