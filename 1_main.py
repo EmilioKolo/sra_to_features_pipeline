@@ -5,6 +5,7 @@ from collections import defaultdict, Counter
 from os import environ
 from pybedtools import BedTool
 import json
+import logging
 import os
 import pandas as pd
 import requests
@@ -13,9 +14,9 @@ import sys
 
 if len(sys.argv) > 1:
     sra_id = sys.argv[1]
-    print(f"The provided SRA ID is: {sra_id}")
+    logging.info(f"The provided SRA ID is: {sra_id}")
 else:
-    print("No SRA ID provided.")
+    logging.info("No SRA ID provided.")
     raise ValueError
 
 def run_silent(cmd, log):
@@ -110,7 +111,7 @@ def get_sra_from_ncbi(sra_accession_id: str) -> dict | None:
         "limit": 1
     }
 
-    print(f"Attempting to retrieve SRA data for: {sra_accession_id}")
+    logging.info(f"Attempting to retrieve SRA data for: {sra_accession_id}")
     try:
         # Make the HTTP GET request to the ENA API.
         response = requests.get(base_url, params=params)
@@ -123,24 +124,24 @@ def get_sra_from_ncbi(sra_accession_id: str) -> dict | None:
         # with one dictionary, or an empty list if not found.
         if data:
             sra_info = data[0]
-            print(f"Successfully retrieved data for {sra_accession_id}.")
+            logging.info(f"Successfully retrieved data for {sra_accession_id}.")
             return sra_info
         else:
-            print(f"No SRA data found for accession ID: {sra_accession_id}. Please check the ID.")
+            logging.info(f"No SRA data found for accession ID: {sra_accession_id}. Please check the ID.")
             return None
 
     except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err} - Status Code: {response.status_code}")
+        logging.info(f"HTTP error occurred: {http_err} - Status Code: {response.status_code}")
     except requests.exceptions.ConnectionError as conn_err:
-        print(f"Connection error occurred: {conn_err} - Unable to connect to ENA API.")
+        logging.info(f"Connection error occurred: {conn_err} - Unable to connect to ENA API.")
     except requests.exceptions.Timeout as timeout_err:
-        print(f"Timeout error occurred: {timeout_err} - Request to ENA API timed out.")
+        logging.info(f"Timeout error occurred: {timeout_err} - Request to ENA API timed out.")
     except requests.exceptions.RequestException as req_err:
-        print(f"An unexpected error occurred during the request: {req_err}")
+        logging.info(f"An unexpected error occurred during the request: {req_err}")
     except json.JSONDecodeError as json_err:
-        print(f"Error decoding JSON response: {json_err}. Response content: {response.text}")
+        logging.info(f"Error decoding JSON response: {json_err}. Response content: {response.text}")
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        logging.info(f"An unexpected error occurred: {e}")
 
     return None
 
@@ -151,22 +152,22 @@ l_ftp = sra_data['fastq_ftp'].split(';')
 if len(l_ftp)==1: # Single end
     paired_end = False
     # Extract fastq files
-    print(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
+    logging.info(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
     # fastq-dump options:
     # --gzip: Compresses the output FASTQ files
     # -O: Output directory
     l = f'fastq-dump --gzip -O {tmp_folder} {sra_id}'
     run_silent(l, log_file)
     #os.system(l+f' > {log_file} 2>&1')
-    print(f"Reads downloaded and extracted to: {reads_file_single}")
+    logging.info(f"Reads downloaded and extracted to: {reads_file_single}")
     # Verify file sizes
-    print("\nChecking file size.")
+    logging.info("\nChecking file size.")
     l = f'du -h {reads_file_single}'
     run_silent(l, log_file)
     #os.system(l+f' > {log_file} 2>&1')
 
     # Run alignment
-    print(f"Aligning reads to {reference_genome} and processing output...")
+    logging.info(f"Aligning reads to {reference_genome} and processing output...")
     # -M: Mark shorter split hits as secondary (recommended for Picard compatibility)
     # -t: Number of threads (Colab generally has 2 CPU cores available for free tier)
     # The '|' pipes the SAM output of bwa to samtools view for conversion to BAM
@@ -178,7 +179,7 @@ if len(l_ftp)==1: # Single end
 elif len(l_ftp)==2: # Paired end
     paired_end = True
     # Extract fastq files
-    print(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
+    logging.info(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
     # fastq-dump options:
     # --split-files: Creates _1.fastq and _2.fastq for paired-end reads
     # --gzip: Compresses the output FASTQ files
@@ -186,15 +187,15 @@ elif len(l_ftp)==2: # Paired end
     l = f'fastq-dump --split-files --gzip -O {tmp_folder} {sra_id}'
     run_silent(l, log_file)
     #os.system(l+f' > {log_file} 2>&1')
-    print(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
+    logging.info(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
     # Verify file sizes
-    print("\nChecking file sizes.")
+    logging.info("\nChecking file sizes.")
     l = f'du -h {reads_file_r1} {reads_file_r2}'
     run_silent(l, log_file)
     #os.system(l+f' > {log_file} 2>&1')
 
     # Run alignment
-    print(f"Aligning reads to {reference_genome} and processing output...")
+    logging.info(f"Aligning reads to {reference_genome} and processing output...")
     # -M: Mark shorter split hits as secondary (recommended for Picard compatibility)
     # -t: Number of threads (Colab generally has 2 CPU cores available for free tier)
     # The '|' pipes the SAM output of bwa to samtools view for conversion to BAM
@@ -204,10 +205,10 @@ elif len(l_ftp)==2: # Paired end
     run_silent(l, log_file)
     #os.system(l)
 else:
-    print('WARNING: More than two elements in l_ftp.', l_ftp)
+    logging.info(f'WARNING: More than two elements in l_ftp. {l_ftp}')
     paired_end = True
     # Extract fastq files
-    print(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
+    logging.info(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
     # fastq-dump options:
     # --split-files: Creates _1.fastq and _2.fastq for paired-end reads
     # --gzip: Compresses the output FASTQ files
@@ -215,15 +216,15 @@ else:
     l = f'fastq-dump --split-files --gzip -O {tmp_folder} {sra_id}'
     run_silent(l, log_file)
     #os.system(l+f' > {log_file} 2>&1')
-    print(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
+    logging.info(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
     # Verify file sizes
-    print("\nChecking file sizes.")
+    logging.info("\nChecking file sizes.")
     l = f'du -h {reads_file_r1} {reads_file_r2}'
     run_silent(l, log_file)
     #os.system(l+f' > {log_file} 2>&1')
 
     # Run alignment
-    print(f"Aligning reads to {reference_genome} and processing output...")
+    logging.info(f"Aligning reads to {reference_genome} and processing output...")
     # -M: Mark shorter split hits as secondary (recommended for Picard compatibility)
     # -t: Number of threads (Colab generally has 2 CPU cores available for free tier)
     # The '|' pipes the SAM output of bwa to samtools view for conversion to BAM
@@ -233,10 +234,10 @@ else:
     run_silent(l, log_file)
     #os.system(l)
 
-print(f"Alignment to SAM file complete: {output_sam}")
+logging.info(f"Alignment to SAM file complete: {output_sam}")
 
 # Check if the SAM file was created and has content
-print("\nChecking SAM file content...")
+logging.info("\nChecking SAM file content...")
 l = f'head -n 10 {output_sam}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
@@ -245,53 +246,53 @@ l = f'ls -lh {output_sam}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
-print(f"\nConverting SAM to BAM: {output_sam} -> {output_bam}...")
+logging.info(f"\nConverting SAM to BAM: {output_sam} -> {output_bam}...")
 # -b: output BAM
 # -S: input is SAM (optional, but good for clarity)
 l = f'samtools view -bS {output_sam} -o {output_bam}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
-print(f"SAM to BAM conversion complete: {output_bam}")
+logging.info(f"SAM to BAM conversion complete: {output_bam}")
 # Check file size
 l = f'ls -lh {output_bam}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
-print(f"\nSorting BAM file: {output_bam} -> {sorted_bam}...")
+logging.info(f"\nSorting BAM file: {output_bam} -> {sorted_bam}...")
 # -o: Output file
 l = f'samtools sort {output_bam} -o {sorted_bam}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
-print(f"BAM sorting complete: {sorted_bam}")
+logging.info(f"BAM sorting complete: {sorted_bam}")
 # Check file size
 l = f'ls -lh {sorted_bam}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
-print(f"\nIndexing sorted BAM file: {sorted_bam}...")
+logging.info(f"\nIndexing sorted BAM file: {sorted_bam}...")
 l = f'samtools index {sorted_bam}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
-print(f"BAM indexing complete. Index file: {sorted_bam}.bai")
+logging.info(f"BAM indexing complete. Index file: {sorted_bam}.bai")
 # Check index file size
 l = f'ls -lh {sorted_bam}.bai'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
-print(f"\nAlignment and processing complete. Output BAM: {output_prefix}.sorted.bam")
-print(f"BAM index: {output_prefix}.sorted.bam.bai")
+logging.info(f"\nAlignment and processing complete. Output BAM: {output_prefix}.sorted.bam")
+logging.info(f"BAM index: {output_prefix}.sorted.bam.bai")
 
-print("\nAlignment statistics...")
+logging.info("\nAlignment statistics...")
 l = f'samtools flagstat {output_prefix}.sorted.bam'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
 
 # Run variant calling
-print(f"Generating pileup and BCF file for {sorted_bam}...")
+logging.info(f"Generating pileup and BCF file for {sorted_bam}...")
 # samtools mpileup:
 # -u: Uncompressed BCF output (optimal for piping)
 # -f: Reference genome file
@@ -300,7 +301,7 @@ l = f'bcftools mpileup -f {reference_genome} {sorted_bam} > {output_bcf}'
 run_silent(l, log_file)
 #os.system(l)
 
-print(f"Pileup and BCF file generated: {output_bcf}")
+logging.info(f"Pileup and BCF file generated: {output_bcf}")
 
 # Check bcf file
 l = f'tail {output_bcf}'
@@ -309,7 +310,7 @@ run_silent(l, log_file)
 
 
 # Do calls with BCFtools
-print(f"Calling variants from {output_bcf}...")
+logging.info(f"Calling variants from {output_bcf}...")
 # bcftools call:
 # -m: Multiallelic caller (recommended for most cases)
 # -v: Output only variant sites (not homozygous reference sites)
@@ -318,31 +319,31 @@ l = f'bcftools call -mv -o {output_vcf} {output_bcf}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
-print(f"Variant calling complete. Output VCF: {output_vcf}")
+logging.info(f"Variant calling complete. Output VCF: {output_vcf}")
 l = f'tail {output_vcf}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
 # Compress and index VCF
-print(f"Compressing {output_vcf} with bgzip...")
+logging.info(f"Compressing {output_vcf} with bgzip...")
 l = f'bgzip -c {output_vcf} > {compressed_vcf}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
-print(f"Compressed VCF: {compressed_vcf}")
+logging.info(f"Compressed VCF: {compressed_vcf}")
 
-print(f"Indexing {compressed_vcf} with tabix...")
+logging.info(f"Indexing {compressed_vcf} with tabix...")
 l = f'tabix -p vcf {compressed_vcf}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
-print(f"VCF index: {compressed_vcf}.tbi")
+logging.info(f"VCF index: {compressed_vcf}.tbi")
 
 # View the first 50 lines of the VCF (header + some variants)
-print("\nFirst lines of the VCF file.")
+logging.info("\nFirst lines of the VCF file.")
 l = f'zcat {compressed_vcf} | tail'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
-print("\nVariant calling statistics.")
+logging.info("\nVariant calling statistics.")
 l = f'bcftools stats {compressed_vcf} > {output_vcf}.stats'
 run_silent(l, log_file)
 #os.system(l)
@@ -359,17 +360,17 @@ l = f'tail {snpeff_vcf}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
-print(f"Compressing {snpeff_vcf} with bgzip...")
+logging.info(f"Compressing {snpeff_vcf} with bgzip...")
 l = f'bgzip -c {snpeff_vcf} > {compressed_snpeff_vcf}'
 run_silent(l, log_file)
 #os.system(l)
-print(f"Compressed VCF: {compressed_snpeff_vcf}")
+logging.info(f"Compressed VCF: {compressed_snpeff_vcf}")
 
-print(f"Indexing {compressed_snpeff_vcf} with tabix...")
+logging.info(f"Indexing {compressed_snpeff_vcf} with tabix...")
 l = f'tabix -p vcf {compressed_snpeff_vcf}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
-print(f"VCF index: {compressed_snpeff_vcf}.tbi")
+logging.info(f"VCF index: {compressed_snpeff_vcf}.tbi")
 
 
 # Obtain number of variants in genome bins
@@ -383,17 +384,19 @@ counts = genome.intersect(variants, c=True)
 l_names = ['chrom', 'start', 'end', 'variant_count']
 df_vg_bins = counts.to_dataframe(names=l_names)
 
-# Format dataframe to save as feature
-df_vg_bins['bin_region'] = df_vg_bins.apply(lambda row: row['chrom'] + ':' + str(row['start']) + '-' + str(row['end']), axis=1)
+if df_vg_bins:
+    # Format dataframe to save as feature
+    df_vg_bins['bin_region'] = df_vg_bins.apply(lambda row: row['chrom'] + ':' + str(row['start']) + '-' + str(row['end']), axis=1)
 
-total_varcount = sum(df_vg_bins['variant_count'])
+    total_varcount = sum(df_vg_bins['variant_count'])
 
-for row in df_vg_bins.itertuples():
-    key = f'variants_in_{row.bin_region}'
-    dict_features[key] = row.variant_count
-    key = f'variants_in_{row.bin_region}_normalized'
-    dict_features[key] = float(row.variant_count)/total_varcount
-
+    for row in df_vg_bins.itertuples():
+        key = f'variants_in_{row.bin_region}'
+        dict_features[key] = row.variant_count
+        key = f'variants_in_{row.bin_region}_normalized'
+        dict_features[key] = float(row.variant_count)/total_varcount
+else:
+    logging.warning('df_vg_bins not created. Variants per bin not recorded.')
 
 # Obtain fragment lengths and their mean, median and st. deviation
 
@@ -417,13 +420,13 @@ if paired_end:
     fl_mean = statistics.mean(fragment_lengths)
     fl_median = statistics.median(fragment_lengths)
     fl_stdv = statistics.stdev(fragment_lengths)
-    print('Fragment mean, median and standard deviation:')
-    print(fl_mean, '/', fl_median, '/', fl_stdv)
+    logging.info('Fragment mean, median and standard deviation:')
+    logging.info(f'{fl_mean} / {fl_median} / {fl_stdv}')
 else:
     fl_mean = 'NA'
     fl_median = 'NA'
     fl_stdv = 'NA'
-    print('Single-end reads. Fragment length not calculated.')
+    logging.info('Single-end reads. Fragment length not calculated.')
 
 dict_features['fragment_lengths_mean'] = fl_mean
 dict_features['fragment_lengths_median'] = fl_median
@@ -505,12 +508,12 @@ environ['bed_intersect'] = bed_intersect
 l = 'bcftools query -f \'%CHROM\t%POS\t%END\t%INFO/ANN\n\' $vcf_file | awk \'BEGIN{OFS=\"\t\"} {print $1, $2-1, $2, $4}\' > $bed_variants'
 run_silent(l, log_file)
 #os.system(l)
-print(bed_variants, 'created.')
+logging.info(f'{bed_variants} created.')
 
 l = 'bedtools intersect -a $bed_variants -b $bed_genes -wa -wb > $bed_intersect'
 run_silent(l, log_file)
 #os.system(l)
-print(bed_intersect, 'created.')
+logging.info(f'{bed_intersect} created.')
 
 # Define effect categories
 synonymous_terms = {"synonymous_variant"}
@@ -566,12 +569,12 @@ with open(bed_intersect, 'r') as f:
                 gene_counts[gene]["nonsynonymous"] += 1
                 break # only count once per variant
 
-# Print and save results
+# Log and save results
 for gene, counts in gene_counts.items():
     syn = counts["synonymous"]
     nonsyn = counts["nonsynonymous"]
     ratio = syn / nonsyn if nonsyn > 0 else "Inf"
-    print(f"{gene}\tSyn: {syn}\tNonsyn: {nonsyn}\tRatio: {ratio}")
+    logging.info(f"{gene}\tSyn: {syn}\tNonsyn: {nonsyn}\tRatio: {ratio}")
     key = f'{gene}_ratio_dN_dS'
     dict_features[key] = ratio
 
@@ -587,25 +590,25 @@ OUTPUT_DIR = f"{output_prefix}/cnvpytor_results" # Specific output dir for this 
 l = f'mkdir -p {OUTPUT_DIR}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
-print(f"Output directory for results: {OUTPUT_DIR}")
+logging.info(f"Output directory for results: {OUTPUT_DIR}")
 
 # Define the root file for CNVpytor
 ROOT_FILE = os.path.join(OUTPUT_DIR, f"{SAMPLE_NAME}.pytor")
-print(f"CNVpytor root file will be: {ROOT_FILE}")
+logging.info(f"CNVpytor root file will be: {ROOT_FILE}")
 
 # Check if input files exist
 if not os.path.exists(BAM_PATH):
-    print(f"Error: BAM/CRAM file not found at {BAM_PATH}")
+    logging.info(f"Error: BAM/CRAM file not found at {BAM_PATH}")
     exit()
 if not (os.path.exists(f"{BAM_PATH}.bai") or os.path.exists(f"{BAM_PATH}.crai")):
-    print(f"Warning: BAM/CRAM index file not found. Please ensure '{BAM_PATH}.bai' or '{BAM_PATH}.crai' exists alongside the BAM/CRAM. CNVpytor might fail.")
+    logging.info(f"Warning: BAM/CRAM index file not found. Please ensure '{BAM_PATH}.bai' or '{BAM_PATH}.crai' exists alongside the BAM/CRAM. CNVpytor might fail.")
 
 USE_BAF = True # Set to False if you don't have a VCF/GVCF or don't want to use BAF
 if USE_BAF and not os.path.exists(VCF_PATH):
-    print(f"Warning: VCF/GVCF file not found at {VCF_PATH}. BAF analysis will be skipped.")
+    logging.info(f"Warning: VCF/GVCF file not found at {VCF_PATH}. BAF analysis will be skipped.")
     USE_BAF = False
 elif USE_BAF and not (os.path.exists(f"{VCF_PATH}.tbi") or os.path.exists(f"{VCF_PATH}.gz.tbi")):
-    print(f"Warning: VCF/GVCF index file not found. Ensure '{VCF_PATH}.tbi' or '{VCF_PATH}.gz.tbi' exists alongside the VCF/GVCF. BAF analysis might fail or be inaccurate.")
+    logging.info(f"Warning: VCF/GVCF index file not found. Ensure '{VCF_PATH}.tbi' or '{VCF_PATH}.gz.tbi' exists alongside the VCF/GVCF. BAF analysis might fail or be inaccurate.")
 
 
 # CNVpytor Parameters
@@ -615,57 +618,57 @@ elif USE_BAF and not (os.path.exists(f"{VCF_PATH}.tbi") or os.path.exists(f"{VCF
 BIN_SIZES = str(cnv_bin_size)
 
 # Process Read Depth (RD) Data
-print("\n3. Processing Read Depth (RD) data...")
+logging.info("\n3. Processing Read Depth (RD) data...")
 l = f'cnvpytor -root {ROOT_FILE} -rd {BAM_PATH}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
-print("Read Depth processing complete.")
+logging.info("Read Depth processing complete.")
 
 
 # Process BAF (BAF) Data
 if USE_BAF:
-    print("\n4. Processing B-allele Frequency (BAF) data...")
+    logging.info("\n4. Processing B-allele Frequency (BAF) data...")
     # First, add SNPs from VCF to the root file
-    print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -snp \"{VCF_PATH}\" -sample \"{SAMPLE_NAME}\"")
+    logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -snp \"{VCF_PATH}\" -sample \"{SAMPLE_NAME}\"")
     l = f'cnvpytor -root {ROOT_FILE} -snp {VCF_PATH} -sample {SAMPLE_NAME}'
     run_silent(l, log_file)
     #os.system(l+f' > {log_file} 2>&1')
     # Then, perform BAF analysis with specified bin sizes
-    print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -baf {BIN_SIZES}")
+    logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -baf {BIN_SIZES}")
     l = f'cnvpytor -root {ROOT_FILE} -baf {BIN_SIZES}'
     run_silent(l, log_file)
     #os.system(l+f' > {log_file} 2>&1')
-    print("B-allele Frequency processing complete.")
+    logging.info("B-allele Frequency processing complete.")
 else:
-    print("\n4. BAF analysis skipped as specified or due to missing VCF/index.")
+    logging.info("\n4. BAF analysis skipped as specified or due to missing VCF/index.")
 
 
 # Create Histograms and Partitioning
-print("\n5. Generating histograms and partitioning data...")
+logging.info("\n5. Generating histograms and partitioning data...")
 
 # Create histograms for RD and BAF (if used)
-print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -his {BIN_SIZES}")
+logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -his {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -his {BIN_SIZES} --verbose debug'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
 # Partition data for CNV calling
-print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -partition {BIN_SIZES}")
+logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -partition {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -partition {BIN_SIZES} --verbose debug'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
-print("Histograms and partitioning complete.")
+logging.info("Histograms and partitioning complete.")
 
 
 # Call CNVs
 
 cnv_call_file = f'{output_prefix}/cnv_calls_{BIN_SIZES}.txt'
-print(f"Running: cnvpytor -root \"{ROOT_FILE}\" -call {BIN_SIZES}")
+logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -call {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -call {BIN_SIZES} > {cnv_call_file}'
 run_silent(l, log_file)
 #os.system(l)
-print("CNV calling complete.")
+logging.info("CNV calling complete.")
 
 # Read CNVpytor output with python 
 calls = []
@@ -682,16 +685,16 @@ for call in calls:
 # Save result
 for chrom, count in sorted(cnv_counts.items()):
     if str(chrom).startswith('chr'):
-        print(f"{chrom}: {count} CNVs")
+        logging.info(f"{chrom}: {count} CNVs")
         key = f'{chrom}_cnv_count'
     else:
-        print(f"chr{chrom}: {count} CNVs")
+        logging.info(f"chr{chrom}: {count} CNVs")
         key = f'chr{chrom}_cnv_count'
     dict_features[key] = count
 
-print(f'{sra_id} features:')
+logging.info(f'{sra_id} features:')
 for key, value in dict_features.items():
-    print(key, value)
+    logging.info(key, value)
 
 df_features = pd.DataFrame([dict_features])
 try:
@@ -699,10 +702,10 @@ try:
 except:
     df_features.transpose().to_csv(f'{output_dir}/{sra_id}_features.csv', sep=';', header=False)
 
-print('Features loaded and saved.', '\nRemoving temporary files...')
+logging.info('Features loaded and saved.\nRemoving temporary files...')
 
 l = f'rm -r {tmp_folder}'
 run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
-print('Temporary files removed.')
+logging.info('Temporary files removed.')
