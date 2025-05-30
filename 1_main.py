@@ -12,7 +12,7 @@ import requests
 import statistics
 import sys
 
-logging.basicConfig(level=logging.WARNING) # INFO, DEBUG, WARNING, ERROR or CRITICAL
+logging.basicConfig(level=logging.INFO) # INFO, DEBUG, WARNING, ERROR or CRITICAL
 
 if len(sys.argv) > 1:
     sra_id = sys.argv[1]
