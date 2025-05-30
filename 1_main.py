@@ -12,6 +12,8 @@ import requests
 import statistics
 import sys
 
+logging.basicConfig(level=logging.WARNING) # INFO, DEBUG, WARNING, ERROR or CRITICAL
+
 if len(sys.argv) > 1:
     sra_id = sys.argv[1]
     logging.info(f"The provided SRA ID is: {sra_id}")
@@ -383,40 +385,39 @@ genome = genome.sort()
 variants = variants.sort()
 # Intersect genome and variants to obtain variants per bin
 counts = genome.intersect(variants, c=True)
-# Put counts in dataframe
-l_names = ['chrom', 'start', 'end', 'variant_count']
-df_vg_bins = counts.to_dataframe(names=l_names)
-
-if df_vg_bins:
-    # Format dataframe to save as feature
-    df_vg_bins['bin_region'] = df_vg_bins.apply(lambda row: row['chrom'] + ':' + str(row['start']) + '-' + str(row['end']), axis=1)
-
-    total_varcount = sum(df_vg_bins['variant_count'])
-
-    for row in df_vg_bins.itertuples():
-        key = f'variants_in_{row.bin_region}'
-        dict_features[key] = row.variant_count
-        key = f'variants_in_{row.bin_region}_normalized'
-        dict_features[key] = float(row.variant_count)/total_varcount
+if len(list(counts)) == 0:
+    logging.warning('counts variable is empty. Variants per bin not recorded.')
 else:
-    logging.warning('df_vg_bins not created. Variants per bin not recorded.')
+    # Put counts in dataframe
+    l_names = ['chrom', 'start', 'end', 'variant_count']
+    df_vg_bins = counts.to_dataframe(names=l_names)
+
+    if len(list(df_vg_bins)) == 0:
+        df_vg_bins['bin_region'] = df_vg_bins.apply(lambda row: row['chrom'] + ':' + str(row['start']) + '-' + str(row['end']), axis=1)
+
+        total_varcount = sum(df_vg_bins['variant_count'])
+
+        for row in df_vg_bins.itertuples():
+            key = f'variants_in_{row.bin_region}'
+            dict_features[key] = row.variant_count
+            key = f'variants_in_{row.bin_region}_normalized'
+            dict_features[key] = float(row.variant_count)/total_varcount
+    else:
+        logging.warning('df_vg_bins variable is empty. Variants per bin not recorded.')
 
 # Obtain fragment lengths and their mean, median and st. deviation
 
-# Define environment variables
-environ['sorted_bam'] = sorted_bam
-environ['sra_id'] = sra_id
-
 # Obtain fragment lengths with samtools (only works with paired ends)
 if paired_end:
+    logging.info('Starting to obtain fragment lengths...')
     l = 'samtools view -f '
-    l += '0x2 $sorted_bam |'
+    l += f'0x2 {sorted_bam} |'
     l += ' awk \'{if ($9>0 && $9<1000) print $9}\''
-    l += ' > \"~/content/data/fl_\"$sra_id\".txt\"'
-    run_silent(l, log_file)
-    #os.system(l)
+    l += f' > {output_dir}/fl_{sra_id}.txt'
+    #run_silent(l, log_file)
+    os.system(l)
     # Open the created file to obtain values
-    fragment_lengths = open(f"~/content/data/fl_{sra_id}.txt", "r").read().splitlines()
+    fragment_lengths = open(f"{output_dir}/fl_{sra_id}.txt", "r").read().splitlines()
     # Convert to integers
     fragment_lengths = list(map(int, fragment_lengths))
     # Get mean, median and standard deviation of fragment lengths (fl)
@@ -437,6 +438,8 @@ dict_features['fragment_lengths_stdv'] = fl_stdv
 
 
 # Count variants per region/gene in selected regions/genes
+
+logging.info('Starting to obtain variants per region and genes...')
 
 # Get regions from bed_file
 regions = []
@@ -477,8 +480,8 @@ for chrom, start, end, name in regions:
     environ['tmp_output'] = tmp_output
     # Use bcftools to check how many variables are in region_str
     l = 'bcftools view -r "$region_str" "$vcf_file" | grep -vc "^#" >> "$tmp_output"'
-    run_silent(l, log_file)
-    #os.system(l)
+    #run_silent(l, log_file)
+    os.system(l)
 
 # Read counts back into Python variable
 counts = []
@@ -501,6 +504,8 @@ for name, count in counts:
 
 # Synonymous/Nonsynonymous variant proportion per gene
 
+logging.info('Starting to obtain Syn/Nonsyn variant proportion per gene...')
+
 # Define variants using os.environ
 environ['bed_variants'] = bed_variants
 environ['vcf_file'] = vcf_file
@@ -509,13 +514,13 @@ environ['bed_intersect'] = bed_intersect
 
 # Generate bed_variants file
 l = 'bcftools query -f \'%CHROM\t%POS\t%END\t%INFO/ANN\n\' $vcf_file | awk \'BEGIN{OFS=\"\t\"} {print $1, $2-1, $2, $4}\' > $bed_variants'
-run_silent(l, log_file)
-#os.system(l)
+#run_silent(l, log_file)
+os.system(l)
 logging.info(f'{bed_variants} created.')
 
 l = 'bedtools intersect -a $bed_variants -b $bed_genes -wa -wb > $bed_intersect'
-run_silent(l, log_file)
-#os.system(l)
+#run_silent(l, log_file)
+os.system(l)
 logging.info(f'{bed_intersect} created.')
 
 # Define effect categories
@@ -583,6 +588,9 @@ for gene, counts in gene_counts.items():
 
 
 # CNV calling
+
+logging.info('Starting CNV calling...')
+
 # Construct full paths
 BAM_PATH = sorted_bam
 VCF_PATH = snpeff_vcf
@@ -598,6 +606,10 @@ logging.info(f"Output directory for results: {OUTPUT_DIR}")
 # Define the root file for CNVpytor
 ROOT_FILE = os.path.join(OUTPUT_DIR, f"{SAMPLE_NAME}.pytor")
 logging.info(f"CNVpytor root file will be: {ROOT_FILE}")
+
+if os.path.exists(ROOT_FILE):
+    l = f'rm -r {ROOT_FILE}'
+    os.system(l)
 
 # Check if input files exist
 if not os.path.exists(BAM_PATH):
@@ -620,10 +632,17 @@ elif USE_BAF and not (os.path.exists(f"{VCF_PATH}.tbi") or os.path.exists(f"{VCF
 #BIN_SIZES = "1000 10000 100000" # Example: 1kb, 10kb, 100kb bins
 BIN_SIZES = str(cnv_bin_size)
 
+# Create root file
+l = f'cnvpytor -root {ROOT_FILE} -his {BIN_SIZES} -bam {BAM_PATH}'
+os.system(l)
+#run_silent(l, log_file)
+#os.system(l+f' > {log_file} 2>&1')
+
 # Process Read Depth (RD) Data
 logging.info("\n3. Processing Read Depth (RD) data...")
 l = f'cnvpytor -root {ROOT_FILE} -rd {BAM_PATH}'
-run_silent(l, log_file)
+os.system(l)
+#run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 logging.info("Read Depth processing complete.")
 
@@ -634,12 +653,14 @@ if USE_BAF:
     # First, add SNPs from VCF to the root file
     logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -snp \"{VCF_PATH}\" -sample \"{SAMPLE_NAME}\"")
     l = f'cnvpytor -root {ROOT_FILE} -snp {VCF_PATH} -sample {SAMPLE_NAME}'
-    run_silent(l, log_file)
+    os.system(l)
+    #run_silent(l, log_file)
     #os.system(l+f' > {log_file} 2>&1')
     # Then, perform BAF analysis with specified bin sizes
     logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -baf {BIN_SIZES}")
     l = f'cnvpytor -root {ROOT_FILE} -baf {BIN_SIZES}'
-    run_silent(l, log_file)
+    os.system(l)
+    #run_silent(l, log_file)
     #os.system(l+f' > {log_file} 2>&1')
     logging.info("B-allele Frequency processing complete.")
 else:
@@ -652,13 +673,15 @@ logging.info("\n5. Generating histograms and partitioning data...")
 # Create histograms for RD and BAF (if used)
 logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -his {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -his {BIN_SIZES} --verbose debug'
-run_silent(l, log_file)
+os.system(l)
+#run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
 # Partition data for CNV calling
 logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -partition {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -partition {BIN_SIZES} --verbose debug'
-run_silent(l, log_file)
+os.system(l)
+#run_silent(l, log_file)
 #os.system(l+f' > {log_file} 2>&1')
 
 logging.info("Histograms and partitioning complete.")
@@ -695,9 +718,9 @@ for chrom, count in sorted(cnv_counts.items()):
         key = f'chr{chrom}_cnv_count'
     dict_features[key] = count
 
-logging.info(f'{sra_id} features:')
+logging.debug(f'{sra_id} features:')
 for key, value in dict_features.items():
-    logging.info(key, value)
+    logging.debug(f'{key}: {value}')
 
 df_features = pd.DataFrame([dict_features])
 try:
