@@ -378,6 +378,9 @@ logging.info(f"VCF index: {compressed_snpeff_vcf}.tbi")
 # Generate genome bins
 genome = BedTool().window_maker(g=genome_sizes, w=bin_size_gvs)
 variants = BedTool(output_vcf)
+# Sort (just in case)
+genome = genome.sort()
+variants = variants.sort()
 # Intersect genome and variants to obtain variants per bin
 counts = genome.intersect(variants, c=True)
 # Put counts in dataframe
