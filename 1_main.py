@@ -518,7 +518,7 @@ l = 'bcftools query -f \'%CHROM\t%POS\t%END\t%INFO/ANN\n\' $vcf_file | awk \'BEG
 os.system(l)
 logging.info(f'{bed_variants} created.')
 
-l = 'bedtools intersect -a $bed_variants -b $bed_genes -wa -wb > $bed_intersect'
+l = f'bedtools intersect -a {bed_variants} -b {bed_genes} -wa -wb > {bed_intersect}'
 #run_silent(l, log_file)
 os.system(l)
 logging.info(f'{bed_intersect} created.')
