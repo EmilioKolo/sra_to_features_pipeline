@@ -3,16 +3,21 @@
 
 from collections import defaultdict, Counter
 from os import environ
-from pybedtools import BedTool
-import json
+from scripts.feature_generation import extract_regions, fragment_lengths
+from scripts.feature_generation import variants_per_bin
+from scripts.snippet import run_silent
+from scripts.sra_to_vcf import align_bwa, compress_index_vcf
+from scripts.sra_to_vcf import download_fastq, get_sra_from_ncbi
+from scripts.sra_to_vcf import sam_to_bam, snpeff_analysis
+from scripts.sra_to_vcf import sort_index_bam, varcall_mpileup
 import logging
 import os
 import pandas as pd
-import requests
-import statistics
 import sys
 
-logging.basicConfig(level=logging.INFO) # INFO, DEBUG, WARNING, ERROR or CRITICAL
+# Define logging print level
+# Options: INFO, DEBUG, WARNING, ERROR or CRITICAL
+logging.basicConfig(level=logging.INFO)
 
 if len(sys.argv) > 1:
     sra_id = sys.argv[1]
@@ -20,11 +25,6 @@ if len(sys.argv) > 1:
 else:
     logging.info("No SRA ID provided.")
     raise ValueError
-
-def run_silent(cmd, log):
-    # Wrap the command in a bash subshell, redirect stdout and stderr
-    full_cmd = f"bash -c \"{cmd}\" >> {log} 2>&1"
-    os.system(full_cmd)
 
 # Base values and variables
 dict_features = {}
@@ -45,6 +45,7 @@ reads_file_r2 = f"{tmp_folder}/{sra_id}_2.fastq.gz"
 reads_file_single = f"{tmp_folder}/{sra_id}.fastq.gz"
 
 # Variables for sam/bam files
+output_no_tmp = f'{output_dir}/{sra_id}'
 output_prefix = f"{tmp_folder}/{sra_id}"
 output_sam = f"{output_prefix}.sam"
 output_bam = f"{output_prefix}.bam"
@@ -52,7 +53,7 @@ sorted_bam =f"{output_prefix}.sorted.bam"
 
 # Variables for bcf/vcf files
 output_bcf = f"{output_prefix}.bcf"
-output_vcf = f"{output_prefix}.vcf"
+output_vcf = f"{output_no_tmp}/{sra_id}.vcf"
 compressed_vcf = f'{output_vcf}.gz'
 
 # Variables for snpEff
@@ -70,7 +71,8 @@ bed_file = f'regions.bed'
 tmp_output = f'{tmp_folder}/counts.csv'
 
 # Variables to be used for Synonymous/Nonsynonymous variant proportion
-vcf_file = compressed_snpeff_vcf # vcf file used (must be snpeff, may be compressed)
+# vcf file used (must be snpeff, may be compressed)
+vcf_file = compressed_snpeff_vcf
 # bed files
 bed_variants = f'{output_dir}/variants.bed'
 bed_intersect = f'{tmp_folder}/intersect.bed'
@@ -86,66 +88,8 @@ l = f'mkdir -p {tmp_folder}'
 os.system(l)
 l = f'mkdir -p {log_dir}'
 os.system(l)
-
-
-def get_sra_from_ncbi(sra_accession_id: str) -> dict | None:
-    """
-    Retrieves SRA (Sequence Read Archive) metadata and download links
-    from NCBI via the European Nucleotide Archive (ENA) API.
-
-    Args:
-        sra_accession_id (str): The SRA accession ID (e.g., 'SRR000001', 'ERR000001', 'DRR000001').
-
-    Returns:
-        dict | None: A dictionary containing SRA metadata and download links if successful,
-                     otherwise None.
-    """
-    # ENA's API endpoint for searching read runs.
-    # We request JSON format and specify the fields we want to retrieve.
-    # 'fastq_ftp' and 'sra_ftp' provide direct download links.
-    # 'limit=1' ensures we only get one result for a specific accession.
-    base_url = "https://www.ebi.ac.uk/ena/portal/api/search"
-    params = {
-        "result": "read_run",
-        "query": f"run_accession={sra_accession_id}",
-        "fields": "run_accession,fastq_ftp,sra_ftp,experiment_accession,sample_accession,study_accession,library_name,library_strategy,library_source,library_selection,instrument_platform,instrument_model,base_count,read_count,scientific_name,tax_id",
-        "format": "json",
-        "limit": 1
-    }
-
-    logging.info(f"Attempting to retrieve SRA data for: {sra_accession_id}")
-    try:
-        # Make the HTTP GET request to the ENA API.
-        response = requests.get(base_url, params=params)
-        response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
-
-        # Parse the JSON response.
-        data = response.json()
-
-        # The ENA API returns a list of results. For a single accession, it should be a list
-        # with one dictionary, or an empty list if not found.
-        if data:
-            sra_info = data[0]
-            logging.info(f"Successfully retrieved data for {sra_accession_id}.")
-            return sra_info
-        else:
-            logging.info(f"No SRA data found for accession ID: {sra_accession_id}. Please check the ID.")
-            return None
-
-    except requests.exceptions.HTTPError as http_err:
-        logging.info(f"HTTP error occurred: {http_err} - Status Code: {response.status_code}")
-    except requests.exceptions.ConnectionError as conn_err:
-        logging.info(f"Connection error occurred: {conn_err} - Unable to connect to ENA API.")
-    except requests.exceptions.Timeout as timeout_err:
-        logging.info(f"Timeout error occurred: {timeout_err} - Request to ENA API timed out.")
-    except requests.exceptions.RequestException as req_err:
-        logging.info(f"An unexpected error occurred during the request: {req_err}")
-    except json.JSONDecodeError as json_err:
-        logging.info(f"Error decoding JSON response: {json_err}. Response content: {response.text}")
-    except Exception as e:
-        logging.info(f"An unexpected error occurred: {e}")
-
-    return None
+l = f'mkdir -p {output_no_tmp}'
+os.system(l)
 
 # Obtain SRA data
 sra_data = get_sra_from_ncbi(sra_id)
@@ -153,285 +97,71 @@ sra_data = get_sra_from_ncbi(sra_id)
 l_ftp = sra_data['fastq_ftp'].split(';')
 if len(l_ftp)==1: # Single end
     paired_end = False
-    # Extract fastq files
-    logging.info(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
-    # fastq-dump options:
-    # --gzip: Compresses the output FASTQ files
-    # -O: Output directory
-    l = f'fastq-dump --gzip -O {tmp_folder} {sra_id}'
-    run_silent(l, log_file)
-    #os.system(l+f' > {log_file} 2>&1')
-    logging.info(f"Reads downloaded and extracted to: {reads_file_single}")
-    # Verify file sizes
-    logging.info("\nChecking file size.")
-    l = f'du -h {reads_file_single}'
-    run_silent(l, log_file)
-    #os.system(l+f' > {log_file} 2>&1')
-
-    # Run alignment
-    logging.info(f"Aligning reads to {reference_genome} and processing output...")
-    # -M: Mark shorter split hits as secondary (recommended for Picard compatibility)
-    # -t: Number of threads (Colab generally has 2 CPU cores available for free tier)
-    # The '|' pipes the SAM output of bwa to samtools view for conversion to BAM
-    # samtools sort sorts the BAM file
-    # samtools index creates the .bai index for quick access
-    l = f'bwa mem -M -t 2 {reference_genome} {reads_file_single} > {output_sam}'
-    run_silent(l, log_file)
-    #os.system(l)
 elif len(l_ftp)==2: # Paired end
     paired_end = True
-    # Extract fastq files
-    logging.info(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
-    # fastq-dump options:
-    # --split-files: Creates _1.fastq and _2.fastq for paired-end reads
-    # --gzip: Compresses the output FASTQ files
-    # -O: Output directory
-    l = f'fastq-dump --split-files --gzip -O {tmp_folder} {sra_id}'
-    run_silent(l, log_file)
-    #os.system(l+f' > {log_file} 2>&1')
-    logging.info(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
-    # Verify file sizes
-    logging.info("\nChecking file sizes.")
-    l = f'du -h {reads_file_r1} {reads_file_r2}'
-    run_silent(l, log_file)
-    #os.system(l+f' > {log_file} 2>&1')
-
-    # Run alignment
-    logging.info(f"Aligning reads to {reference_genome} and processing output...")
-    # -M: Mark shorter split hits as secondary (recommended for Picard compatibility)
-    # -t: Number of threads (Colab generally has 2 CPU cores available for free tier)
-    # The '|' pipes the SAM output of bwa to samtools view for conversion to BAM
-    # samtools sort sorts the BAM file
-    # samtools index creates the .bai index for quick access
-    l = f'bwa mem -M -t 2 {reference_genome} {reads_file_r1} {reads_file_r2} > {output_sam}'
-    run_silent(l, log_file)
-    #os.system(l)
 else:
     logging.info(f'WARNING: More than two elements in l_ftp. {l_ftp}')
     paired_end = True
-    # Extract fastq files
-    logging.info(f"\nDownloading and extracting FASTQ files for {sra_id} using fastq-dump...")
-    # fastq-dump options:
-    # --split-files: Creates _1.fastq and _2.fastq for paired-end reads
-    # --gzip: Compresses the output FASTQ files
-    # -O: Output directory
-    l = f'fastq-dump --split-files --gzip -O {tmp_folder} {sra_id}'
-    run_silent(l, log_file)
-    #os.system(l+f' > {log_file} 2>&1')
-    logging.info(f"Reads downloaded and extracted to: {reads_file_r1} and {reads_file_r2}")
-    # Verify file sizes
-    logging.info("\nChecking file sizes.")
-    l = f'du -h {reads_file_r1} {reads_file_r2}'
-    run_silent(l, log_file)
-    #os.system(l+f' > {log_file} 2>&1')
 
-    # Run alignment
-    logging.info(f"Aligning reads to {reference_genome} and processing output...")
-    # -M: Mark shorter split hits as secondary (recommended for Picard compatibility)
-    # -t: Number of threads (Colab generally has 2 CPU cores available for free tier)
-    # The '|' pipes the SAM output of bwa to samtools view for conversion to BAM
-    # samtools sort sorts the BAM file
-    # samtools index creates the .bai index for quick access
-    l = f'bwa mem -M -t 2 {reference_genome} {reads_file_r1} {reads_file_r2} > {output_sam}'
-    run_silent(l, log_file)
-    #os.system(l)
+# Download the fastq files from SRA ID
+download_fastq(tmp_folder, sra_id, paired_end, log_file)
+# Align the reads to the reference genome
+align_bwa(tmp_folder, sra_id, reference_genome, paired_end, log_file)
+# Convert sam file to bam
+sam_to_bam(output_sam, output_bam, log_file)
+# Sort and index the bam file
+sort_index_bam(output_bam, sorted_bam, log_file)
 
-logging.info(f"Alignment to SAM file complete: {output_sam}")
-
-# Check if the SAM file was created and has content
-logging.info("\nChecking SAM file content...")
-l = f'head -n 10 {output_sam}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-# Check file size
-l = f'ls -lh {output_sam}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
-logging.info(f"\nConverting SAM to BAM: {output_sam} -> {output_bam}...")
-# -b: output BAM
-# -S: input is SAM (optional, but good for clarity)
-l = f'samtools view -bS {output_sam} -o {output_bam}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
-logging.info(f"SAM to BAM conversion complete: {output_bam}")
-# Check file size
-l = f'ls -lh {output_bam}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
-logging.info(f"\nSorting BAM file: {output_bam} -> {sorted_bam}...")
-# -o: Output file
-l = f'samtools sort {output_bam} -o {sorted_bam}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
-logging.info(f"BAM sorting complete: {sorted_bam}")
-# Check file size
-l = f'ls -lh {sorted_bam}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
-logging.info(f"\nIndexing sorted BAM file: {sorted_bam}...")
-l = f'samtools index {sorted_bam}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
-logging.info(f"BAM indexing complete. Index file: {sorted_bam}.bai")
-# Check index file size
-l = f'ls -lh {sorted_bam}.bai'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
-logging.info(f"\nAlignment and processing complete. Output BAM: {output_prefix}.sorted.bam")
+t = 'Alignment and processing complete.'
+t += f' Output BAM: {output_prefix}.sorted.bam'
+logging.info(t)
 logging.info(f"BAM index: {output_prefix}.sorted.bam.bai")
 
 logging.info("\nAlignment statistics...")
 l = f'samtools flagstat {output_prefix}.sorted.bam'
 run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
 
 # Run variant calling
-logging.info(f"Generating pileup and BCF file for {sorted_bam}...")
-# samtools mpileup:
-# -u: Uncompressed BCF output (optimal for piping)
-# -f: Reference genome file
-# -o: Output file
-l = f'bcftools mpileup -f {reference_genome} {sorted_bam} > {output_bcf}'
-run_silent(l, log_file)
-#os.system(l)
-
-logging.info(f"Pileup and BCF file generated: {output_bcf}")
-
-# Check bcf file
-l = f'tail {output_bcf}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
-
-# Do calls with BCFtools
-logging.info(f"Calling variants from {output_bcf}...")
-# bcftools call:
-# -m: Multiallelic caller (recommended for most cases)
-# -v: Output only variant sites (not homozygous reference sites)
-# -o: Output file
-l = f'bcftools call -mv -o {output_vcf} {output_bcf}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
-logging.info(f"Variant calling complete. Output VCF: {output_vcf}")
-l = f'tail {output_vcf}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
-# Compress and index VCF
-logging.info(f"Compressing {output_vcf} with bgzip...")
-l = f'bgzip -c {output_vcf} > {compressed_vcf}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-logging.info(f"Compressed VCF: {compressed_vcf}")
-
-logging.info(f"Indexing {compressed_vcf} with tabix...")
-l = f'tabix -p vcf {compressed_vcf}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-logging.info(f"VCF index: {compressed_vcf}.tbi")
-
-# View the first 50 lines of the VCF (header + some variants)
-logging.info("\nFirst lines of the VCF file.")
-l = f'zcat {compressed_vcf} | tail'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
-logging.info("\nVariant calling statistics.")
-l = f'bcftools stats {compressed_vcf} > {output_vcf}.stats'
-run_silent(l, log_file)
-#os.system(l)
-l = f'cat {output_vcf}.stats'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
-
+varcall_mpileup(
+    sorted_bam,
+    output_bcf,
+    output_vcf,
+    reference_genome,
+    log_file
+    )
+# Compress and index the created vcf file
+compress_index_vcf(output_vcf, compressed_vcf, log_file)
 # Analyze variants in VCF with snpeff
-l = f'java -Xmx4g -jar {snpeff_dir}/snpEff/snpEff.jar {genome_name} {output_vcf} > {snpeff_vcf}'
-run_silent(l, log_file)
-#os.system(l)
-l = f'tail {snpeff_vcf}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-
-logging.info(f"Compressing {snpeff_vcf} with bgzip...")
-l = f'bgzip -c {snpeff_vcf} > {compressed_snpeff_vcf}'
-run_silent(l, log_file)
-#os.system(l)
-logging.info(f"Compressed VCF: {compressed_snpeff_vcf}")
-
-logging.info(f"Indexing {compressed_snpeff_vcf} with tabix...")
-l = f'tabix -p vcf {compressed_snpeff_vcf}'
-run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
-logging.info(f"VCF index: {compressed_snpeff_vcf}.tbi")
-
+snpeff_analysis(
+        output_vcf,
+        snpeff_vcf,
+        compressed_snpeff_vcf,
+        genome_name,
+        snpeff_dir,
+        log_file
+        )
 
 # Obtain number of variants in genome bins
-
-# Generate genome bins
-genome = BedTool().window_maker(g=genome_sizes, w=bin_size_gvs)
-variants = BedTool(output_vcf)
-# Sort (just in case)
-genome = genome.sort()
-variants = variants.sort()
-# Intersect genome and variants to obtain variants per bin
-counts = genome.intersect(variants, c=True)
-if len(list(counts)) == 0:
-    logging.warning('counts variable is empty. Variants per bin not recorded.')
-else:
-    # Put counts in dataframe
-    l_names = ['chrom', 'start', 'end', 'variant_count']
-    df_vg_bins = counts.to_dataframe(names=l_names)
-
-    if len(list(df_vg_bins)) == 0:
-        df_vg_bins['bin_region'] = df_vg_bins.apply(lambda row: row['chrom'] + ':' + str(row['start']) + '-' + str(row['end']), axis=1)
-
-        total_varcount = sum(df_vg_bins['variant_count'])
-
-        for row in df_vg_bins.itertuples():
-            key = f'variants_in_{row.bin_region}'
-            dict_features[key] = row.variant_count
-            key = f'variants_in_{row.bin_region}_normalized'
-            dict_features[key] = float(row.variant_count)/total_varcount
-    else:
-        logging.warning('df_vg_bins variable is empty. Variants per bin not recorded.')
+bins_dict = variants_per_bin(output_vcf, genome_sizes, bin_size_gvs)
+# Load items from bins_dict to dict_features
+for key, value in bins_dict.items():
+    dict_features[key] = value
 
 # Obtain fragment lengths and their mean, median and st. deviation
 
 # Obtain fragment lengths with samtools (only works with paired ends)
 if paired_end:
-    logging.info('Starting to obtain fragment lengths...')
-    l = 'samtools view -f '
-    l += f'0x2 {sorted_bam} |'
-    l += ' awk \'{if ($9>0 && $9<1000) print $9}\''
-    l += f' > {output_dir}/fl_{sra_id}.txt'
-    #run_silent(l, log_file)
-    os.system(l)
-    # Open the created file to obtain values
-    fragment_lengths = open(f"{output_dir}/fl_{sra_id}.txt", "r").read().splitlines()
-    # Convert to integers
-    fragment_lengths = list(map(int, fragment_lengths))
-    # Get mean, median and standard deviation of fragment lengths (fl)
-    fl_mean = statistics.mean(fragment_lengths)
-    fl_median = statistics.median(fragment_lengths)
-    fl_stdv = statistics.stdev(fragment_lengths)
-    logging.info('Fragment mean, median and standard deviation:')
-    logging.info(f'{fl_mean} / {fl_median} / {fl_stdv}')
+    fl_mean, fl_median, fl_stdv = fragment_lengths(
+        output_dir,
+        sra_id,
+        sorted_bam
+        )
 else:
     fl_mean = 'NA'
     fl_median = 'NA'
     fl_stdv = 'NA'
     logging.info('Single-end reads. Fragment length not calculated.')
-
+# Assign values to dict_features
 dict_features['fragment_lengths_mean'] = fl_mean
 dict_features['fragment_lengths_median'] = fl_median
 dict_features['fragment_lengths_stdv'] = fl_stdv
@@ -442,24 +172,7 @@ dict_features['fragment_lengths_stdv'] = fl_stdv
 logging.info('Starting to obtain variants per region and genes...')
 
 # Get regions from bed_file
-regions = []
-with open(bed_file) as f:
-    # Go through bed file
-    for line in f:
-        # Discard empty lines and commented lines
-        if line.strip() and not line.startswith("#"):
-            # Split the line
-            fields = line.strip().split('\t')
-            # chr, start and end should be in the first 3 fields
-            chrom, start, end = fields[:3]
-            # Fourth field can be region name (i.e. for genes)
-            if len(fields) > 3:
-                name = fields[3]
-            else:
-                name = f"{chrom}:{start}-{end}"
-            # Add to region list
-            regions.append((chrom, int(start), int(end), name))
-
+regions = extract_regions(bed_file)
 
 # Count variants per region
 
