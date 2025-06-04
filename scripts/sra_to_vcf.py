@@ -101,7 +101,10 @@ def download_fastq(
     # fastq-dump options:
     # --gzip: Compresses the output FASTQ files
     # -O: Output directory
-    l = f'fastq-dump --gzip -O {output_folder} {sra_id}'
+    l = 'fastq-dump --gzip'
+    if paired_end:
+        l += ' --split-files'
+    l += f' -O {output_folder} {sra_id}'
     run_silent(l, log_file)
     # Visualize file sizes
     t = f'Reads downloaded and extracted to:'
