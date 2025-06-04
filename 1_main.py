@@ -32,7 +32,7 @@ HOME_DIR = os.path.expanduser("~")
 output_dir = os.path.join(HOME_DIR, "content/data")
 tmp_folder = f'{output_dir}/tmp_{sra_id}'
 log_dir = f'{output_dir}/logs'
-log_file = f'{log_dir}/{sra_id}.log'
+log_file = f'{log_dir}/{sra_id}'
 
 # Define fasta reference and corresponding gff file
 fasta_file = f'{output_dir}/reference.fasta'
@@ -83,13 +83,13 @@ cnv_bin_size = 100*1000
 
 # Create base output directories
 l = f'mkdir -p {output_dir}'
-os.system(l)
+run_silent(l, '')
 l = f'mkdir -p {tmp_folder}'
-os.system(l)
+run_silent(l, '')
 l = f'mkdir -p {log_dir}'
-os.system(l)
+run_silent(l, '')
 l = f'mkdir -p {output_no_tmp}'
-os.system(l)
+run_silent(l, '')
 
 # Obtain SRA data
 sra_data = get_sra_from_ncbi(sra_id)
@@ -193,8 +193,7 @@ for chrom, start, end, name in regions:
     environ['tmp_output'] = tmp_output
     # Use bcftools to check how many variables are in region_str
     l = 'bcftools view -r "$region_str" "$vcf_file" | grep -vc "^#" >> "$tmp_output"'
-    #run_silent(l, log_file)
-    os.system(l)
+    run_silent(l, '')
 
 # Read counts back into Python variable
 counts = []
@@ -219,7 +218,7 @@ for name, count in counts:
 
 logging.info('Starting to obtain Syn/Nonsyn variant proportion per gene...')
 
-# Define variants using os.environ
+# Define variants using environ
 environ['bed_variants'] = bed_variants
 environ['vcf_file'] = vcf_file
 environ['bed_genes'] = bed_genes
@@ -227,13 +226,11 @@ environ['bed_intersect'] = bed_intersect
 
 # Generate bed_variants file
 l = 'bcftools query -f \'%CHROM\t%POS\t%END\t%INFO/ANN\n\' $vcf_file | awk \'BEGIN{OFS=\"\t\"} {print $1, $2-1, $2, $4}\' > $bed_variants'
-#run_silent(l, log_file)
-os.system(l)
+run_silent(l, '')
 logging.info(f'{bed_variants} created.')
 
 l = f'bedtools intersect -a {bed_variants} -b {bed_genes} -wa -wb > {bed_intersect}'
-#run_silent(l, log_file)
-os.system(l)
+run_silent(l, '')
 logging.info(f'{bed_intersect} created.')
 
 # Define effect categories
@@ -313,7 +310,6 @@ OUTPUT_DIR = f"{output_prefix}/cnvpytor_results" # Specific output dir for this 
 # Create the output directory if it doesn't exist
 l = f'mkdir -p {OUTPUT_DIR}'
 run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
 logging.info(f"Output directory for results: {OUTPUT_DIR}")
 
 # Define the root file for CNVpytor
@@ -322,7 +318,7 @@ logging.info(f"CNVpytor root file will be: {ROOT_FILE}")
 
 if os.path.exists(ROOT_FILE):
     l = f'rm -r {ROOT_FILE}'
-    os.system(l)
+    run_silent(l, '')
 
 # Check if input files exist
 if not os.path.exists(BAM_PATH):
@@ -347,16 +343,12 @@ BIN_SIZES = str(cnv_bin_size)
 
 # Create root file
 l = f'cnvpytor -root {ROOT_FILE} -his {BIN_SIZES} -bam {BAM_PATH}'
-os.system(l)
-#run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
+run_silent(l, '')
 
 # Process Read Depth (RD) Data
 logging.info("\n3. Processing Read Depth (RD) data...")
 l = f'cnvpytor -root {ROOT_FILE} -rd {BAM_PATH}'
-os.system(l)
-#run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
+run_silent(l, '')
 logging.info("Read Depth processing complete.")
 
 
@@ -366,15 +358,11 @@ if USE_BAF:
     # First, add SNPs from VCF to the root file
     logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -snp \"{VCF_PATH}\" -sample \"{SAMPLE_NAME}\"")
     l = f'cnvpytor -root {ROOT_FILE} -snp {VCF_PATH} -sample {SAMPLE_NAME}'
-    os.system(l)
-    #run_silent(l, log_file)
-    #os.system(l+f' > {log_file} 2>&1')
+    run_silent(l, '')
     # Then, perform BAF analysis with specified bin sizes
     logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -baf {BIN_SIZES}")
     l = f'cnvpytor -root {ROOT_FILE} -baf {BIN_SIZES}'
-    os.system(l)
-    #run_silent(l, log_file)
-    #os.system(l+f' > {log_file} 2>&1')
+    run_silent(l, '')
     logging.info("B-allele Frequency processing complete.")
 else:
     logging.info("\n4. BAF analysis skipped as specified or due to missing VCF/index.")
@@ -386,16 +374,12 @@ logging.info("\n5. Generating histograms and partitioning data...")
 # Create histograms for RD and BAF (if used)
 logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -his {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -his {BIN_SIZES} --verbose debug'
-os.system(l)
-#run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
+run_silent(l, '')
 
 # Partition data for CNV calling
 logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -partition {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -partition {BIN_SIZES} --verbose debug'
-os.system(l)
-#run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
+run_silent(l, '')
 
 logging.info("Histograms and partitioning complete.")
 
@@ -406,7 +390,6 @@ cnv_call_file = f'{output_prefix}/cnv_calls_{BIN_SIZES}.txt'
 logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -call {BIN_SIZES}")
 l = f'cnvpytor -root {ROOT_FILE} -call {BIN_SIZES} > {cnv_call_file}'
 run_silent(l, log_file)
-#os.system(l)
 logging.info("CNV calling complete.")
 
 # Read CNVpytor output with python 
@@ -445,6 +428,5 @@ logging.info('Features loaded and saved.\nRemoving temporary files...')
 
 l = f'rm -r {tmp_folder}'
 run_silent(l, log_file)
-#os.system(l+f' > {log_file} 2>&1')
 
 logging.info('Temporary files removed.')

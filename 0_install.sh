@@ -25,8 +25,8 @@ python3 -m pip install cnvpytor==1.3.1
 
 # Create data directory
 mkdir -p ~/content/data
-# Create temporary directory
-mkdir -p ~/content/data/tmp
+# Create logging directory
+mkdir -p ~/content/data/logs
 
 # Download Reference Genome
 
