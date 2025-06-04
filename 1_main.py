@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 
-from collections import defaultdict, Counter
-from os import environ
+from collections import Counter
+from scripts.feature_generation import cnvpytor_pipeline
+from scripts.feature_generation import count_syn_nonsyn, create_counts
 from scripts.feature_generation import extract_regions, fragment_lengths
 from scripts.feature_generation import variants_per_bin
 from scripts.snippet import run_silent
@@ -176,24 +177,12 @@ regions = extract_regions(bed_file)
 
 # Count variants per region
 
-# Clear intermediary output file before appending
-with open(tmp_output, "w") as f:
-    f.write("")
-
-# Load regions and counts into tmp_output
-for chrom, start, end, name in regions:
-    # Define region string
-    region_str = f"{chrom}:{start}-{end}"
-    # Add region name
-    with open(tmp_output, "a+") as f:
-        f.write(f"{name}\t")
-    # Use environ to define variables
-    environ['region_str'] = region_str
-    environ['vcf_file'] = compressed_vcf
-    environ['tmp_output'] = tmp_output
-    # Use bcftools to check how many variables are in region_str
-    l = 'bcftools view -r "$region_str" "$vcf_file" | grep -vc "^#" >> "$tmp_output"'
-    run_silent(l, '')
+# Create counts file
+create_counts(
+        tmp_output,
+        regions,
+        compressed_vcf
+        )
 
 # Read counts back into Python variable
 counts = []
@@ -215,78 +204,12 @@ for name, count in counts:
 
 
 # Synonymous/Nonsynonymous variant proportion per gene
-
-logging.info('Starting to obtain Syn/Nonsyn variant proportion per gene...')
-
-# Define variants using environ
-environ['bed_variants'] = bed_variants
-environ['vcf_file'] = vcf_file
-environ['bed_genes'] = bed_genes
-environ['bed_intersect'] = bed_intersect
-
-# Generate bed_variants file
-l = 'bcftools query -f \'%CHROM\t%POS\t%END\t%INFO/ANN\n\' $vcf_file | awk \'BEGIN{OFS=\"\t\"} {print $1, $2-1, $2, $4}\' > $bed_variants'
-run_silent(l, '')
-logging.info(f'{bed_variants} created.')
-
-l = f'bedtools intersect -a {bed_variants} -b {bed_genes} -wa -wb > {bed_intersect}'
-run_silent(l, '')
-logging.info(f'{bed_intersect} created.')
-
-# Define effect categories
-synonymous_terms = {"synonymous_variant"}
-nonsynonymous_terms = {
-    "missense_variant",
-    "stop_gained",
-    "stop_lost",
-    "start_lost",
-    "protein_altering_variant",
-    "inframe_insertion",
-    "inframe_deletion",
-    "frameshift_variant"
-}
-
-def parse_ann_field(ann_field:str) -> list[str]:
-    """
-    Parse ANN field and return a list of effects
-    """
-    # Split the raw annotation field per effect
-    annotations = ann_field.split(",")
-    effects = []
-    # Go through the different variant effects
-    for ann in annotations:
-        # Split into the different fields
-        fields = ann.split("|")
-        if len(fields) > 1:
-            # Keep the effect field (0 is variant)
-            effect = fields[1].strip()
-            # Add to output list
-            effects.append(effect)
-    return effects
-
-# Initialize defaultdict (dictionary) for counts
-gene_counts = defaultdict(lambda: {"synonymous": 0, "nonsynonymous": 0})
-
-# Open the intersect bed file
-with open(bed_intersect, 'r') as f:
-    # Go through lines
-    for line in f:
-        # Split line
-        cols = line.strip().split("\t")
-        # Get the gene and annotation fields
-        ann_field = cols[3]
-        gene = cols[7]
-        # Parse the annotationfield
-        effects = parse_ann_field(ann_field)
-        # Go through obtained effects
-        for effect in effects:
-            if effect in synonymous_terms:
-                gene_counts[gene]["synonymous"] += 1
-                break # only count once per variant
-            elif effect in nonsynonymous_terms:
-                gene_counts[gene]["nonsynonymous"] += 1
-                break # only count once per variant
-
+gene_counts = count_syn_nonsyn(
+    bed_variants,
+    vcf_file,
+    bed_genes,
+    bed_intersect
+    )
 # Log and save results
 for gene, counts in gene_counts.items():
     syn = counts["synonymous"]
@@ -298,99 +221,14 @@ for gene, counts in gene_counts.items():
 
 
 # CNV calling
-
-logging.info('Starting CNV calling...')
-
-# Construct full paths
-BAM_PATH = sorted_bam
-VCF_PATH = snpeff_vcf
-SAMPLE_NAME = sra_id
-OUTPUT_DIR = f"{output_prefix}/cnvpytor_results" # Specific output dir for this sample
-
-# Create the output directory if it doesn't exist
-l = f'mkdir -p {OUTPUT_DIR}'
-run_silent(l, log_file)
-logging.info(f"Output directory for results: {OUTPUT_DIR}")
-
-# Define the root file for CNVpytor
-ROOT_FILE = os.path.join(OUTPUT_DIR, f"{SAMPLE_NAME}.pytor")
-logging.info(f"CNVpytor root file will be: {ROOT_FILE}")
-
-if os.path.exists(ROOT_FILE):
-    l = f'rm -r {ROOT_FILE}'
-    run_silent(l, '')
-
-# Check if input files exist
-if not os.path.exists(BAM_PATH):
-    logging.info(f"Error: BAM/CRAM file not found at {BAM_PATH}")
-    exit()
-if not (os.path.exists(f"{BAM_PATH}.bai") or os.path.exists(f"{BAM_PATH}.crai")):
-    logging.info(f"Warning: BAM/CRAM index file not found. Please ensure '{BAM_PATH}.bai' or '{BAM_PATH}.crai' exists alongside the BAM/CRAM. CNVpytor might fail.")
-
-USE_BAF = True # Set to False if you don't have a VCF/GVCF or don't want to use BAF
-if USE_BAF and not os.path.exists(VCF_PATH):
-    logging.info(f"Warning: VCF/GVCF file not found at {VCF_PATH}. BAF analysis will be skipped.")
-    USE_BAF = False
-elif USE_BAF and not (os.path.exists(f"{VCF_PATH}.tbi") or os.path.exists(f"{VCF_PATH}.gz.tbi")):
-    logging.info(f"Warning: VCF/GVCF index file not found. Ensure '{VCF_PATH}.tbi' or '{VCF_PATH}.gz.tbi' exists alongside the VCF/GVCF. BAF analysis might fail or be inaccurate.")
-
-
-# CNVpytor Parameters
-# Smaller bins offer more resolution, larger bins offer more robustness and detect larger events.
-# It's recommended to use a range.
-#BIN_SIZES = "1000 10000 100000" # Example: 1kb, 10kb, 100kb bins
-BIN_SIZES = str(cnv_bin_size)
-
-# Create root file
-l = f'cnvpytor -root {ROOT_FILE} -his {BIN_SIZES} -bam {BAM_PATH}'
-run_silent(l, '')
-
-# Process Read Depth (RD) Data
-logging.info("\n3. Processing Read Depth (RD) data...")
-l = f'cnvpytor -root {ROOT_FILE} -rd {BAM_PATH}'
-run_silent(l, '')
-logging.info("Read Depth processing complete.")
-
-
-# Process BAF (BAF) Data
-if USE_BAF:
-    logging.info("\n4. Processing B-allele Frequency (BAF) data...")
-    # First, add SNPs from VCF to the root file
-    logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -snp \"{VCF_PATH}\" -sample \"{SAMPLE_NAME}\"")
-    l = f'cnvpytor -root {ROOT_FILE} -snp {VCF_PATH} -sample {SAMPLE_NAME}'
-    run_silent(l, '')
-    # Then, perform BAF analysis with specified bin sizes
-    logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -baf {BIN_SIZES}")
-    l = f'cnvpytor -root {ROOT_FILE} -baf {BIN_SIZES}'
-    run_silent(l, '')
-    logging.info("B-allele Frequency processing complete.")
-else:
-    logging.info("\n4. BAF analysis skipped as specified or due to missing VCF/index.")
-
-
-# Create Histograms and Partitioning
-logging.info("\n5. Generating histograms and partitioning data...")
-
-# Create histograms for RD and BAF (if used)
-logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -his {BIN_SIZES}")
-l = f'cnvpytor -root {ROOT_FILE} -his {BIN_SIZES} --verbose debug'
-run_silent(l, '')
-
-# Partition data for CNV calling
-logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -partition {BIN_SIZES}")
-l = f'cnvpytor -root {ROOT_FILE} -partition {BIN_SIZES} --verbose debug'
-run_silent(l, '')
-
-logging.info("Histograms and partitioning complete.")
-
-
-# Call CNVs
-
-cnv_call_file = f'{output_prefix}/cnv_calls_{BIN_SIZES}.txt'
-logging.info(f"Running: cnvpytor -root \"{ROOT_FILE}\" -call {BIN_SIZES}")
-l = f'cnvpytor -root {ROOT_FILE} -call {BIN_SIZES} > {cnv_call_file}'
-run_silent(l, log_file)
-logging.info("CNV calling complete.")
+cnv_call_file = cnvpytor_pipeline(
+    output_prefix,
+    sra_id,
+    sorted_bam,
+    snpeff_vcf,
+    cnv_bin_size,
+    log_file
+    )
 
 # Read CNVpytor output with python 
 calls = []
