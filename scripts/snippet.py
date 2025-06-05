@@ -15,6 +15,17 @@ def log_annotate(log:str, message:str, log_ext:str='.log') -> None:
     print(f"{timestamp} - {message}")
     return None
 
+def remove_file(file_path:str) -> None:
+    """
+    Remove a file if it exists.
+    """
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        print(f"Removed file: {file_path}")
+    else:
+        print(f"File not found, cannot remove: {file_path}")
+    return None
+
 def run_silent(cmd:str, log:str, log_ext:str='.log') -> None:
     """
     Wrap the command in a bash subshell, redirect stdout and stderr.

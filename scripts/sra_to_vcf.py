@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 
-from scripts.snippet import run_silent
+from scripts.snippet import remove_file, run_silent
 import json
 import logging
 import requests
@@ -196,6 +196,8 @@ def sam_to_bam(sam_file:str, bam_file:str, log_file:str) -> None:
     # Check file size
     l = f'ls -lh {bam_file}'
     run_silent(l, log_file)
+    # Remove the sam file
+    remove_file(sam_file)
     return None
 
 def snpeff_analysis(
@@ -288,4 +290,6 @@ def varcall_mpileup(
     logging.info(f"Variant calling complete. Output VCF: {vcf_file}")
     l = f'tail {vcf_file}'
     run_silent(l, log_file)
+    # Remove the bcf file
+    remove_file(bcf_file)
     return None
