@@ -186,7 +186,7 @@ def sam_to_bam(sam_file:str, bam_file:str, log_file:str) -> None:
     """
     Convert sam file to bam using samtools
     """
-    logging.info(f"\nConverting SAM to BAM: {sam_file} -> {bam_file}...")
+    logging.info(f"Converting SAM to BAM: {sam_file} -> {bam_file}...")
     # -b: output BAM
     # -S: input is SAM (optional, but good for clarity)
     l = f'samtools view -bS {sam_file} -o {bam_file}'

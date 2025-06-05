@@ -5,6 +5,16 @@ import os
 from datetime import datetime
 
 
+def log_annotate(log:str, message:str, log_ext:str='.log') -> None:
+    """
+    Log a message with a timestamp to the specified log file.
+    """
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with open(log + log_ext, 'a') as f:
+        f.write(f"{timestamp} - {message}\n")
+    print(f"{timestamp} - {message}")
+    return None
+
 def run_silent(cmd:str, log:str, log_ext:str='.log') -> None:
     """
     Wrap the command in a bash subshell, redirect stdout and stderr.
@@ -26,14 +36,4 @@ def run_silent(cmd:str, log:str, log_ext:str='.log') -> None:
         f'Finished command',
         log_ext=log_ext
         )
-    return None
-
-def log_annotate(log:str, message:str, log_ext:str='.log') -> None:
-    """
-    Log a message with a timestamp to the specified log file.
-    """
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    with open(log + log_ext, 'a') as f:
-        f.write(f"{timestamp} - {message}\n")
-    print(f"{timestamp} - {message}")
     return None
