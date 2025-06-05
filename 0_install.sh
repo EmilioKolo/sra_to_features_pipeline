@@ -57,11 +57,11 @@ wget -O ~/content/data/bin/snpEff.zip https://sourceforge.net/projects/snpeff/fi
 unzip -o ~/content/data/bin/snpEff.zip -d ~/content/data/bin
 
 echo "Creating snpEff custom genome..."
-mkdir -p ~/content/data/bin/snpEff/data/genome_name
-cp ~/content/data/reference.fasta ~/content/data/bin/snpEff/data/genome_name/sequences.fa
-cp ~/content/data/reference.gff ~/content/data/bin/snpEff/data/genome_name/genes.gff
-echo genome_name".genome : Custom genome" >> ~/content/data/bin/snpEff/snpEff.config
-java -Xmx4g -jar ~/content/data/bin/snpEff/snpEff.jar build -gff3 -v genome_name
+mkdir -p ~/content/data/bin/snpEff/data/$genome_name
+cp ~/content/data/reference.fasta ~/content/data/bin/snpEff/data/$genome_name/sequences.fa
+cp ~/content/data/reference.gff ~/content/data/bin/snpEff/data/$genome_name/genes.gff
+echo $genome_name".genome : Custom genome" >> ~/content/data/bin/snpEff/snpEff.config
+java -Xmx4g -jar ~/content/data/bin/snpEff/snpEff.jar build -gff3 -v $genome_name
 echo "snpEff custom genome generated."
 
 # BWA indexing of the human genome
