@@ -6,7 +6,7 @@ from scripts.feature_generation import cnvpytor_pipeline
 from scripts.feature_generation import count_syn_nonsyn, create_counts
 from scripts.feature_generation import extract_regions, fragment_lengths
 from scripts.feature_generation import variants_per_bin
-from scripts.snippet import run_silent
+from scripts.snippet import remove_file, run_silent
 from scripts.sra_to_vcf import align_bwa, compress_index_vcf
 from scripts.sra_to_vcf import download_fastq, get_sra_from_ncbi
 from scripts.sra_to_vcf import sam_to_bam, snpeff_analysis
@@ -104,6 +104,8 @@ else:
     logging.info(f'WARNING: More than two elements in l_ftp. {l_ftp}')
     paired_end = True
 
+####################### SRA TO VCF PIPELINE ########################
+
 # Download the fastq files from SRA ID
 download_fastq(tmp_folder, sra_id, paired_end, log_file)
 # Align the reads to the reference genome
@@ -141,16 +143,11 @@ snpeff_analysis(
         log_file
         )
 
-# Obtain number of variants in genome bins
-bins_dict = variants_per_bin(output_vcf, genome_sizes, bin_size_gvs)
-# Load items from bins_dict to dict_features
-for key, value in bins_dict.items():
-    dict_features[key] = value
+####################### FEATURE GENERATION ########################
 
 # Obtain fragment lengths and their mean, median and st. deviation
-
-# Obtain fragment lengths with samtools (only works with paired ends)
 if paired_end:
+    # Obtain fragment lengths with samtools (only works with paired ends)
     fl_mean, fl_median, fl_stdv = fragment_lengths(
         output_dir,
         sra_id,
@@ -167,32 +164,31 @@ dict_features['fragment_lengths_median'] = fl_median
 dict_features['fragment_lengths_stdv'] = fl_stdv
 
 
+# Obtain number of variants in genome bins
+bins_dict = variants_per_bin(output_vcf, genome_sizes, bin_size_gvs)
+# Load items from bins_dict to dict_features
+for key, value in bins_dict.items():
+    dict_features[key] = value
+
+
 # Count variants per region/gene in selected regions/genes
-
 logging.info('Starting to obtain variants per region and genes...')
-
 # Get regions from bed_file
 regions = extract_regions(bed_file)
-
-# Count variants per region
-
 # Create counts file
 create_counts(
         tmp_output,
         regions,
         compressed_vcf
         )
-
 # Read counts back into Python variable
 counts = []
 with open(tmp_output) as f:
     for line in f:
         name, count = line.strip().split("\t")
         counts.append((name, int(count)))
-
 # Get selected genes from gene_list.txt
 selected_genes = open('gene_list.txt', 'r').read().split('\n')
-
 # Save to dict_features
 for name, count in counts:
     key = f'{name}_variant_counts'
@@ -228,19 +224,16 @@ cnv_call_file = cnvpytor_pipeline(
     cnv_bin_size,
     log_file
     )
-
 # Read CNVpytor output with python 
 calls = []
 with open(cnv_call_file, 'r') as f:
     for line in f.readlines():
         calls.append(line.rstrip('\n').split('\t'))
-
 # Count CNVs per chromosome
 cnv_counts = Counter()
 for call in calls:
     chrom = call[1].split(':')[0]
     cnv_counts[chrom] += 1
-
 # Save result
 for chrom, count in sorted(cnv_counts.items()):
     if str(chrom).startswith('chr'):
@@ -250,6 +243,8 @@ for chrom, count in sorted(cnv_counts.items()):
         logging.info(f"chr{chrom}: {count} CNVs")
         key = f'chr{chrom}_cnv_count'
     dict_features[key] = count
+
+####################### SAVING FEATURES / DELETING FILES ########################
 
 logging.debug(f'{sra_id} features:')
 for key, value in dict_features.items():
