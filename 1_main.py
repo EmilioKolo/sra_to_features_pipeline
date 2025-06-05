@@ -112,13 +112,12 @@ align_bwa(tmp_folder, sra_id, reference_genome, paired_end, log_file)
 sam_to_bam(output_sam, output_bam, log_file)
 # Sort and index the bam file
 sort_index_bam(output_bam, sorted_bam, log_file)
-
+# Finishing messages
 t = 'Alignment and processing complete.'
 t += f' Output BAM: {output_prefix}.sorted.bam'
 logging.info(t)
 logging.info(f"BAM index: {output_prefix}.sorted.bam.bai")
-
-logging.info("\nAlignment statistics...")
+logging.info("Alignment statistics...")
 l = f'samtools flagstat {output_prefix}.sorted.bam'
 run_silent(l, log_file)
 
