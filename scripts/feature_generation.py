@@ -72,10 +72,6 @@ def cnvpytor_pipeline(
     #BIN_SIZES = "1000 10000 100000" # Example: 1kb, 10kb, 100kb bins
     BIN_SIZES = str(bin_size)
 
-    # Create root file
-    l = f'cnvpytor -root {ROOT_FILE} -his {BIN_SIZES} -bam {BAM_PATH}'
-    run_silent(l, '')
-
     # Process Read Depth (RD) Data
     logging.info("3. Processing Read Depth (RD) data...")
     l = f'cnvpytor -root {ROOT_FILE} -rd {BAM_PATH}'
