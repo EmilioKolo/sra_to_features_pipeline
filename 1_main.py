@@ -246,10 +246,6 @@ for chrom, count in sorted(cnv_counts.items()):
 
 ####################### SAVING FEATURES / DELETING FILES ########################
 
-logging.debug(f'{sra_id} features:')
-for key, value in dict_features.items():
-    logging.debug(f'{key}: {value}')
-
 df_features = pd.DataFrame([dict_features])
 try:
     df_features.transpose().to_csv(f'{output_dir}/{sra_id}_features.csv', sep=';', header=[sra_id])
@@ -259,7 +255,8 @@ except:
 logging.info('Features loaded and saved.')
 logging.info('Removing temporary files...')
 
-l = f'rm -r {tmp_folder}'
-run_silent(l, log_file)
+#remove_file(tmp_folder)
+#l = f'rm -r {tmp_folder}'
+#run_silent(l, log_file)
 
 logging.info('Temporary files removed.')
