@@ -273,29 +273,72 @@ def variants_per_bin(vcf_file:str, genome_sizes:str, bin_size:int) -> dict:
     output_dict = {}
     # Generate genome bins
     genome = BedTool().window_maker(g=genome_sizes, w=bin_size)
-    variants = BedTool(vcf_file)
+    variants = vcf_to_bed(vcf_file)
     # Sort (just in case)
     genome = genome.sort()
     variants = variants.sort()
     # Intersect genome and variants to obtain variants per bin
     counts = genome.intersect(variants, c=True)
     if len(list(counts)) == 0:
-        logging.warning('counts variable is empty. Variants per bin not recorded.')
+        w = 'counts variable is empty. Variants per bin not recorded.'
+        logging.warning(w)
+        # Show the first 5 lines of genome bins
+        print("GENOME BINS (BED format, first 5):")
+        for i, feature in enumerate(genome):
+            if i >= 5: break
+            print(str(feature).strip())
+        # Show the first 5 lines of the VCF input (converted to BED)
+        print("\nVCF VARIANTS (BEDTools-parsed, first 5):")
+        for i, feature in enumerate(variants):
+            if i >= 5: break
+            print(str(feature).strip())
+        # Show the first 5 lines of the intersect result
+        print("\nINTERSECT RESULT (first 5):")
+        for i, feature in enumerate(counts):
+            if i >= 5: break
+            print(str(feature).strip())
     else:
         # Put counts in dataframe
         l_names = ['chrom', 'start', 'end', 'variant_count']
         df_vg_bins = counts.to_dataframe(names=l_names)
-
-        if len(list(df_vg_bins)) == 0:
-            df_vg_bins['bin_region'] = df_vg_bins.apply(lambda row: row['chrom'] + ':' + str(row['start']) + '-' + str(row['end']), axis=1)
-
+        if len(list(df_vg_bins)) != 0:
+            df_vg_bins['bin_region'] = df_vg_bins.apply(
+                lambda row: f'{row["chrom"]}:{row["start"]}-{row["end"]}',
+                axis=1
+                )
             total_varcount = sum(df_vg_bins['variant_count'])
-
             for row in df_vg_bins.itertuples():
                 key = f'variants_in_{row.bin_region}'
                 output_dict[key] = row.variant_count
                 key = f'variants_in_{row.bin_region}_normalized'
                 output_dict[key] = float(row.variant_count)/total_varcount
         else:
-            logging.warning('df_vg_bins variable is empty. Variants per bin not recorded.')
+            w = 'df_vg_bins variable is empty.'
+            w += ' Variants per bin not recorded.'
+            logging.warning(w)
+            # Show the first 5 lines of genome bins
+            print("GENOME BINS (BED format, first 5):")
+            for i, feature in enumerate(genome):
+                if i >= 5: break
+                print(str(feature).strip())
+            # Show the first 5 lines of the VCF input (converted to BED)
+            print("\nVCF VARIANTS (BEDTools-parsed, first 5):")
+            for i, feature in enumerate(variants):
+                if i >= 5: break
+                print(str(feature).strip())
+            # Show the first 5 lines of the intersect result
+            print("\nINTERSECT RESULT (first 5):")
+            for i, feature in enumerate(counts):
+                if i >= 5: break
+                print(str(feature).strip())
     return output_dict
+
+def vcf_to_bed(vcf_file):
+    def converter():
+        for feature in BedTool(vcf_file):
+            chrom = feature.chrom
+            start = int(feature.start)
+            ref = feature[3]
+            end = start + max(len(ref), 1)
+            yield f"{chrom}\t{start}\t{end}"
+    return BedTool(converter()).saveas()
