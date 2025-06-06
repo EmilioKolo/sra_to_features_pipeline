@@ -120,7 +120,6 @@ def create_counts(
     # Clear intermediary output file before appending
     with open(counts_file, "w") as f:
         f.write("")
-
     # Load regions and counts into out_folder
     for chrom, start, end, name in regions:
         # Define region string
@@ -267,6 +266,46 @@ def parse_ann_field(ann_field:str) -> list[str]:
             # Add to output list
             effects.append(effect)
     return effects
+
+def parse_gff_for_genes(gff_file:str) -> list[list[str,int,int,str]]:
+    """
+    Parse a GFF3 file to extract gene regions without external libraries.
+
+    Args:
+        gff_file (str): Path to the GFF3 file.
+
+    Returns:
+        List of [contig, int(start), int(end), gene_name]
+    """
+    # Initialize the list that is returned
+    regions = []
+
+    with open(gff_file, 'r') as fh:
+        for line in fh:
+            # Skip comment lines
+            if line.startswith("#"):
+                continue
+            fields = line.strip().split("\t")
+            # Check for a valid GFF line
+            if len(fields) != 9:
+                continue
+            # Assign fields
+            seqid, source, feature_type, start, end, score, strand, phase, attributes = fields
+            # Select only genes
+            if feature_type.lower() != "gene":
+                continue
+            # Try to extract gene name from attributes
+            attr_dict = {}
+            for attr in attributes.strip().split(";"):
+                if "=" in attr:
+                    key, value = attr.split("=", 1)
+                    attr_dict[key.strip()] = value.strip()
+
+            gene_name = attr_dict.get("Name") or attr_dict.get("gene_name") or attr_dict.get("ID") or "unknown"
+
+            regions.append([seqid, int(start), int(end), gene_name])
+
+    return regions
 
 def variants_per_bin(
         vcf_file:str,

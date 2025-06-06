@@ -5,8 +5,8 @@ from collections import Counter
 from scripts.feature_generation import cnvpytor_pipeline
 from scripts.feature_generation import count_syn_nonsyn, create_counts
 from scripts.feature_generation import extract_regions, fragment_lengths
-from scripts.feature_generation import variants_per_bin
-from scripts.snippet import remove_file, run_silent
+from scripts.feature_generation import parse_gff_for_genes, variants_per_bin
+from scripts.snippet import run_silent
 from scripts.sra_to_vcf import align_bwa, compress_index_vcf
 from scripts.sra_to_vcf import download_fastq, get_sra_from_ncbi
 from scripts.sra_to_vcf import sam_to_bam, snpeff_analysis
@@ -174,7 +174,9 @@ for key, value in bins_dict.items():
 # Count variants per region/gene in selected regions/genes
 logging.info('Starting to obtain variants per region and genes...')
 # Get regions from bed_file
-regions = extract_regions(bed_file)
+selected_regions = extract_regions(bed_file)
+all_genes = parse_gff_for_genes(gff_file)
+regions = selected_regions + all_genes
 # Create counts file
 create_counts(
         counts_file,
