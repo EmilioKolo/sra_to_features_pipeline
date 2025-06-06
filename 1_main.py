@@ -149,7 +149,7 @@ snpeff_analysis(
 if paired_end:
     # Obtain fragment lengths with samtools (only works with paired ends)
     fl_mean, fl_median, fl_stdv = fragment_lengths(
-        output_dir,
+        tmp_folder,
         sra_id,
         sorted_bam
         )
