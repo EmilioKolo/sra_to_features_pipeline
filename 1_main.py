@@ -60,7 +60,7 @@ compressed_vcf = f'{output_vcf}.gz'
 # Variables for snpEff
 snpeff_dir = f'{output_dir}/bin'
 genome_name = 'custom_ref'
-snpeff_vcf = f"{output_prefix}.snpeff.vcf"
+snpeff_vcf = f"{output_no_tmp}.snpeff.vcf"
 compressed_snpeff_vcf = f"{snpeff_vcf}.gz"
 
 # Variables for bin creation
@@ -256,7 +256,8 @@ try:
 except:
     df_features.transpose().to_csv(f'{output_dir}/{sra_id}_features.csv', sep=';', header=False)
 
-logging.info('Features loaded and saved.\nRemoving temporary files...')
+logging.info('Features loaded and saved.')
+logging.info('Removing temporary files...')
 
 l = f'rm -r {tmp_folder}'
 run_silent(l, log_file)
