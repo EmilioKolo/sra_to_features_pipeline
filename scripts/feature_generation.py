@@ -226,16 +226,20 @@ def extract_regions(bed_file:str) -> list[list[str,int,int,str]]:
                 regions.append((chrom, int(start), int(end), name))
     return regions
 
-def fragment_lengths(output_dir:str, sra_id:str, bam_sorted:str) -> tuple[float]:
+def fragment_lengths(
+        output_dir:str,
+        sra_id:str,
+        bam_sorted:str
+        ) -> tuple[float]:
     logging.info('Starting to obtain fragment lengths...')
+    fl_file = f"{output_dir}/fl_{sra_id}.txt"
     l = 'samtools view -f '
     l += f'0x2 {bam_sorted} |'
     l += ' awk \'{if ($9>0 && $9<1000) print $9}\''
-    l += f' > {output_dir}/fl_{sra_id}.txt'
-    #run_silent(l, log_file)
+    l += f' > {fl_file}'
     os.system(l)
     # Open the created file to obtain values
-    fragment_lengths = open(f"{output_dir}/fl_{sra_id}.txt", "r").read().splitlines()
+    fragment_lengths = open(fl_file, "r").read().splitlines()
     # Convert to integers
     fragment_lengths = list(map(int, fragment_lengths))
     # Get mean, median and standard deviation of fragment lengths (fl)
@@ -264,7 +268,11 @@ def parse_ann_field(ann_field:str) -> list[str]:
             effects.append(effect)
     return effects
 
-def variants_per_bin(vcf_file:str, genome_sizes:str, bin_size:int) -> dict:
+def variants_per_bin(
+        vcf_file:str,
+        genome_sizes:str,
+        bin_size:int
+        ) -> dict:
     # Initialize the output dictionary
     output_dict = {}
     # Generate genome bins
@@ -302,12 +310,12 @@ def variants_per_bin(vcf_file:str, genome_sizes:str, bin_size:int) -> dict:
                 lambda row: f'{row["chrom"]}:{row["start"]}-{row["end"]}',
                 axis=1
                 )
-            total_varcount = sum(df_vg_bins['variant_count'])
+            #total_varcount = sum(df_vg_bins['variant_count'])
             for row in df_vg_bins.itertuples():
                 key = f'variants_in_{row.bin_region}'
                 output_dict[key] = row.variant_count
-                key = f'variants_in_{row.bin_region}_normalized'
-                output_dict[key] = float(row.variant_count)/total_varcount
+                #key = f'variants_in_{row.bin_region}_normalized'
+                #output_dict[key] = float(row.variant_count)/total_varcount
         else:
             w = 'df_vg_bins variable is empty.'
             w += ' Variants per bin not recorded.'
