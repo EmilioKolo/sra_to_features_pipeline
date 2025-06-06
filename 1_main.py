@@ -69,7 +69,7 @@ bin_size_gvs = 100*1000
 
 # Variables for regions of interest
 bed_file = f'regions.bed'
-tmp_output = f'{tmp_folder}/counts.csv'
+counts_file = f'{tmp_folder}/counts.csv'
 
 # Variables to be used for Synonymous/Nonsynonymous variant proportion
 # vcf file used (must be snpeff, may be compressed)
@@ -177,13 +177,13 @@ logging.info('Starting to obtain variants per region and genes...')
 regions = extract_regions(bed_file)
 # Create counts file
 create_counts(
-        tmp_output,
+        counts_file,
         regions,
         compressed_vcf
         )
 # Read counts back into Python variable
 counts = []
-with open(tmp_output) as f:
+with open(counts_file) as f:
     for line in f:
         name, count = line.strip().split("\t")
         counts.append((name, int(count)))
@@ -191,11 +191,12 @@ with open(tmp_output) as f:
 selected_genes = open('gene_list.txt', 'r').read().split('\n')
 # Save to dict_features
 for name, count in counts:
-    key = f'{name}_variant_counts'
-    dict_features[key] = count
     if name in selected_genes:
         newkey = f'selected_gene_{name}_variant_counts'
         dict_features[newkey] = count
+    else:
+        key = f'{name}_variant_counts'
+        dict_features[key] = count
 
 
 # Synonymous/Nonsynonymous variant proportion per gene
