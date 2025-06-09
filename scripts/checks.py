@@ -45,7 +45,7 @@ def classify_unaligned_reads(
         "--output", kraken_output,
         "--report", kraken_report,
         unaligned_fastq
-    ], check=True)
+        ], check=True)
     p = 'Kraken2 classification complete. Results in:'
     p += f'\n * {kraken_output}\n * {kraken_report}'
     print(p)
