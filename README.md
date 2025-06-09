@@ -4,7 +4,7 @@ Pipeline to go from an SRA ID to features used to train an LLM.
 # Instructions
 
 One-line run command:
-- Run python3 2_run_multiple.py (with super user permissions). You may pass the location of a txt file with a list of SRA IDs to run with 1_main.py. It only accepts a plain text file with one SRA ID per line. If no file location is provided, it runs with the 300 SRA IDs in sra_table_selected.txt
+- Run python3 2_run_multiple.py (with super user permissions). It makes 0_install.sh an executable and runs it before running 1_main.py for a list of SRA IDs. You may pass the location of a txt file with a list of SRA IDs as a system variable. It only accepts a plain text file with one SRA ID per line. If no file location is provided, it runs with the 300 SRA IDs in sra_table_selected.txt.
 
 Granular run commands:
 - Run 0_install.sh as executable (with super user permissions). It downloads the Homo_sapiens.GRCh38.109 genome from Ensembl by default.
