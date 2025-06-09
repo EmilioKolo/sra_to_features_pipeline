@@ -10,7 +10,11 @@ if len(sys.argv) > 1:
     sra_file = sys.argv[1]
     print(f"The provided file with SRA IDs is: {sra_file}")
 else:
-    sra_file = 'sra_table_selected.txt'
+    # Get the directory containing this script
+    script_path = os.path.abspath(__file__)
+    script_directory = os.path.dirname(script_path)
+    # Define default SRA file name
+    sra_file = os.path.join(script_directory, 'sra_table_selected.txt')
     print(f'No filename provided. Running with default file "{sra_file}".')
 
 # Create a virtual environment
