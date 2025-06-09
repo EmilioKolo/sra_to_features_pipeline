@@ -149,7 +149,8 @@ snpeff_analysis(
 # Check unaligned reads with Kraken2
 try:
     logging.info("Classifying unaligned reads with Kraken2...")
-    classify_unaligned_reads(output_bam, output_no_tmp)
+    base_kraken_out = f'{output_no_tmp}/{sra_id}'
+    classify_unaligned_reads(output_bam, base_kraken_out)
     logging.info("Unaligned reads classified successfully.")
     p = f"Results in: {output_no_tmp}_kraken2_output.txt"
     p += f' and {output_no_tmp}_kraken2_report.txt'
