@@ -76,9 +76,9 @@ def compress_index_vcf(
     run_silent(l, log_file)
 
     logging.info("Variant calling statistics.")
-    l = f'bcftools stats {compressed_vcf} > {vcf_file}.stats'
+    l = f'bcftools stats {compressed_vcf} > {compressed_vcf}.stats'
     run_silent(l, log_file)
-    l = f'cat {vcf_file}.stats'
+    l = f'cat {compressed_vcf}.stats'
     run_silent(l, log_file)
     return None
 

@@ -55,8 +55,8 @@ sorted_bam =f"{output_prefix}.sorted.bam"
 
 # Variables for bcf/vcf files
 output_bcf = f"{output_prefix}.bcf"
-output_vcf = f"{output_no_tmp}/{sra_id}.vcf"
-compressed_vcf = f'{output_vcf}.gz'
+output_vcf = f"{output_prefix}.vcf"
+compressed_vcf = f'{output_no_tmp}/{sra_id}.vcf.gz'
 
 # Variables for snpEff
 snpeff_dir = f'{output_dir}/bin'
