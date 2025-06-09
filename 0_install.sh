@@ -12,7 +12,8 @@ sudo apt-get install -y \
   bedtools \
   python3-pip \
   unzip \
-  default-jre
+  default-jre \
+  kraken2
 
 # Python packages
 python3 -m pip install numpy==1.26.4
@@ -76,3 +77,6 @@ python3 install.py
 echo "Downloading cnvpytor data..."
 cnvpytor -download
 echo "CNVpytor installed."
+
+# Download standard Kraken2 database (can take ~30-50 GB)
+kraken2-build --standard --db kraken2-db
