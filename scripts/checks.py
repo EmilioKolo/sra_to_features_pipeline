@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 
-import subprocess
+import logging
 import os
+
 
 def classify_unaligned_reads(
         bam_file:str,
@@ -19,33 +20,18 @@ def classify_unaligned_reads(
     kraken_output = f"{output_prefix}_kraken2_output.txt"
     kraken_report = f"{output_prefix}_kraken2_report.txt"
     # Extract unaligned reads
-    subprocess.run([
-        "samtools",
-        "view",
-        "-f",
-        "4",
-        "-b",
-        bam_file,
-        "-o",
-        unaligned_bam
-        ], check=True)
-    subprocess.run([
-        "samtools",
-        "fastq",
-        unaligned_bam,
-        "-o",
-        unaligned_fastq
-        ], check=True)
-    
+    logging.info('Extracting unaligned reads from BAM file...')
+    l = f'samtools view -f 4 -b {bam_file} -o {unaligned_bam}'
+    os.system(l)
+    logging.info('Converting unaligned BAM to FASTQ...')
+    l = f'samtools fastq {unaligned_bam} -o {unaligned_fastq}'
+    os.system(l)
+    logging.info('Running Kraken2 classification...')
     # Classify with Kraken2
-    subprocess.run([
-        "kraken2",
-        "--db", kraken_db,
-        "--threads", str(threads),
-        "--output", kraken_output,
-        "--report", kraken_report,
-        unaligned_fastq
-        ], check=True)
+    l = f'kraken2 --db {kraken_db} --threads {threads}'
+    l += f' --output {kraken_output} --report {kraken_report}'
+    l += f' {unaligned_fastq}'
+    os.system(l)
     p = 'Kraken2 classification complete. Results in:'
     p += f'\n * {kraken_output}\n * {kraken_report}'
     print(p)
@@ -53,3 +39,4 @@ def classify_unaligned_reads(
     os.remove(unaligned_bam)
     os.remove(unaligned_fastq)
     return None
+

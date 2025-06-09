@@ -84,3 +84,5 @@ mkdir -p ~/kraken2-db
 cd ~/kraken2-db
 wget -O ~/kraken2-db/k2.tar.gz https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20201202.tar.gz
 tar -xvzf ~/kraken2-db/k2.tar.gz
+rm ~/kraken2-db/k2.tar.gz
+echo "Kraken2 database downloaded and extracted to ~/kraken2-db."
