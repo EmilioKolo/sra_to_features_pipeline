@@ -79,4 +79,8 @@ cnvpytor -download
 echo "CNVpytor installed."
 
 # Download standard Kraken2 database (can take ~30-50 GB)
-kraken2-build --standard --db kraken2-db
+rm -rf ~/kraken2-db
+mkdir -p ~/kraken2-db
+cd ~/kraken2-db
+wget -O ~/kraken2-db/k2.tar.gz https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20201202.tar.gz
+tar -xvzf ~/kraken2-db/k2.tar.gz

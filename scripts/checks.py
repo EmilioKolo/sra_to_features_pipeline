@@ -7,7 +7,7 @@ import os
 def classify_unaligned_reads(
         bam_file:str,
         output_prefix:str,
-        kraken_db:str="kraken2-db",
+        kraken_db:str="~/kraken2-db",
         threads:int=4
         ) -> None:
     """
