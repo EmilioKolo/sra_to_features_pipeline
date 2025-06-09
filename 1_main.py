@@ -2,6 +2,7 @@
 
 
 from collections import Counter
+from scripts.checks import classify_unaligned_reads
 from scripts.feature_generation import cnvpytor_pipeline
 from scripts.feature_generation import count_syn_nonsyn, create_counts
 from scripts.feature_generation import extract_regions, fragment_lengths
@@ -142,6 +143,20 @@ snpeff_analysis(
         snpeff_dir,
         log_file
         )
+
+####################### CHECKS ########################
+
+# Check unaligned reads with Kraken2
+try:
+    logging.info("Classifying unaligned reads with Kraken2...")
+    classify_unaligned_reads(output_bam, output_no_tmp)
+    logging.info("Unaligned reads classified successfully.")
+    p = f"Results in: {output_no_tmp}_kraken2_output.txt"
+    p += f' and {output_no_tmp}_kraken2_report.txt'
+    logging.info(p)
+except Exception as e:
+    logging.error(f"Error classifying unaligned reads: {e}")
+    logging.info("Skipping unaligned reads classification.")
 
 ####################### FEATURE GENERATION ########################
 
