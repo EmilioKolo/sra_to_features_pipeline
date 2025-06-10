@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 
-"""
-Function called by 0_install.sh
-
-It creates a genome.sizes file to be used in bin creation.
-It creates a bed file with all genes in the genome.
-"""
 
 import os
-from os import environ
+import sys
+
+
+# Define HOME directory with sys argv
+if len(sys.argv) > 1:
+    HOME_DIR = sys.argv[1]
+    print(f"The provided HOME directory is: {HOME_DIR}")
+else:
+    print("No HOME directory provided. Using os.path.expanduser('~')")
+    HOME_DIR = os.path.expanduser("~")
 
 # Needed variables
-HOME_DIR = os.path.expanduser("~")
 genome_sizes = os.path.join(HOME_DIR, 'content/data/genome.sizes')
 fasta_file = os.path.join(HOME_DIR, 'content/data/reference.fasta')
 gff_file = os.path.join(HOME_DIR, 'content/data/reference.gff')

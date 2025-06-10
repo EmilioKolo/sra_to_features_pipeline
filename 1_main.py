@@ -30,7 +30,7 @@ else:
 
 # Base values and variables
 dict_features = {}
-HOME_DIR = os.path.expanduser("~")
+HOME_DIR = os.environ["HOME"] #os.path.expanduser("~")
 output_dir = os.path.join(HOME_DIR, "content/data")
 tmp_folder = f'{output_dir}/tmp_{sra_id}'
 log_dir = f'{output_dir}/logs'

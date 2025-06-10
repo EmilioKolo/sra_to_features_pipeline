@@ -4,8 +4,6 @@ import os
 import sys
 
 
-venv_name = 'sra_to_vcf'
-
 if len(sys.argv) > 1:
     sra_file = sys.argv[1]
     print(f"The provided file with SRA IDs is: {sra_file}")
@@ -16,23 +14,6 @@ else:
     # Define default SRA file name
     sra_file = os.path.join(script_directory, 'sra_table_selected.txt')
     print(f'No filename provided. Running with default file "{sra_file}".')
-
-# Create a virtual environment
-if not os.path.exists(venv_name):
-    os.system(f'python3 -m venv ~/{venv_name}')
-    print("Virtual environment created.")
-
-# Activate the virtual environment
-activate_script = f'~/{venv_name}/bin/activate'
-os.system(f'source {activate_script}')
-
-# Make install script executable
-l = 'chmod +x ./0_install.sh'
-os.system(l)
-
-# Run install
-l = './0_install.sh'
-os.system(l)
 
 # Initialize dict-list of sras
 sra_data = {}

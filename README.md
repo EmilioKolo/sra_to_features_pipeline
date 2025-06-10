@@ -3,12 +3,14 @@ Pipeline to go from an SRA ID to features used to train an LLM.
 
 # Instructions
 
-One-line run command:
-- Run python3 2_run_multiple.py (with super user permissions). It makes 0_install.sh an executable and runs it before running 1_main.py for a list of SRA IDs. You may pass the location of a txt file with a list of SRA IDs as a system variable. It only accepts a plain text file with one SRA ID per line. If no file location is provided, it runs with the 300 SRA IDs in sra_table_selected.txt.
+One-line run command (runs with conda):
+- Run "chmod +x ./0_main.sh; ./0_main.sh". It makes 0_main.sh an executable and runs it, which sets up the conda environment and runs 2_run_multiple.py.
 
-Granular run commands:
+Granular run commands (needs super user permissions and runs without conda):
 - Run 0_install.sh as executable (with super user permissions). It downloads the Homo_sapiens.GRCh38.109 genome from Ensembl by default.
-- Run 1_main.py with python passing a valid SRA ID with either single end or paired end sequencing reads. Intended to work on cfDNA sequencing using Illumina.
+- Run 1_main.py or 2_run_multiple.py. For 1_main.py, you need to pass a valid SRA ID as a system variable. 2_run_multiple.py takes a file path to a list of SRA IDs; if none is provided, it works with sra_table_selected.txt in the Git folder.
+
+All of the code is intended to work on cfDNA sequencing using Illumina with either single end or paired end sequencing reads.
 
 # Output
 
