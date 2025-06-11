@@ -39,4 +39,3 @@ def classify_unaligned_reads(
     os.remove(unaligned_bam)
     os.remove(unaligned_fastq)
     return None
-
