@@ -242,11 +242,17 @@ def fragment_lengths(
     # Convert to integers
     fragment_lengths = list(map(int, fragment_lengths))
     # Get mean, median and standard deviation of fragment lengths (fl)
-    fl_mean = statistics.mean(fragment_lengths)
-    fl_median = statistics.median(fragment_lengths)
-    fl_stdv = statistics.stdev(fragment_lengths)
-    logging.info('Fragment mean, median and standard deviation:')
-    logging.info(f'{fl_mean} / {fl_median} / {fl_stdv}')
+    if len(fragment_lengths) > 0:
+        fl_mean = statistics.mean(fragment_lengths)
+        fl_median = statistics.median(fragment_lengths)
+        fl_stdv = statistics.stdev(fragment_lengths)
+        logging.info('Fragment mean, median and standard deviation:')
+        logging.info(f'{fl_mean} / {fl_median} / {fl_stdv}')
+    else:
+        logging.warning('No fragment lengths found. Using NA values.')
+        fl_mean = 'NA'
+        fl_median = 'NA'
+        fl_stdv = 'NA'
     return fl_mean, fl_median, fl_stdv
 
 def parse_ann_field(ann_field:str) -> list[str]:
