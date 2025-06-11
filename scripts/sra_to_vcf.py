@@ -234,7 +234,7 @@ def sort_index_bam(bam_file:str, bam_sorted:str, log_file:str) -> None:
     """
     Runs samtools sort and samtools index on a bam file.
     """
-    logging.info(f"\nSorting BAM file: {bam_file} -> {bam_sorted}...")
+    logging.info(f"Sorting BAM file: {bam_file} -> {bam_sorted}...")
     # -o: Output file
     l = f'samtools sort {bam_file} -o {bam_sorted}'
     run_silent(l, log_file)
@@ -244,7 +244,7 @@ def sort_index_bam(bam_file:str, bam_sorted:str, log_file:str) -> None:
     l = f'ls -lh {bam_sorted}'
     run_silent(l, log_file)
 
-    logging.info(f"\nIndexing sorted BAM file: {bam_sorted}...")
+    logging.info(f"Indexing sorted BAM file: {bam_sorted}...")
     l = f'samtools index {bam_sorted}'
     run_silent(l, log_file)
 

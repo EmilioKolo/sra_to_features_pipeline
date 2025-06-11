@@ -179,13 +179,11 @@ dict_features['fragment_lengths_mean'] = fl_mean
 dict_features['fragment_lengths_median'] = fl_median
 dict_features['fragment_lengths_stdv'] = fl_stdv
 
-
 # Obtain number of variants in genome bins
 bins_dict = variants_per_bin(output_vcf, genome_sizes, bin_size_gvs)
 # Load items from bins_dict to dict_features
 for key, value in bins_dict.items():
     dict_features[key] = value
-
 
 # Count variants per region/gene in selected regions/genes
 logging.info('Starting to obtain variants per region and genes...')
@@ -216,7 +214,6 @@ for name, count in counts:
         key = f'{name}_variant_counts'
         dict_features[key] = count
 
-
 # Synonymous/Nonsynonymous variant proportion per gene
 gene_counts = count_syn_nonsyn(
     bed_variants,
@@ -232,7 +229,6 @@ for gene, counts in gene_counts.items():
     logging.info(f"{gene}\tSyn: {syn}\tNonsyn: {nonsyn}\tRatio: {ratio}")
     key = f'{gene}_ratio_dN_dS'
     dict_features[key] = ratio
-
 
 # CNV calling
 cnv_call_file = cnvpytor_pipeline(
