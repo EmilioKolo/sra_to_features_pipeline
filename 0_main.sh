@@ -11,11 +11,14 @@ log() {
 # Get the environment variables
 source config.env
 
+# Define BASE_DIR with realpath
+REAL_BASE=$(realpath $BASE_DIR)
+
 # Make sure the base directory exists
-mkdir -p "$BASE_DIR"
+mkdir -p "$REAL_BASE"
 # Create data, install, logs, bin and tmp directories
-DATA_DIR="$BASE_DIR/data"
-INSTALL_DIR="$BASE_DIR/install"
+DATA_DIR="$REAL_BASE/data"
+INSTALL_DIR="$REAL_BASE/install"
 LOGS_DIR="$DATA_DIR/logs"
 BIN_DIR="$DATA_DIR/bin"
 TMP_DIR="$DATA_DIR/tmp"
@@ -59,6 +62,7 @@ if ! command -v pip &> /dev/null; then
     DISTUTILS_URL="https://github.com/python/cpython/archive/refs/tags/v$PY_VER_FULL.tar.gz"
     download "$DISTUTILS_URL" "$TMP_DIR/python-src.tar.gz"
     tar -xf "$TMP_DIR/python-src.tar.gz" -C "$TMP_DIR"
+    mkdir -p "$INSTALL_DIR/lib/python$PY_VER_FULL/"
     cp -r "$TMP_DIR/cpython-$PY_VER_FULL/Lib/distutils" "$INSTALL_DIR/lib/python$PY_VER_FULL/"
     # Then download and install pip
     PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
