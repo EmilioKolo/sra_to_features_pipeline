@@ -99,7 +99,7 @@ fi
 # Check that java is installed
 if ! command -v java &> /dev/null; then
     log "Java is not installed. Attemptting to install Java..."
-    download "$JAVA_URL" "$TMP_DIR/java.tar.gz"
+    download "$JDE_URL" "$TMP_DIR/java.tar.gz"
     mkdir -p "$INSTALL_DIR/java"
     tar -xzf "$TMP_DIR/java.tar.gz" -C "$INSTALL_DIR/java" --strip-components=1
     ln -s "$INSTALL_DIR/java/bin/java" "$BIN_DIR/java"
