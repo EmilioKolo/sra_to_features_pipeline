@@ -113,8 +113,8 @@ fi
 log "Checking and installing required Python packages..."
 python3 -m pip install numpy==1.26.4
 python3 -m pip install pandas==2.1.4
-python3 -m pip install pysam
-python3 -m pip install pybedtools
+#python3 -m pip install pysam
+python3 -m pip install pybedtools==0.12.0
 python3 -m pip install requests
 python3 -m pip install cnvpytor==1.3.1
 
