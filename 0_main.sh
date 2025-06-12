@@ -80,7 +80,7 @@ fi
 # Check that unzip is installed
 if ! command -v unzip &> /dev/null; then
     log "unzip is not installed. Attempting to install unzip..."
-    download "$UNZIP_URL" "$TMP_DIR/unzip"
+    download "$BUSYBOX_URL" "$TMP_DIR/unzip"
     # Validate binary
     chmod +x "$TMP_DIR/unzip"
     file "$TMP_DIR/unzip" | grep -q 'statically linked' || {
