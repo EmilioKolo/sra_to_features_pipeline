@@ -119,17 +119,6 @@ fi
 log "Checking and installing required Python packages..."
 python3 -m pip install numpy==1.26.4
 python3 -m pip install pandas==2.1.4
-
-# Download and install pybedtools
-download "$PYBEDTOOLS_URL" "$TMP_DIR/pybedtools.tar.gz"
-tar -xz -f "$TMP_DIR/pybedtools.tar.gz" -C "$TMP_DIR"
-python3 "$TMP_DIR/pybedtools-$PYBEDTOOLS_VER/setup.py" install --prefix="$INSTALL_DIR"
-# Add pybedtools to PATH
-export PYTHONPATH="$INSTALL_DIR/lib/python3.$PY_VER_MIN/site-packages:$PYTHONPATH"
-# Test pybedtools import to python3
-python3 -c "import pybedtools; print('pybedtools installed successfully'); print(pybedtools.__version__)"
-python3 -c "from pybedtools import BedTool; print('BedTool imported successfully')"
-
 python3 -m pip install requests
 python3 -m pip install cnvpytor==1.3.1
 
@@ -206,8 +195,14 @@ else
     log "Kraken2 is already installed, skipping."
 fi
 
+# Attempt to install pybedtools
+python3 -m pip install pybedtools || {
+    log "pybedtools installation failed. Please install pybedtools manually with the following command:\npip install pybedtools"
+    exit 1
+}
+
 # Cleanup
-rm -rf "$TMP_DIR"
+rm -rf "$TMP_DIR/*"
 echo "Installation complete!"
 
 # Add to PATH
