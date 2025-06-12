@@ -127,8 +127,8 @@ python3 -m pip install cnvpytor==1.3.1
 # Download and install samtools if not installed
 if ! command -v samtools &> /dev/null; then
     log "samtools is not installed. Installing samtools..."
-    download "$SAMTOOLS_URL" "$TMP_DIR/samtools.tar.gz"
-    tar -xzf "$TMP_DIR/samtools.tar.gz" -C "$TMP_DIR"
+    download "$SAMTOOLS_URL" "$TMP_DIR/samtools.tar.bz2"
+    tar -xjf "$TMP_DIR/samtools.tar.bz2" -C "$TMP_DIR"
     (cd "$TMP_DIR/samtools-$SAMTOOLS_VER" && ./configure --prefix="$INSTALL_DIR" && make && make install)
     ln -sf "$INSTALL_DIR/bin/samtools" "$BIN_DIR/samtools"
 else
@@ -137,8 +137,8 @@ fi
 # Download and install bcftools if not installed
 if ! command -v bcftools &> /dev/null; then
     log "bcftools is not installed. Installing bcftools..."
-    download "$BCFTOOLS_URL" "$TMP_DIR/bcftools.tar.gz"
-    tar -xzf "$TMP_DIR/bcftools.tar.gz" -C "$TMP_DIR"
+    download "$BCFTOOLS_URL" "$TMP_DIR/bcftools.tar.bz2"
+    tar -xjf "$TMP_DIR/bcftools.tar.bz2" -C "$TMP_DIR"
     (cd "$TMP_DIR/bcftools-$BCFTOOLS_VER" && ./configure --prefix="$INSTALL_DIR" && make && make install)
     ln -sf "$INSTALL_DIR/bin/bcftools" "$BIN_DIR/bcftools"
 else
@@ -147,8 +147,8 @@ fi
 # Download and install bwa if not installed
 if ! command -v bwa &> /dev/null; then
     log "bwa is not installed. Installing bwa..."
-    download "$BWA_URL" "$TMP_DIR/bwa.tar.gz"
-    tar -xzf "$TMP_DIR/bwa.tar.gz" -C "$TMP_DIR"
+    download "$BWA_URL" "$TMP_DIR/bwa.tar.bz2"
+    tar -xjf "$TMP_DIR/bwa.tar.bz2" -C "$TMP_DIR"
     (cd "$TMP_DIR/bwa-$BWA_VER" && make)
     cp "$TMP_DIR/bwa-$BWA_VER/bwa" "$BIN_DIR/bwa"
 else
