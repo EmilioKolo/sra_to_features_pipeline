@@ -69,7 +69,7 @@ if ! command -v pip &> /dev/null; then
     chmod +x "$TMP_DIR/pip.pyz"
     mv "$TMP_DIR/pip.pyz" "$INSTALL_DIR/pip"
     ln -sf "$INSTALL_DIR/pip" "$BIN_DIR/pip"
-    pip --version || {
+    python3 -m pip --version || {
         log "pip installation failed. Please install pip manually with the following command:\nsudo apt-get install python3-pip"
         exit 1
     }
