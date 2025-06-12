@@ -43,6 +43,7 @@ download() {
 }
 
 # Check that python3 is installed
+PY_VER_MIN=$(python3 -c "import sys; print(sys.version_info.minor)")
 if ! command -v python3 &> /dev/null; then
     log "Python3 is not installed. Attempting to install Python3."
     download "$PYTHON_URL" "$TMP_DIR/python3.tar.gz"
@@ -54,11 +55,15 @@ if ! command -v python3 &> /dev/null; then
     else
         log "Python3 installed successfully."
     fi
+elif [[ "$PY_VER_MIN" -lt 9 ]]; then
+    log "Python3 version is too old. Minimum required version is 3.9."
+    download "$PYTHON_URL" "$TMP_DIR/python3.tar.gz"
+    tar -xzf "$TMP_DIR/python3.tar.gz" -C "$INSTALL_DIR"
+    ln -sf "$INSTALL_DIR/python/bin/python3" "$BIN_DIR/python3"
+    python3 --version
 fi
 if ! command -v pip &> /dev/null; then
     log "pip is not installed. Attempting to install pip..."
-    # First download and install distutils
-    PY_VER_FULL=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')")
     PIP_URL="https://bootstrap-pypa-io.ingress.us-east-2.psfhosted.computer/pip/zipapp/pip-25.1.1.pyz"
     download "$PIP_URL" "$TMP_DIR/pip.pyz"
     chmod +x "$TMP_DIR/pip.pyz"
