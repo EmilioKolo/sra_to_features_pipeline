@@ -109,16 +109,27 @@ if ! command -v java &> /dev/null; then
         log "Java installed successfully."
     fi
 fi
-# Check that gcc is installed
-if ! command -v gcc &> /dev/null; then
-    log "gcc is not installed. pybedtools requires gcc to compile C extensions. Please install gcc manually with the following command:\nsudo apt-get install build-essential"
-    exit 1
-fi
+
 # Install required Python packages
 log "Checking and installing required Python packages..."
 python3 -m pip install numpy==1.26.4
 python3 -m pip install pandas==2.1.4
-python3 -m pip install pybedtools==0.12.0
+
+# Check that cython is installed (pybedtools installation goes after numpy and pandas)
+if ! command -v cython &> /dev/null; then
+    log "cython is not installed. pybedtools requires cython to build. Attempting to install cython..."
+    python3 -m pip install --no-deps --prefix="$INSTALL_DIR" cython
+    PY_VER_MIN=$(python3 -c "import sys; print(sys.version_info.minor)")
+    export PYTHONPATH="$INSTALL_DIR/lib/python3.$PY_VER_MIN/site-packages:$PYTHONPATH"
+    export PATH="$INSTALL_DIR/bin:$PATH"
+fi
+# Download and install pybedtools
+git clone https://github.com/daler/pybedtools.git "$TMP_DIR/pybedtools"
+python3 "$TMP_DIR/pybedtools/setup.py" cythonize develop --prefix="$INSTALL_DIR"
+# Test pybedtools import to python3
+python3 -c "import pybedtools; print('pybedtools installed successfully'); print(pybedtools.__version__)"
+python3 -c "from pybedtools import BedTool; print('BedTool imported successfully')"
+
 python3 -m pip install requests
 python3 -m pip install cnvpytor==1.3.1
 
