@@ -337,12 +337,12 @@ def variants_per_bin(
             if i >= 5: break
             print(str(feature).strip())
         # Show the first 5 lines of the VCF input (converted to BED)
-        print("\nVCF VARIANTS (BEDTools-parsed, first 5):")
+        print("VCF VARIANTS (BEDTools-parsed, first 5):")
         for i, feature in enumerate(variants):
             if i >= 5: break
             print(str(feature).strip())
         # Show the first 5 lines of the intersect result
-        print("\nINTERSECT RESULT (first 5):")
+        print("INTERSECT RESULT (first 5):")
         for i, feature in enumerate(counts):
             if i >= 5: break
             print(str(feature).strip())
@@ -371,12 +371,12 @@ def variants_per_bin(
                 if i >= 5: break
                 print(str(feature).strip())
             # Show the first 5 lines of the VCF input (converted to BED)
-            print("\nVCF VARIANTS (BEDTools-parsed, first 5):")
+            print("VCF VARIANTS (BEDTools-parsed, first 5):")
             for i, feature in enumerate(variants):
                 if i >= 5: break
                 print(str(feature).strip())
             # Show the first 5 lines of the intersect result
-            print("\nINTERSECT RESULT (first 5):")
+            print("INTERSECT RESULT (first 5):")
             for i, feature in enumerate(counts):
                 if i >= 5: break
                 print(str(feature).strip())
