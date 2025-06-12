@@ -118,7 +118,6 @@ if ! command -v gcc &> /dev/null; then
         PVM=$(python3 -c "import sys; print(sys.version_info.minor)")
         MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-py3${PVM}_25.1.1-1-Linux-x86_64.sh"
         log "Downloading and installing Miniconda..."
-        echo $MINICONDA_URL
         wget $MINICONDA_URL -O "$BASE_DIR/miniconda.sh"
         bash "$BASE_DIR/miniconda.sh" -b -p "$BASE_DIR/miniconda" -u > "$LOGS_DIR/miniconda_bash.log" 2>&1
         rm -f "$BASE_DIR/miniconda.sh"
