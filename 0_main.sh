@@ -42,8 +42,7 @@ download() {
     fi
 }
 
-# Check that python3 is installed and it's at least version 3.9
-PY_VER_MIN=$(python3 -c "import sys; print(sys.version_info.minor)")
+# Check that python3 is installed
 if ! command -v python3 &> /dev/null; then
     log "Python3 is not installed. Attempting to install Python3."
     download "$PYTHON_URL" "$TMP_DIR/python3.tar.gz"
@@ -55,13 +54,19 @@ if ! command -v python3 &> /dev/null; then
     else
         log "Python3 installed successfully."
     fi
-elif [[ "$PY_VER_MIN" -lt 9 ]]; then
+fi
+# Check that python3 version is at least 3.9
+PY_VER_MIN=$(python3 -c "import sys; print(sys.version_info.minor)")
+if [[ "$PY_VER_MIN" -lt 9 ]]; then
     log "Python3 version is too old. Minimum required version is 3.9."
     download "$PYTHON_URL" "$TMP_DIR/python3.tar.gz"
     tar -xzf "$TMP_DIR/python3.tar.gz" -C "$INSTALL_DIR"
     ln -sf "$INSTALL_DIR/python/bin/python3" "$BIN_DIR/python3"
     python3 --version
 fi
+# Update PY_VER_MIN after installation
+PY_VER_MIN=$(python3 -c "import sys; print(sys.version_info.minor)")
+# Check that pip is installed
 if ! command -v pip &> /dev/null; then
     log "pip is not installed. Attempting to install pip..."
     PIP_URL="https://bootstrap-pypa-io.ingress.us-east-2.psfhosted.computer/pip/zipapp/pip-25.1.1.pyz"
@@ -115,17 +120,12 @@ log "Checking and installing required Python packages..."
 python3 -m pip install numpy==1.26.4
 python3 -m pip install pandas==2.1.4
 
-# Check that cython is installed (pybedtools installation goes after numpy and pandas)
-if ! command -v cython &> /dev/null; then
-    log "cython is not installed. pybedtools requires cython to build. Attempting to install cython..."
-    python3 -m pip install --no-deps --prefix="$INSTALL_DIR" cython
-    PY_VER_MIN=$(python3 -c "import sys; print(sys.version_info.minor)")
-    export PYTHONPATH="$INSTALL_DIR/lib/python3.$PY_VER_MIN/site-packages:$PYTHONPATH"
-    export PATH="$INSTALL_DIR/bin:$PATH"
-fi
 # Download and install pybedtools
-git clone https://github.com/daler/pybedtools.git "$TMP_DIR/pybedtools"
-python3 "$TMP_DIR/pybedtools/setup.py" cythonize develop --prefix="$INSTALL_DIR"
+download "$PYBEDTOOLS_URL" "$TMP_DIR/pybedtools.tar.gz"
+tar -xz -f "$TMP_DIR/pybedtools.tar.gz" -C "$TMP_DIR"
+python3 "$TMP_DIR/pybedtools-$PYBEDTOOLS_VER/setup.py" install --prefix="$INSTALL_DIR"
+# Add pybedtools to PATH
+export PYTHONPATH="$INSTALL_DIR/lib/python3.$PY_VER_MIN/site-packages:$PYTHONPATH"
 # Test pybedtools import to python3
 python3 -c "import pybedtools; print('pybedtools installed successfully'); print(pybedtools.__version__)"
 python3 -c "from pybedtools import BedTool; print('BedTool imported successfully')"
