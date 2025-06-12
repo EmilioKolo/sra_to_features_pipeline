@@ -59,24 +59,16 @@ if ! command -v pip &> /dev/null; then
     log "pip is not installed. Attempting to install pip..."
     # First download and install distutils
     PY_VER_FULL=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')")
-    DISTUTILS_URL="https://github.com/python/cpython/archive/refs/tags/v$PY_VER_FULL.tar.gz"
-    download "$DISTUTILS_URL" "$TMP_DIR/python-src.tar.gz"
-    tar -xf "$TMP_DIR/python-src.tar.gz" -C "$TMP_DIR"
-    mkdir -p "$INSTALL_DIR/lib/python$PY_VER_FULL/"
-    cp -r "$TMP_DIR/cpython-$PY_VER_FULL/Lib/distutils" "$INSTALL_DIR/lib/python$PY_VER_FULL/"
-    # Then download and install pip
-    PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-    PIP_URL="https://bootstrap.pypa.io/pip/$PY_VER/get-pip.py"
-    download "$PIP_URL" "$TMP_DIR/get-pip.py"
-    PYTHONUSERBASE="$INSTALL_DIR" PYTHONPATH="$INSTALL_DIR/lib/python$PY_VER_FULL/" python3 "$TMP_DIR/get-pip.py" --user
-    ln -sf "$INSTALL_DIR/bin/pip" "$BIN_DIR/pip"
-    export PATH="$INSTALL_DIR/bin:$PATH"
-    if ! command -v pip &> /dev/null; then
+    PIP_URL="https://bootstrap-pypa-io.ingress.us-east-2.psfhosted.computer/pip/zipapp/pip-25.1.1.pyz"
+    download "$PIP_URL" "$TMP_DIR/pip.pyz"
+    chmod +x "$TMP_DIR/pip.pyz"
+    mv "$TMP_DIR/pip.pyz" "$INSTALL_DIR/pip"
+    ln -sf "$INSTALL_DIR/pip" "$BIN_DIR/pip"
+    pip --version || {
         log "pip installation failed. Please install pip manually with the following command:\nsudo apt-get install python3-pip"
         exit 1
-    else
-        log "pip installed successfully."
-    fi
+    }
+    log "pip installed successfully."
 fi
 # Check that unzip is installed
 if ! command -v unzip &> /dev/null; then
