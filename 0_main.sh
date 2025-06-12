@@ -3,90 +3,215 @@
 # Exit on error and undefined variables
 set -euo pipefail
 
-# Define and make install_logs folder
-install_logs="$HOME/install_logs"
-mkdir -p "$install_logs"
-
 # Function to log messages with timestamp
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
 
-# Check and install Miniconda if not already installed
-if [[ ! -d "$HOME/miniconda" ]]; then
-    log "Downloading and installing Miniconda..."
-    wget https://repo.anaconda.com/miniconda/Miniconda3-py310_25.3.1-1-Linux-x86_64.sh -O "$HOME/miniconda.sh"
-    bash "$HOME/miniconda.sh" -b -p "$HOME/miniconda" > "$install_logs/miniconda_bash.log" 2>&1
-    rm -f "$HOME/miniconda.sh"
-else
-    log "Miniconda already installed at $HOME/miniconda, skipping installation."
+# Get the environment variables
+source config.env
+
+# Make sure the base directory exists
+mkdir -p "$BASE_DIR"
+# Create data, install, logs, bin and tmp directories
+DATA_DIR="$BASE_DIR/data"
+INSTALL_DIR="$BASE_DIR/install"
+LOGS_DIR="$DATA_DIR/logs"
+BIN_DIR="$DATA_DIR/bin"
+TMP_DIR="$DATA_DIR/tmp"
+mkdir -p "$DATA_DIR"
+mkdir -p "$INSTALL_DIR"
+mkdir -p "$LOGS_DIR"
+mkdir -p "$BIN_DIR"
+mkdir -p "$TMP_DIR"
+# Add the bin directory to PATH
+export PATH="$BIN_DIR:$PATH"
+
+# Try downloading with either curl or wget (whichever exists)
+download() {
+    if command -v curl >/dev/null; then
+        curl -L "$1" -o "$2"
+    elif command -v wget >/dev/null; then
+        wget "$1" -O "$2"
+    else
+        echo "ERROR: Need either curl or wget to download files."
+        exit 1
+    fi
+}
+
+# Check that python3 is installed
+if ! command -v python3 &> /dev/null; then
+    log "Python3 is not installed. Attempting to install Python3."
+    download "$PYTHON_URL" "$TMP_DIR/python3.tar.gz"
+    tar -xzf "$TMP_DIR/python3.tar.gz" -C "$INSTALL_DIR"
+    ln -sf "$INSTALL_DIR/python/bin/python3" "$BIN_DIR/python3"
+    if ! command -v python3 &> /dev/null; then
+        log "Python3 installation failed. Please install Python3 manually."
+        exit 1
+    else
+        log "Python3 installed successfully."
+    fi
 fi
-# Initialize conda
-source "$HOME/miniconda/bin/activate"
+if ! command -v pip &> /dev/null; then
+    log "pip is not installed. Attempting to install pip..."
+    python3 -m ensurepip --user
+    if ! command -v pip &> /dev/null; then
+        log "pip installation failed. Please install pip manually with the following command:\nsudo apt-get install python3-pip"
+        exit 1
+    else
+        log "pip installed successfully."
+    fi
+fi
+# Check that unzip is installed
+if ! command -v unzip &> /dev/null; then
+    log "unzip is not installed. Attempting to install unzip..."
+    download "$UNZIP_URL" "$TMP_DIR/unzip"
+    # Validate binary
+    chmod +x "$TMP_DIR/unzip"
+    file "$TMP_DIR/unzip" | grep -q 'statically linked' || {
+    echo "Downloaded busybox is not static–check architecture or URL"; exit 1
+    }
+    # Move to install dir
+    mv "$TMP_DIR/unzip" "$INSTALL_DIR/unzip"
+    ln -sf "$INSTALL_DIR/unzip" "$BIN_DIR/unzip"
+    if ! command -v unzip &> /dev/null; then
+        log "unzip installation failed. Please install unzip manually with the following command:\nsudo apt-get install unzip"
+        exit 1
+    else
+        log "unzip installed successfully."
+    fi
+fi
+# Check that java is installed
+if ! command -v java &> /dev/null; then
+    log "Java is not installed. Attemptting to install Java..."
+    download "$JAVA_URL" "$TMP_DIR/java.tar.gz"
+    mkdir -p "$INSTALL_DIR/java"
+    tar -xzf "$TMP_DIR/java.tar.gz" -C "$INSTALL_DIR/java" --strip-components=1
+    ln -s "$INSTALL_DIR/java/bin/java" "$BIN_DIR/java"
+    if ! command -v java &> /dev/null; then
+        log "Java installation failed. Please install Java manually with the following command:\nsudo apt-get install default-jre"
+        exit 1
+    else
+        log "Java installed successfully."
+    fi
+fi
+# Install required Python packages
+log "Checking and installing required Python packages..."
+python3 -m pip install numpy==1.26.4
+python3 -m pip install pandas==2.1.4
+python3 -m pip install pybedtools
+python3 -m pip install requests
+python3 -m pip install cnvpytor==1.3.1
 
-# Check and create conda environment if not exists
-if ! conda env list | grep -q 'sra_to_feats'; then
-    log "Creating conda environment sra_to_feats..."
-    conda create -n sra_to_feats python=3.10 -y > "$install_logs/conda_create.log" 2>&1
+# Install required packages manually
+
+# Download and install samtools if not installed
+if ! command -v samtools &> /dev/null; then
+    log "samtools is not installed. Installing samtools..."
+    download "$SAMTOOLS_URL" "$TMP_DIR/samtools.tar.gz"
+    tar -xjf "$TMP_DIR/samtools.tar.bz2" -C "$TMP_DIR"
+    (cd "$TMP_DIR/samtools-$SAMTOOLS_VER" && ./configure --prefix="$INSTALL_DIR" && make && make install)
+    ln -sf "$INSTALL_DIR/bin/samtools" "$BIN_DIR/samtools"
 else
-    log "Conda environment sra_to_feats already exists, skipping creation."
+    log "samtools is already installed, skipping."
+fi
+# Download and install bcftools if not installed
+if ! command -v bcftools &> /dev/null; then
+    log "bcftools is not installed. Installing bcftools..."
+    download "$BCFTOOLS_URL" "$TMP_DIR/bcftools.tar.gz"
+    tar -xjf "$TMP_DIR/bcftools.tar.bz2" -C "$TMP_DIR"
+    (cd "$TMP_DIR/bcftools-$BCFTOOLS_VER" && ./configure --prefix="$INSTALL_DIR" && make && make install)
+    ln -sf "$INSTALL_DIR/bin/bcftools" "$BIN_DIR/bcftools"
+else
+    log "bcftools is already installed, skipping."
+fi
+# Download and install bwa if not installed
+if ! command -v bwa &> /dev/null; then
+    log "bwa is not installed. Installing bwa..."
+    download "$BWA_URL" "$TMP_DIR/bwa.tar.gz"
+    tar -xzf "$TMP_DIR/bwa.tar.gz" -C "$TMP_DIR"
+    (cd "$TMP_DIR/bwa-$BWA_VER" && make)
+    cp "$TMP_DIR/bwa-$BWA_VER/bwa" "$BIN_DIR/bwa"
+else
+    log "bwa is already installed, skipping."
+fi
+# Download and install sra-toolkit if not installed
+if ! command -v fastq-dump &> /dev/null; then
+    log "sra-toolkit is not installed. Installing sra-toolkit..."
+    download "$SRA_URL" "$TMP_DIR/sratoolkit.tar.gz"
+    tar -xzf "$TMP_DIR/sratoolkit.tar.gz" -C "$TMP_DIR"
+    cp -r "$TMP_DIR/sratoolkit.$SRA_VER-$SRA_ARCH/bin/"* "$BIN_DIR"
+else
+    log "sra-toolkit is already installed, skipping."
+fi
+# Download and install tabix if not installed
+if ! command -v tabix &> /dev/null; then
+    log "tabix is not installed. Installing tabix..."
+    download "$HTSLIB_URL" "$TMP_DIR/htslib.tar.bz2"
+    tar -xjf "$TMP_DIR/htslib.tar.bz2" -C "$TMP_DIR"
+    (cd "$TMP_DIR/htslib-$HTSLIB_VER" && ./configure --prefix="$INSTALL_DIR" && make && make install)
+    ln -sf "$INSTALL_DIR/bin/tabix" "$BIN_DIR/tabix"
+else
+    log "tabix is already installed, skipping."
+fi
+# Download and install bedtools if not installed
+if ! command -v bedtools &> /dev/null; then
+    log "bedtools is not installed. Installing bedtools..."
+    download "$BEDTOOLS_URL" "$TMP_DIR/bedtools.tar.gz"
+    tar -xzf "$TMP_DIR/bedtools.tar.gz" -C "$TMP_DIR"
+    (cd "$TMP_DIR/bedtools2" && make)
+    cp "$TMP_DIR/bedtools2/bin/"* "$BIN_DIR"
+else
+    log "bedtools is already installed, skipping."
+fi
+# Download and install Kraken2 if not installed
+if ! command -v kraken2 &> /dev/null; then
+    log "Kraken2 is not installed. Installing Kraken2..."
+    download "$KRAKEN2_URL" "$TMP_DIR/kraken2.tar.gz"
+    tar -xzf "$TMP_DIR/kraken2.tar.gz" -C "$TMP_DIR"
+    (cd "$TMP_DIR/kraken2-$KRAKEN2_VER" && ./install_kraken2.sh "$INSTALL_DIR/kraken2")
+    ln -sf "$INSTALL_DIR/kraken2/kraken2" "$BIN_DIR/kraken2"
+    ln -sf "$INSTALL_DIR/kraken2/kraken2-build" "$BIN_DIR/kraken2-build"
+else
+    log "Kraken2 is already installed, skipping."
 fi
 
-# Install conda packages if environment was just created or packages might be missing
-if [[ ! -d "$HOME/miniconda/envs/sra_to_feats" ]] || \
-   [[ ! $(conda list -n sra_to_feats | grep bcftools) ]]; then
-    log "Installing conda packages..."
-    conda install -n sra_to_feats -c conda-forge \
-        -y bioconda::bcftools \
-        bioconda::bedtools \
-        bioconda::bwa \
-        bioconda::kraken2 \
-        bioconda::samtools \
-        bioconda::sra-tools=3.0.0 \
-        bioconda::tabix \
-        conda-forge::unzip \
-        cyclus::java-jre > "$install_logs/conda_install.log" 2>&1
-else
-    log "Conda packages already installed, skipping."
-fi
+# Cleanup
+rm -rf "$TMP_DIR"
+echo "Installation complete!"
 
-# Activate environment
-conda activate sra_to_feats > "$install_logs/conda_activate.log" 2>&1
-
-# Install Python packages if not already installed
-log "Checking Python packages..."
-python3 -m pip install --upgrade pip
-python3 -m pip install numpy==1.26.4 pandas==2.1.4 pybedtools requests cnvpytor==1.3.1
-
-# Create data and logging directories
-mkdir -p "$HOME/content/data"
-mkdir -p "$HOME/content/data/logs"
+# Add to PATH
+echo "Adding binaries to PATH temporarily. To make this permanent, add the following lines to your ~/.bashrc or ~/.bash_profile:"
+echo "export PATH=\"$BIN_DIR:\$PATH\""
+echo "export KRAKEN2_DB_PATH=\"$INSTALL_DIR/kraken2_db\" # Recommended for Kraken2"
+# Add kraken2_db to kraken2 paths
+export KRAKEN2_DB_PATH="$INSTALL_DIR/kraken2_db"
 
 # Download reference genome if it does not exist
-if [[ ! -f "$HOME/content/data/reference.fasta" ]]; then
+if [[ ! -f "$DATA_DIR/reference.fasta" ]]; then
     log "Downloading reference genome..."
-    wget -O "$HOME/content/data/reference.fasta.gz" https://ftp.ensembl.org/pub/release-109/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
-    gunzip -f "$HOME/content/data/reference.fasta.gz"
+    download "$FASTA_URL" "$DATA_DIR/reference.fasta.gz"
+    gunzip -f "$DATA_DIR/reference.fasta.gz"
 else
     log "Reference genome already exists, skipping download."
 fi
-if [[ ! -f "$HOME/content/data/reference.gff" ]]; then
+if [[ ! -f "$DATA_DIR/reference.gff" ]]; then
     log "Downloading reference gff..."
-    wget -O "$HOME/content/data/reference.gff.gz" https://ftp.ensembl.org/pub/release-109/gff3/homo_sapiens/Homo_sapiens.GRCh38.109.gff3.gz
-    gunzip -f "$HOME/content/data/reference.gff.gz"
+    download "$GFF_URL" "$DATA_DIR/reference.gff.gz"
+    gunzip -f "$DATA_DIR/reference.gff.gz"
 else
     log "Reference gff already exists, skipping download."
 fi
 
 # Install snpEff if it does not exist
-snpeff_dir="$HOME/content/data/bin"
-genome_name="custom_ref"
+snpeff_dir="$BIN_DIR"
+genome_name="$GENOME_NAME"
 snpeff_jar="$snpeff_dir/snpEff/snpEff.jar"
 
 if [[ ! -f "$snpeff_jar" ]]; then
     log "Downloading and installing snpEff..."
     mkdir -p "$snpeff_dir"
-    wget -O "$snpeff_dir/snpEff.zip" https://sourceforge.net/projects/snpeff/files/snpEff_v4_3t_core.zip
+    download "$SNPEFF_URL" "$snpeff_dir/snpEff.zip"
     unzip -o "$snpeff_dir/snpEff.zip" -d "$snpeff_dir"
     rm -f "$snpeff_dir/snpEff.zip"
 else
@@ -97,44 +222,44 @@ fi
 if [[ ! -d "$snpeff_dir/snpEff/data/$genome_name" ]]; then
     log "Creating snpEff custom genome..."
     mkdir -p "$snpeff_dir/snpEff/data/$genome_name"
-    cp "$HOME/content/data/reference.fasta" "$snpeff_dir/snpEff/data/$genome_name/sequences.fa"
-    cp "$HOME/content/data/reference.gff" "$snpeff_dir/snpEff/data/$genome_name/genes.gff"
+    cp "$DATA_DIR/reference.fasta" "$snpeff_dir/snpEff/data/$genome_name/sequences.fa"
+    cp "$DATA_DIR/reference.gff" "$snpeff_dir/snpEff/data/$genome_name/genes.gff"
     echo "${genome_name}.genome : Custom genome" >> "$snpeff_dir/snpEff/snpEff.config"
-    java -Xmx4g -jar "$snpeff_jar" build -gff3 -v "$genome_name" > "$install_logs/snpeff.log" 2>&1
+    java -Xmx4g -jar "$snpeff_jar" build -gff3 -v "$genome_name" > "$LOGS_DIR/snpeff.log" 2>&1
 else
     log "snpEff custom genome already exists, skipping creation."
 fi
 
 # Index reference genome if not indexed
-if [[ ! -f "$HOME/content/data/reference.fasta.bwt" ]]; then
+if [[ ! -f "$DATA_DIR/reference.fasta.bwt" ]]; then
     log "Indexing reference genome with bwa..."
-    bwa index "$HOME/content/data/reference.fasta" > "$install_logs/bwa_index.log" 2>&1
+    bwa index "$DATA_DIR/reference.fasta" > "$LOGS_DIR/bwa_index.log" 2>&1
 else
     log "Reference genome already indexed, skipping."
 fi
 
 # Run install.py if output does not exist
-if [[ ! -f "$HOME/content/data/genome.sizes" ]]; then
+if [[ ! -f "$DATA_DIR/genome.sizes" ]]; then
     log "Running install.py..."
-    python3 install.py "$HOME" > "$install_logs/install_py.log" 2>&1
+    python3 install.py "$DATA_DIR" > "$LOGS_DIR/install_py.log" 2>&1
 else
     log "install.py was already run, skipping."
 fi
 
 # Download cnvpytor data if it does not exist
-if [[ ! -d "$HOME/.cnvpytor/data" ]]; then
+if [[ ! -d "$BIN_DIR/.cnvpytor/data" ]]; then
     log "Downloading cnvpytor data..."
-    cnvpytor -download > "$install_logs/cnvpytor.log" 2>&1
+    cnvpytor -download > "$LOGS_DIR/cnvpytor.log" 2>&1
 else
     log "CNVpytor data already exists, skipping download."
 fi
 
 # Download Kraken2 database if it does not exist
-kraken_db="$HOME/kraken2-db"
+kraken_db="$INSTALL_DIR/kraken2-db"
 if [[ ! -f "$kraken_db/hash.k2d" ]]; then
     log "Downloading Kraken2 database..."
     mkdir -p "$kraken_db"
-    wget -O "$kraken_db/k2.tar.gz" https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20201202.tar.gz
+    download "$KRAKEN2_DB_URL" "$kraken_db/k2.tar.gz"
     tar -xvzf "$kraken_db/k2.tar.gz" -C "$kraken_db"
     rm -f "$kraken_db/k2.tar.gz"
 else

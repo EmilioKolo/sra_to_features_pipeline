@@ -7,17 +7,17 @@ import sys
 
 # Define HOME directory with sys argv
 if len(sys.argv) > 1:
-    HOME_DIR = sys.argv[1]
-    print(f"The provided HOME directory is: {HOME_DIR}")
+    DATA_DIR = sys.argv[1]
+    print(f"The provided data directory is: {DATA_DIR}")
 else:
-    print("No HOME directory provided. Using os.path.expanduser('~')")
-    HOME_DIR = os.path.expanduser("~")
+    print("No data directory provided. Using ../content/data as default.")
+    DATA_DIR = "../content/data"
 
 # Needed variables
-genome_sizes = os.path.join(HOME_DIR, 'content/data/genome.sizes')
-fasta_file = os.path.join(HOME_DIR, 'content/data/reference.fasta')
-gff_file = os.path.join(HOME_DIR, 'content/data/reference.gff')
-bed_genes = os.path.join(HOME_DIR, 'content/data/only_genes.bed')
+genome_sizes = os.path.join(DATA_DIR, 'genome.sizes')
+fasta_file = os.path.join(DATA_DIR, 'reference.fasta')
+gff_file = os.path.join(DATA_DIR, 'reference.gff')
+bed_genes = os.path.join(DATA_DIR, 'only_genes.bed')
 
 # Creation of genome.sizes file
 print(f'Creating {genome_sizes} file...')
