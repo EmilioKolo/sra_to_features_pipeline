@@ -68,9 +68,9 @@ if ! command -v pip &> /dev/null; then
     PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
     PIP_URL="https://bootstrap.pypa.io/pip/$PY_VER/get-pip.py"
     download "$PIP_URL" "$TMP_DIR/get-pip.py"
-    export PYTHONPATH="$INSTALL_DIR/lib/python$PY_VER_FULL/"
-    PYTHONUSERBASE="$INSTALL_DIR" python3 "$TMP_DIR/get-pip.py" --user
+    PYTHONUSERBASE="$INSTALL_DIR" PYTHONPATH="$INSTALL_DIR/lib/python$PY_VER_FULL/" python3 "$TMP_DIR/get-pip.py" --user
     ln -sf "$INSTALL_DIR/bin/pip" "$BIN_DIR/pip"
+    export PATH="$INSTALL_DIR/bin:$PATH"
     if ! command -v pip &> /dev/null; then
         log "pip installation failed. Please install pip manually with the following command:\nsudo apt-get install python3-pip"
         exit 1
