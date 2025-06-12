@@ -73,7 +73,8 @@ if ! command -v pip &> /dev/null; then
         log "pip installation failed. Please install pip manually with the following command:\nsudo apt-get install python3-pip"
         exit 1
     }
-    log "pip installed successfully."
+    log "pip installed successfully. Attempting to upgrade pip..."
+    python3 -m pip install --upgrade pip
 fi
 # Check that unzip is installed
 if ! command -v unzip &> /dev/null; then
