@@ -117,7 +117,7 @@ if ! command -v gcc &> /dev/null; then
     if [[ ! -d "$BASE_DIR/miniconda" ]]; then
         log "Downloading and installing Miniconda..."
         wget $MINICONDA_URL -O "$BASE_DIR/miniconda.sh"
-        bash "$BASE_DIR/miniconda.sh" -b -p "$BASE_DIR/miniconda" > "$LOGS_DIR/miniconda_bash.log" 2>&1
+        bash "$BASE_DIR/miniconda.sh" -b -p "$BASE_DIR/miniconda" -u > "$LOGS_DIR/miniconda_bash.log" 2>&1
         rm -f "$BASE_DIR/miniconda.sh"
     else
         log "Miniconda already installed at $BASE_DIR/miniconda."
@@ -133,7 +133,6 @@ if ! command -v gcc &> /dev/null; then
     "$BASE_DIR/miniconda/bin/conda" create -y -n pbt_env -c bioconda pybedtools
     # Add executable to PATH
     export PATH="$BASE_DIR/miniconda/envs/pbt_env/bin:$PATH"
-    fi
 fi
 # Install required Python packages
 log "Checking and installing required Python packages..."
