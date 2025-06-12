@@ -111,39 +111,14 @@ if ! command -v java &> /dev/null; then
 fi
 # Check that gcc is installed
 if ! command -v gcc &> /dev/null; then
-    log "gcc is not installed. pybedtools requires gcc to compile C extensions."
-    log "Attempting to install pybedtools with conda."
-    # Check if conda was already installed
-    if [[ ! -d "$BASE_DIR/miniconda" ]]; then
-        PVM=$(python3 -c "import sys; print(sys.version_info.minor)")
-        MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-py3${PVM}_25.1.1-1-Linux-x86_64.sh"
-        log "Downloading and installing Miniconda..."
-        wget $MINICONDA_URL -O "$BASE_DIR/miniconda.sh"
-        bash "$BASE_DIR/miniconda.sh" -b -p "$BASE_DIR/miniconda" -u > "$LOGS_DIR/miniconda_bash.log" 2>&1
-        rm -f "$BASE_DIR/miniconda.sh"
-    else
-        log "Miniconda already installed at $BASE_DIR/miniconda."
-    fi
-    # Check if pbt_env conda environment exists
-    if [ -d "$BASE_DIR/miniconda/envs/pbt_env" ]; then
-        "$BASE_DIR/miniconda/bin/conda" env remove -n pbt_env -y || {
-            echo "Failed to remove existing environment - deleting manually"
-            rm -rf "$BASE_DIR/miniconda/envs/pbt_env"
-        }
-    fi
-    # Create environment and install pybedtools
-    "$BASE_DIR/miniconda/bin/conda" create -y -n pbt_env -c bioconda pybedtools
-    # Add executable to PATH
-    export PATH="$BASE_DIR/miniconda/envs/pbt_env/bin:$PATH"
+    log "gcc is not installed. pybedtools requires gcc to compile C extensions. Please install gcc manually with the following command:\nsudo apt-get install build-essential"
+    exit 1
 fi
 # Install required Python packages
 log "Checking and installing required Python packages..."
 python3 -m pip install numpy==1.26.4
 python3 -m pip install pandas==2.1.4
-# Only install pybedtools with pip if gcc is available
-if command -v gcc &> /dev/null; then
-    python3 -m pip install pybedtools
-fi
+python3 -m pip install pybedtools==0.12.0
 python3 -m pip install requests
 python3 -m pip install cnvpytor==1.3.1
 
