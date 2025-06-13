@@ -6,7 +6,8 @@ from scripts.checks import classify_unaligned_reads
 from scripts.feature_generation import cnvpytor_pipeline
 from scripts.feature_generation import count_syn_nonsyn, create_counts
 from scripts.feature_generation import extract_regions, fragment_lengths
-from scripts.feature_generation import parse_gff_for_genes, variants_per_bin
+from scripts.feature_generation import parse_gff_for_genes
+from scripts.feature_generation import variants_per_bin_os
 from scripts.snippet import run_silent
 from scripts.sra_to_vcf import align_bwa, compress_index_vcf
 from scripts.sra_to_vcf import download_fastq, get_sra_from_ncbi
@@ -180,7 +181,7 @@ dict_features['fragment_lengths_median'] = fl_median
 dict_features['fragment_lengths_stdv'] = fl_stdv
 
 # Obtain number of variants in genome bins
-bins_dict = variants_per_bin(output_vcf, genome_sizes, bin_size_gvs)
+bins_dict = variants_per_bin_os(output_vcf, genome_sizes, bin_size_gvs)
 # Load items from bins_dict to dict_features
 for key, value in bins_dict.items():
     dict_features[key] = value

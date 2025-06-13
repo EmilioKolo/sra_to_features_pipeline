@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 
-from collections import defaultdict, Counter
+from collections import defaultdict
 from os import environ
-from pybedtools import BedTool
 from scripts.snippet import run_silent
 import logging
 import os
+import pandas as pd
 import statistics
+import tempfile
 
 
 def cnvpytor_pipeline(
@@ -313,6 +314,85 @@ def parse_gff_for_genes(gff_file:str) -> list[list[str,int,int,str]]:
 
     return regions
 
+def variants_per_bin_os(
+        vcf_file:str,
+        genome_sizes:str,
+        bin_size:int
+        ) -> dict[str, int]:
+    """
+    Count variants per genome bin using bedtools.
+
+    Parameters:
+        vcf_file (str): Path to a VCF file containing variant calls.
+        genome_sizes (str): Path to a genome sizes file 
+                            (e.g., UCSC .genome format).
+        bin_size (int): Size of each genomic bin (window), in base pairs.
+
+    Returns:
+        dict: Dictionary with keys like 'variants_in_chr1:0-10000' 
+              and values as counts.
+    """
+    # Initialize the output dictionary
+    output_dict = {}
+    # Create a temporary directory to store intermediate BED files
+    with tempfile.TemporaryDirectory() as tmpdir:
+        bins_bed = os.path.join(tmpdir, "genome_bins.bed")
+        variants_bed = os.path.join(tmpdir, "variants.bed")
+        intersected = os.path.join(tmpdir, "intersected.bed")
+        # Generate genome bins using bedtools makewindows
+        l = f"bedtools makewindows -g {genome_sizes} -w {bin_size}"
+        l += f' > {bins_bed}'
+        if os.system(l) != 0:
+            w = "Failed to generate genome bins using bedtools."
+            logging.warning(w)
+            return {}
+        # Convert VCF to BED format (skip headers and adjust coordinates)
+        try:
+            with open(vcf_file) as vcf, open(variants_bed, "w") as bed:
+                for line in vcf:
+                    if line.startswith("#"):
+                        continue
+                    fields = line.strip().split("\t")
+                    chrom = fields[0]
+                    start = int(fields[1])-1 # BED is 0-based
+                    ref = fields[3]
+                    end = start + max(len(ref), 1) # Minimum 1 base
+                    bed.write(f"{chrom}\t{start}\t{end}\n")
+        except Exception as e:
+            logging.warning(f"Failed to convert VCF to BED: {e}")
+            return {}
+        # Count variants per bin using `bedtools intersect -c`
+        l = f"bedtools intersect -a {bins_bed} -b {variants_bed} -c"
+        l += f' > {intersected}'
+        if os.system(l) != 0:
+            w = "Failed to intersect variants with genome bins."
+            logging.warning(w)
+            return {}
+        # Parse intersection output into a DataFrame
+        try:
+            df = pd.read_csv(
+                intersected,
+                sep="\t",
+                header=None,
+                names=["chrom", "start", "end", "variant_count"]
+                )
+        except Exception as e:
+            logging.warning(f"Failed to read intersection result: {e}")
+            return {}
+        # Format the output dictionary
+        if df.empty:
+            logging.warning("No intersected variants found.")
+        else:
+            df["bin_region"] = df.apply(
+                lambda row: f"{row['chrom']}:{row['start']}-{row['end']}", 
+                axis=1
+                )
+            for row in df.itertuples():
+                key = f"variants_in_{row.bin_region}"
+                output_dict[key] = row.variant_count
+    return output_dict
+
+"""
 def variants_per_bin(
         vcf_file:str,
         genome_sizes:str,
@@ -391,3 +471,4 @@ def vcf_to_bed(vcf_file):
             end = start + max(len(ref), 1)
             yield f"{chrom}\t{start}\t{end}"
     return BedTool(converter()).saveas()
+"""

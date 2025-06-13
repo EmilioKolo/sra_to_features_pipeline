@@ -195,12 +195,6 @@ else
     log "Kraken2 is already installed, skipping."
 fi
 
-# Attempt to install pybedtools
-python3 -m pip install pybedtools || {
-    log "pybedtools installation failed. Please install pybedtools manually with the following command:\npip install pybedtools"
-    exit 1
-}
-
 # Cleanup
 rm -rf "$TMP_DIR/*"
 echo "Installation complete!"
