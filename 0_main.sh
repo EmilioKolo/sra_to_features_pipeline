@@ -129,7 +129,7 @@ if ! command -v samtools &> /dev/null; then
     log "samtools is not installed. Installing samtools..."
     download "$SAMTOOLS_URL" "$TMP_DIR/samtools.tar.bz2"
     tar -xjf "$TMP_DIR/samtools.tar.bz2" -C "$TMP_DIR"
-    (cd "$TMP_DIR/samtools-$SAMTOOLS_VER" && ./configure --prefix="$INSTALL_DIR" && make && make install)
+    (cd "$TMP_DIR/samtools-$SAMTOOLS_VER" && ./configure  --without-curses --prefix="$INSTALL_DIR" && make && make install)
     ln -sf "$INSTALL_DIR/bin/samtools" "$BIN_DIR/samtools"
 else
     log "samtools is already installed, skipping."
