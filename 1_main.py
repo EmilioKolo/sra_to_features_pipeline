@@ -60,7 +60,7 @@ compressed_vcf = f'{output_no_tmp}/{sra_id}.vcf.gz'
 
 # Variables for snpEff
 snpeff_dir = f'{output_dir}/bin'
-genome_name = 'custom_ref'
+genome_name = 'custom_human'
 snpeff_vcf = f"{output_prefix}.snpeff.vcf"
 compressed_snpeff_vcf = f"{snpeff_vcf}.gz"
 
