@@ -279,7 +279,7 @@ if [[ ! -f "$kraken_db/hash.k2d" ]]; then
     log "Downloading Kraken2 database..."
     mkdir -p "$kraken_db"
     download "$KRAKEN2_DB_URL" "$kraken_db/k2.tar.gz"
-    tar -xvzf "$kraken_db/k2.tar.gz" -C "$kraken_db"
+    tar -xzf "$kraken_db/k2.tar.gz" -C "$kraken_db"
     rm -f "$kraken_db/k2.tar.gz"
 else
     log "Kraken2 database already exists, skipping download."
