@@ -27,6 +27,8 @@ if len(sys.argv) > 1:
     logging.info(f"The provided SRA ID is: {sra_id}")
     if len(sys.argv) > 2:
         output_dir = sys.argv[2].rstrip('/')
+        # Use the absolute path for output_dir
+        output_dir = os.path.abspath(output_dir)
         logging.info(f'The output directory is "{output_dir}"')
     else:
         output_dir = '/content/data'
@@ -43,7 +45,6 @@ else:
     BASE_DIR = '/content'
 # Base values and variables
 dict_features = {}
-output_dir = os.path.join(BASE_DIR, 'data')
 tmp_folder = f'{BASE_DIR}/tmp_{sra_id}'
 log_dir = f'{output_dir}/logs'
 log_file = f'{log_dir}/{sra_id}'
