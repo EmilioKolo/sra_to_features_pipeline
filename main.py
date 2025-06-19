@@ -23,5 +23,5 @@ l_sra = open(sra_file, 'r').read().split('\n')
 
 for sra_id in l_sra:
     print(f'About to run pipeline.py with {sra_id}...')
-    l = f'python3 pipeline.py {sra_id}'
+    l = f'python3 pipeline.py {sra_id} /content/data'
     os.system(l)

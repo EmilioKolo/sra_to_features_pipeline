@@ -19,23 +19,28 @@ import pandas as pd
 import sys
 
 # Define logging print level
-# Options: INFO, DEBUG, WARNING, ERROR or CRITICAL
+# Options: DEBUG, INFO, WARNING, ERROR or CRITICAL
 logging.basicConfig(level=logging.INFO)
 
 if len(sys.argv) > 1:
     sra_id = sys.argv[1]
     logging.info(f"The provided SRA ID is: {sra_id}")
     if len(sys.argv) > 2:
-        BASE_DIR = sys.argv[2]
-        logging.info(f'The base directory is {BASE_DIR}')
+        output_dir = sys.argv[2].rstrip('/')
+        logging.info(f'The output directory is "{output_dir}"')
     else:
-        BASE_DIR = '/content'
-        w = f'Base directory not provided, using {BASE_DIR}'
+        output_dir = '/content/data'
+        w = f'Output directory not provided, using "{output_dir}"'
         logging.info(w)
 else:
     logging.info("No SRA ID provided.")
     raise ValueError
 
+# Define BASE_DIR (for non-output files)
+if os.path.samefile(output_dir, '/content'):
+    BASE_DIR = '/content2'
+else:
+    BASE_DIR = '/content'
 # Base values and variables
 dict_features = {}
 output_dir = os.path.join(BASE_DIR, 'data')
@@ -109,10 +114,10 @@ if len(l_ftp)==1: # Single end
 elif len(l_ftp)==2: # Paired end
     paired_end = True
 else:
-    logging.info(f'WARNING: More than two elements in l_ftp. {l_ftp}')
+    logging.info(f'WARNING: More than two elements in l_ftp.\n{l_ftp}')
     paired_end = True
 
-####################### SRA TO VCF PIPELINE ########################
+######################### SRA TO VCF PIPELINE ###########################
 
 # Download the fastq files from SRA ID
 download_fastq(tmp_folder, sra_id, paired_end, log_file)
@@ -138,20 +143,20 @@ varcall_mpileup(
     output_vcf,
     reference_genome,
     log_file
-    )
+)
 # Compress and index the created vcf file
 compress_index_vcf(output_vcf, compressed_vcf, log_file)
 # Analyze variants in VCF with snpeff
 snpeff_analysis(
-        output_vcf,
-        snpeff_vcf,
-        compressed_snpeff_vcf,
-        genome_name,
-        snpeff_dir,
-        log_file
-        )
+    output_vcf,
+    snpeff_vcf,
+    compressed_snpeff_vcf,
+    genome_name,
+    snpeff_dir,
+    log_file
+)
 
-####################### CHECKS ########################
+################################ CHECKS #################################
 
 # Check unaligned reads with Kraken2
 try:
@@ -166,7 +171,7 @@ except Exception as e:
     logging.error(f"Error classifying unaligned reads: {e}")
     logging.info("Skipping unaligned reads classification.")
 
-####################### FEATURE GENERATION ########################
+########################## FEATURE GENERATION ###########################
 
 # Obtain fragment lengths and their mean, median and st. deviation
 if paired_end:
@@ -175,7 +180,7 @@ if paired_end:
         tmp_folder,
         sra_id,
         sorted_bam
-        )
+    )
 else:
     fl_mean = 'NA'
     fl_median = 'NA'
@@ -200,10 +205,10 @@ all_genes = parse_gff_for_genes(gff_file)
 regions = selected_regions + all_genes
 # Create counts file
 create_counts(
-        counts_file,
-        regions,
-        compressed_vcf
-        )
+    counts_file,
+    regions,
+    compressed_vcf
+)
 # Read counts back into Python variable
 counts = []
 with open(counts_file) as f:
@@ -233,7 +238,8 @@ for gene, counts in gene_counts.items():
     syn = counts["synonymous"]
     nonsyn = counts["nonsynonymous"]
     ratio = syn / nonsyn if nonsyn > 0 else "Inf"
-    logging.info(f"{gene}\tSyn: {syn}\tNonsyn: {nonsyn}\tRatio: {ratio}")
+    w = f"{gene}\tSyn: {syn}\tNonsyn: {nonsyn}\tRatio: {ratio}"
+    logging.info(w)
     key = f'{gene}_ratio_dN_dS'
     dict_features[key] = ratio
 
@@ -245,7 +251,7 @@ cnv_call_file = cnvpytor_pipeline(
     snpeff_vcf,
     cnv_bin_size,
     log_file
-    )
+)
 # Read CNVpytor output with python 
 calls = []
 with open(cnv_call_file, 'r') as f:
@@ -266,13 +272,14 @@ for chrom, count in sorted(cnv_counts.items()):
         key = f'chr{chrom}_cnv_count'
     dict_features[key] = count
 
-####################### SAVING FEATURES / DELETING FILES ########################
+################### SAVING FEATURES / DELETING FILES ####################
 
 df_features = pd.DataFrame([dict_features])
+df_out = f'{output_dir}/{sra_id}_features.csv'
 try:
-    df_features.transpose().to_csv(f'{output_dir}/{sra_id}_features.csv', sep=';', header=[sra_id])
+    df_features.transpose().to_csv(df_out, sep=';', header=[sra_id])
 except:
-    df_features.transpose().to_csv(f'{output_dir}/{sra_id}_features.csv', sep=';', header=False)
+    df_features.transpose().to_csv(df_out, sep=';', header=False)
 
 logging.info('Features loaded and saved.')
 logging.info('Removing temporary files...')
