@@ -11,8 +11,8 @@ BASE_DIR="/content"
 mkdir -p "$BASE_DIR"
 
 # Create data, install, logs, bin and tmp directories
-DATA_DIR="$REAL_BASE/data"
-INSTALL_DIR="$REAL_BASE/install"
+DATA_DIR="$BASE_DIR/data"
+INSTALL_DIR="$BASE_DIR/install"
 LOGS_DIR="$DATA_DIR/logs"
 BIN_DIR="$DATA_DIR/bin"
 TMP_DIR="$DATA_DIR/tmp"
