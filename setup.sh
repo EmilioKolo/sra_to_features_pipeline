@@ -49,6 +49,7 @@ gunzip -f "$DATA_DIR/reference.gff.gz"
 # Define snpEff variables
 snpeff_dir="$BIN_DIR"
 genome_name="$GENOME_NAME"
+snpeff_jar="$snpeff_dir/snpEff/snpEff.jar"
 # Install snpEff
 mkdir -p "$snpeff_dir"
 download "$SNPEFF_URL" "$snpeff_dir/snpEff.zip"
