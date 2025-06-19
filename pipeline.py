@@ -8,7 +8,7 @@ from scripts.feature_generation import count_syn_nonsyn, create_counts
 from scripts.feature_generation import extract_regions, fragment_lengths
 from scripts.feature_generation import parse_gff_for_genes
 from scripts.feature_generation import variants_per_bin_os
-from scripts.snippet import run_silent
+from scripts.snippet import are_paths_same, run_silent
 from scripts.sra_to_vcf import align_bwa, compress_index_vcf
 from scripts.sra_to_vcf import download_fastq, get_sra_from_ncbi
 from scripts.sra_to_vcf import sam_to_bam, snpeff_analysis
@@ -37,7 +37,7 @@ else:
     raise ValueError
 
 # Define BASE_DIR (for non-output files)
-if os.path.samefile(output_dir, '/content'):
+if are_paths_same(output_dir, '/content'):
     BASE_DIR = '/content2'
 else:
     BASE_DIR = '/content'

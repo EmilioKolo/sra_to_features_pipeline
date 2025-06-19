@@ -5,6 +5,11 @@ import os
 from datetime import datetime
 
 
+def are_paths_same(path1:str, path2:str) -> bool:
+    norm1 = os.path.abspath(os.path.normpath(path1))
+    norm2 = os.path.abspath(os.path.normpath(path2))
+    return norm1 == norm2
+
 def log_annotate(log:str, message:str, log_ext:str='.log') -> None:
     """
     Log a message with a timestamp to the specified log file.
