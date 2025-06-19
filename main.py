@@ -5,6 +5,15 @@ import os
 import sys
 
 
+# Define output folder inside docker and inside the computer
+output_docker = '/content/data'
+output_dir = '../output'
+abs_output_dir = os.path.abspath(output_dir)
+# Create the output directory if it does not exist
+os.makedirs(abs_output_dir, exist_ok=True)
+
+
+# Get system variables
 if len(sys.argv) > 1:
     sra_file = sys.argv[1]
     print(f"The provided file with SRA IDs is: {sra_file}")
@@ -23,5 +32,8 @@ l_sra = open(sra_file, 'r').read().split('\n')
 
 for sra_id in l_sra:
     print(f'About to run pipeline.py with {sra_id}...')
-    l = f'python3 pipeline.py {sra_id} /content/data'
+    #l = f'python3 pipeline.py {sra_id} /content/data'
+    l = 'docker run'
+    l += f' -v {abs_output_dir}:{output_docker}'
+    l += f' features-pipeline {sra_id} {output_docker}'
     os.system(l)

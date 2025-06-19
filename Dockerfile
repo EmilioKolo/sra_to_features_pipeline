@@ -53,7 +53,6 @@ COPY config.env .
 COPY gene_list.txt .
 COPY gene_regions.bed .
 COPY install.py .
-COPY main.py .
 COPY pipeline.py .
 COPY regions.bed .
 COPY setup.sh .
