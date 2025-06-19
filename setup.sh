@@ -69,6 +69,7 @@ bwa index "$DATA_DIR/reference.fasta"
 cnvpytor -download
 
 # Download Kraken2 database
+kraken_db="$INSTALL_DIR/kraken2-db"
 mkdir -p "$kraken_db"
 download "$KRAKEN2_DB_URL" "$kraken_db/k2.tar.gz"
 tar -xzf "$kraken_db/k2.tar.gz" -C "$kraken_db"
