@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+
 import os
 import sys
 
@@ -24,4 +25,3 @@ for sra_id in l_sra:
     print(f'About to run 1_main.py with {sra_id}...')
     l = f'python3 1_main.py {sra_id}'
     os.system(l)
-
