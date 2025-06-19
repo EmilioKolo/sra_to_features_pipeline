@@ -16,6 +16,7 @@ os.makedirs(abs_output_dir, exist_ok=True)
 # Get system variables
 if len(sys.argv) > 1:
     sra_file = sys.argv[1]
+    sra_file = os.path.abspath(sra_file)
     print(f"The provided file with SRA IDs is: {sra_file}")
 else:
     # Get the directory containing this script
