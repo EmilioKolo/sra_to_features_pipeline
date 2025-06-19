@@ -165,3 +165,6 @@ snpEff_summary.html
 
 # OLD_ files
 OLD_*
+
+# Test files
+*_test*
