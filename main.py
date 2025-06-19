@@ -22,6 +22,6 @@ sra_data = {}
 l_sra = open(sra_file, 'r').read().split('\n')
 
 for sra_id in l_sra:
-    print(f'About to run 1_main.py with {sra_id}...')
-    l = f'python3 1_main.py {sra_id}'
+    print(f'About to run pipeline.py with {sra_id}...')
+    l = f'python3 pipeline.py {sra_id}'
     os.system(l)

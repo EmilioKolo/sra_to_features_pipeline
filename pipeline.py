@@ -25,15 +25,21 @@ logging.basicConfig(level=logging.INFO)
 if len(sys.argv) > 1:
     sra_id = sys.argv[1]
     logging.info(f"The provided SRA ID is: {sra_id}")
+    if len(sys.argv) > 2:
+        BASE_DIR = sys.argv[2]
+        logging.info(f'The base directory is {BASE_DIR}')
+    else:
+        BASE_DIR = '/content'
+        w = f'Base directory not provided, using {BASE_DIR}'
+        logging.info(w)
 else:
     logging.info("No SRA ID provided.")
     raise ValueError
 
 # Base values and variables
 dict_features = {}
-HOME_DIR = os.environ["HOME"] #os.path.expanduser("~")
-output_dir = os.path.join(HOME_DIR, "content/data")
-tmp_folder = f'{output_dir}/tmp_{sra_id}'
+output_dir = os.path.join(BASE_DIR, 'data')
+tmp_folder = f'{BASE_DIR}/tmp_{sra_id}'
 log_dir = f'{output_dir}/logs'
 log_file = f'{log_dir}/{sra_id}'
 
@@ -271,8 +277,8 @@ except:
 logging.info('Features loaded and saved.')
 logging.info('Removing temporary files...')
 
-#remove_file(tmp_folder)
-#l = f'rm -r {tmp_folder}'
-#run_silent(l, log_file)
+# Remove temporaryd folder
+l = f'rm -r {tmp_folder}'
+run_silent(l, log_file)
 
 logging.info('Temporary files removed.')

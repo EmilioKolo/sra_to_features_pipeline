@@ -3,6 +3,10 @@
 .gitattributes
 README.md
 
+# Python files
+__pycache__/
+*.ipynb
+
 # Unused pipelines files
 0_*
 1_*

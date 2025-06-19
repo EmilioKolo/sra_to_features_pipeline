@@ -45,14 +45,21 @@ RUN pip3 install --no-cache-dir \
 # Create working directory for pipeline
 WORKDIR /pipeline
 
-# Copy setup scripts and pipeline
-COPY setup.sh .
+# Copy needed files
+COPY scripts/ ./scripts/
+COPY __init__.py .
+COPY amplicons.bed .
+COPY config.env .
+COPY gene_list.txt .
+COPY gene_regions.bed .
 COPY install.py .
 COPY main.py .
+COPY pipeline.py .
+COPY regions.bed .
+COPY setup.sh .
 
 # Make setup script executable
 RUN chmod +x setup.sh
-
 # Run setup script at build time
 RUN ./setup.sh
 
