@@ -8,7 +8,7 @@ from scripts.feature_generation import count_syn_nonsyn, create_counts
 from scripts.feature_generation import extract_regions, fragment_lengths
 from scripts.feature_generation import parse_gff_for_genes
 from scripts.feature_generation import variants_per_bin_os
-from scripts.snippet import are_paths_same, run_silent
+from scripts.snippet import get_value, run_silent
 from scripts.sra_to_vcf import align_bwa, compress_index_vcf
 from scripts.sra_to_vcf import download_fastq, get_sra_from_ncbi
 from scripts.sra_to_vcf import sam_to_bam, snpeff_analysis
@@ -31,27 +31,25 @@ if len(sys.argv) > 1:
         output_dir = os.path.abspath(output_dir)
         logging.info(f'The output directory is "{output_dir}"')
     else:
-        output_dir = '/content/data'
+        output_dir = '/content/data/output'
         w = f'Output directory not provided, using "{output_dir}"'
         logging.info(w)
 else:
     logging.info("No SRA ID provided.")
     raise ValueError
 
-# Define BASE_DIR (for non-output files)
-if are_paths_same(output_dir, '/content'):
-    BASE_DIR = '/content2'
-else:
-    BASE_DIR = '/content'
+# Define base directory (for non-output files)
+BASE_DIR = get_value('BASE_DIR').strip('"').rstrip('/')
 # Base values and variables
 dict_features = {}
 tmp_folder = f'{BASE_DIR}/tmp_{sra_id}'
 log_dir = f'{output_dir}/logs'
 log_file = f'{log_dir}/{sra_id}'
+THREADS = int(get_value('THREADS'))
 
 # Define fasta reference and corresponding gff file
-fasta_file = f'{output_dir}/reference.fasta'
-gff_file = f'{output_dir}/reference.gff'
+fasta_file = f'{BASE_DIR}/data/reference.fasta'
+gff_file = f'{BASE_DIR}/data/reference.gff'
 reference_genome = fasta_file
 
 # Variables for fastq files
@@ -72,13 +70,16 @@ output_vcf = f"{output_prefix}.vcf"
 compressed_vcf = f'{output_no_tmp}/{sra_id}.vcf.gz'
 
 # Variables for snpEff
-snpeff_dir = f'{output_dir}/bin'
-genome_name = 'custom_human'
+snpeff_dir = f'{BASE_DIR}/bin'
+genome_name = get_value('GENOME_NAME').strip('"')
 snpeff_vcf = f"{output_prefix}.snpeff.vcf"
 compressed_snpeff_vcf = f"{snpeff_vcf}.gz"
 
+# Variables for kraken2
+kraken_db = f'{BASE_DIR}/install/kraken2-db'
+
 # Variables for bin creation
-genome_sizes = f'{output_dir}/genome.sizes'
+genome_sizes = f'{BASE_DIR}/data/genome.sizes'
 bin_size_gvs = 100*1000
 
 # Variables for regions of interest
@@ -163,7 +164,12 @@ snpeff_analysis(
 try:
     logging.info("Classifying unaligned reads with Kraken2...")
     base_kraken_out = f'{output_no_tmp}/{sra_id}'
-    classify_unaligned_reads(output_bam, base_kraken_out)
+    classify_unaligned_reads(
+        output_bam,
+        base_kraken_out,
+        kraken_db=kraken_db,
+        threads=THREADS
+    )
     logging.info("Unaligned reads classified successfully.")
     p = f"Results in: {output_no_tmp}_kraken2_output.txt"
     p += f' and {output_no_tmp}_kraken2_report.txt'

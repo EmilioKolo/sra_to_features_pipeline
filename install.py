@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 
 
+from scripts.snippet import get_value
 import os
-import sys
 
 
-# Define HOME directory with sys argv
-if len(sys.argv) > 1:
-    DATA_DIR = sys.argv[1]
-    print(f"The provided data directory is: {DATA_DIR}")
-else:
-    print("No data directory provided. Using ../content/data as default.")
-    DATA_DIR = "../content/data"
+# Define base directory (for non-output files)
+BASE_DIR = get_value('BASE_DIR').strip('"').rstrip('/')
+# Define DATA_DIR from BASE_DIR
+DATA_DIR = os.path.join(BASE_DIR, 'data')
 
 # Needed variables
 genome_sizes = os.path.join(DATA_DIR, 'genome.sizes')
@@ -98,4 +95,3 @@ with open(bed_genes, 'a+') as f:
         str_bed = f"{chr}\t{start}\t{end}\t{name}\n"
         f.write(str_bed)
 print(f'{bed_genes} file created and populated.')
-

@@ -6,8 +6,7 @@ set -euo pipefail
 # Get environment variables
 source config.env
 
-# Redefine base dir
-BASE_DIR="/content"
+# Make sure that BASE_DIR exists
 mkdir -p "$BASE_DIR"
 
 # Create data, install, logs, bin and tmp directories

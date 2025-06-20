@@ -6,7 +6,7 @@ import sys
 
 
 # Define output folder inside docker and inside the computer
-output_docker = '/content/data'
+output_docker = '/content/data/output'
 output_dir = '../output'
 abs_output_dir = os.path.abspath(output_dir)
 # Create the output directory if it does not exist

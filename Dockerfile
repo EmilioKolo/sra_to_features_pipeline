@@ -61,6 +61,8 @@ COPY setup.sh .
 RUN chmod +x setup.sh
 # Run setup script at build time
 RUN ./setup.sh
+# Run python install script
+RUN ./install.py
 
 # Run the Python script at container start
 ENTRYPOINT ["python3", "pipeline.py"]
