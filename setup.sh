@@ -39,12 +39,14 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
 
+log "Starting reference genome download."
 # Download reference genome
 download "$FASTA_URL" "$DATA_DIR/reference.fasta.gz"
 gunzip -f "$DATA_DIR/reference.fasta.gz"
 download "$GFF_URL" "$DATA_DIR/reference.gff.gz"
 gunzip -f "$DATA_DIR/reference.gff.gz"
 
+log "Finished reference genome download. Starting snpEff download."
 # Define snpEff variables
 snpeff_dir="$BIN_DIR"
 genome_name="$GENOME_NAME"
@@ -54,6 +56,7 @@ mkdir -p "$snpeff_dir"
 download "$SNPEFF_URL" "$snpeff_dir/snpEff.zip"
 unzip -o "$snpeff_dir/snpEff.zip" -d "$snpeff_dir"
 rm -f "$snpeff_dir/snpEff.zip"
+log "Finished snpEff download. Starting snpEff custom genome setup."
 # Create custom genome for snpeff
 mkdir -p "$snpeff_dir/snpEff/data/$genome_name"
 cp "$DATA_DIR/reference.fasta" "$snpeff_dir/snpEff/data/$genome_name/sequences.fa"
@@ -61,15 +64,19 @@ cp "$DATA_DIR/reference.gff" "$snpeff_dir/snpEff/data/$genome_name/genes.gff"
 echo "${genome_name}.genome : Custom genome" >> "$snpeff_dir/snpEff/snpEff.config"
 java -Xmx4g -jar "$snpeff_jar" build -gff3 -v "$genome_name"
 
+log "Finished snpEff custom genome setup. Starting BWA indexing."
 # Index reference genome with bwa
 bwa index "$DATA_DIR/reference.fasta"
 
+log "Finished BWA indexing. Starting cnvpytor data download."
 # Download cnvpytor data
 cnvpytor -download
 
+log "Finished cnvpytor data download. Starting Kraken2 database creation."
 # Download Kraken2 database
 kraken_db="$INSTALL_DIR/kraken2-db"
 mkdir -p "$kraken_db"
 download "$KRAKEN2_DB_URL" "$kraken_db/k2.tar.gz"
 tar -xzf "$kraken_db/k2.tar.gz" -C "$kraken_db"
 rm -f "$kraken_db/k2.tar.gz"
+log "Finished Kraken2 database creation."
