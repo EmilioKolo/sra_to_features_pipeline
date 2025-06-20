@@ -10,9 +10,9 @@ In order to run the pipeline, first create the container by running the followin
 
 Then you can run main.py and pass the path to a list of SRA IDs to analyze. Example script:
 
-`$ python3 main.py ./sra_table_selected.txt`
+`$ python3 main.py ./sra_table_selected.txt {output_directory}`
 
-The outputs will be generated in an output folder next to the extracted git code.
+The outputs will be generated in the provided output directory. If an output directory is not provided, the results will be on a folder next to the extracted git code.
 
 OPTIONAL: Run the SRA IDs one by one with the following command:
 
