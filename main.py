@@ -46,7 +46,7 @@ l_sra = open(sra_file, 'r').read().split('\n')
 
 for sra_id in l_sra:
     logging.info(f'About to run pipeline.py with {sra_id}...')
-    l = 'docker run'
+    l = 'docker run -u'
     l += f' -v {abs_output_dir}:{output_docker}'
     l += f' features-pipeline {sra_id} {output_docker}'
     os.system(l)

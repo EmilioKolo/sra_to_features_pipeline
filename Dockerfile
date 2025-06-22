@@ -53,7 +53,6 @@ COPY config.env .
 COPY gene_list.txt .
 COPY gene_regions.bed .
 COPY install.py .
-COPY pipeline.py .
 COPY regions.bed .
 COPY setup.sh .
 
@@ -63,6 +62,9 @@ RUN chmod +x setup.sh
 RUN ./setup.sh
 # Run python install script
 RUN python3 ./install.py
+
+# Copy basic scripts
+COPY pipeline.py .
 
 # Run the Python script at container start
 ENTRYPOINT ["python3", "pipeline.py"]
