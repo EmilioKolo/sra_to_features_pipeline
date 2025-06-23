@@ -212,6 +212,7 @@ def snpeff_analysis(
     Runs snpeff on a vcf file, then compresses and indexes the output.
     """
     # Analyze variants in VCF with snpeff
+    logging.info(f"Analyzing variants from {vcf_file} with snpEff...")
     l = f'java -Xmx4g -jar {snpeff_dir}/snpEff/snpEff.jar'
     l += f' {genome_name} {vcf_file} > {snpeff_vcf}'
     run_silent(l, log_file)
