@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 
+import logging
 import os
 from datetime import datetime
 
@@ -12,6 +13,31 @@ def are_paths_same(path1:str, path2:str) -> bool:
     norm1 = os.path.abspath(os.path.normpath(path1))
     norm2 = os.path.abspath(os.path.normpath(path2))
     return norm1 == norm2
+
+def change_output_ownership(output_dir:str) -> None:
+    """
+    Changes the ownership of all files and directories in output_dir.
+    Requires HOST_UID and HOST_GID environment variables to be set.
+    """
+    # Get the UID and GID from environment variables
+    try:
+        uid = int(os.environ["HOST_UID"])
+        gid = int(os.environ["HOST_GID"])
+    except KeyError as e:
+        w = 'Permissions could not be changed.'
+        w += f' Missing environment variable: {e}'
+        raise RuntimeError(w)
+    # Walk through the output directory
+    for root, dirs, files in os.walk(output_dir):
+        for name in dirs + files:
+            path = os.path.join(root, name)
+            try:
+                os.chown(path, uid, gid)
+            except PermissionError as e:
+                logging.warning(f"Permission denied on {path}: {e}")
+            except FileNotFoundError:
+                continue
+    return None
 
 def get_value(valname:str, sourcefile:str='config.env') -> str:
     """

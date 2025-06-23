@@ -8,7 +8,7 @@ from scripts.feature_generation import count_syn_nonsyn, create_counts
 from scripts.feature_generation import extract_regions, fragment_lengths
 from scripts.feature_generation import parse_gff_for_genes
 from scripts.feature_generation import variants_per_bin_os
-from scripts.snippet import get_value, run_silent
+from scripts.snippet import change_output_ownership, get_value, run_silent
 from scripts.sra_to_vcf import align_bwa, compress_index_vcf
 from scripts.sra_to_vcf import download_fastq, get_sra_from_ncbi
 from scripts.sra_to_vcf import sam_to_bam, snpeff_analysis
@@ -295,4 +295,7 @@ logging.info('Removing temporary files...')
 l = f'rm -r {tmp_folder}'
 run_silent(l, log_file)
 
-logging.info('Temporary files removed.')
+w = 'Temporary files removed. Changing ownership of output files...'
+logging.info(w)
+# Change ownership of output files to the host user
+change_output_ownership(output_dir)

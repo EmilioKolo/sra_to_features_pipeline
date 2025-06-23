@@ -48,22 +48,7 @@ for sra_id in l_sra:
     logging.info(f'About to run pipeline.py with {sra_id}...')
     l = 'docker run'
     l += f' -v {abs_output_dir}:{output_docker}'
+    l += ' -e HOST_UID=$(id -u)'
+    l += ' -e HOST_GID=$(id -g)'
     l += f' features-pipeline {sra_id} {output_docker}'
     os.system(l)
-
-# Define a function to fix permissions inside a folder
-def fix_permissions(chown_dir:str, uid=None, gid=None) -> None:
-    """
-    Clear root ownership and set less strict permissions to all files 
-    and directories in chown_dir.
-    """
-    uid = uid if uid is not None else os.getuid()
-    gid = gid if gid is not None else os.getgid()
-    for root, dirs, files in os.walk(chown_dir):
-        for name in dirs + files:
-            path = os.path.join(root, name)
-            os.chown(path, uid, gid)
-    return None
-
-# Change permissions of the output directory
-fix_permissions(abs_output_dir)
