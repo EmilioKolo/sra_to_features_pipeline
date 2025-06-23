@@ -42,7 +42,7 @@ def align_bwa(
     run_silent(l, log_file)
     logging.info(f"Alignment to SAM file complete: {output_sam}")
     # Check if the SAM file was created and has content
-    logging.info("\nChecking SAM file content...")
+    logging.info("Checking SAM file content...")
     l = f'head -n 10 {output_sam}'
     run_silent(l, log_file)
     # Check file size
@@ -112,13 +112,13 @@ def download_fastq(
         t += f' {reads_file_r1} and {reads_file_r2}'
         logging.info(t)
         # Verify file sizes
-        logging.info("\nChecking file sizes.")
+        logging.info("Checking file sizes.")
         l = f'du -h {reads_file_r1} {reads_file_r2}'
     else:
         t += f' {reads_file_single}'
         logging.info(t)
         # Verify file sizes
-        logging.info("\nChecking file size.")
+        logging.info("Checking file size.")
         l = f'du -h {reads_file_single}'
     run_silent(l, log_file)
     return None
