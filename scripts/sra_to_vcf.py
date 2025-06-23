@@ -63,22 +63,14 @@ def compress_index_vcf(
     l = f'bgzip -c {vcf_file} > {compressed_vcf}'
     run_silent(l, log_file)
     logging.info(f"Compressed VCF: {compressed_vcf}")
-
     # Index VCF with tabix
     logging.info(f"Indexing {compressed_vcf} with tabix...")
     l = f'tabix -p vcf {compressed_vcf}'
     run_silent(l, log_file)
     logging.info(f"VCF index: {compressed_vcf}.tbi")
-
-    # View the first lines of the VCF (header + some variants)
-    logging.info("First lines of the VCF file.")
-    l = f'zcat {compressed_vcf} | tail'
-    run_silent(l, log_file)
-
+    # Generate variant file statistics
     logging.info("Variant calling statistics.")
     l = f'bcftools stats {compressed_vcf} > {compressed_vcf}.stats'
-    run_silent(l, log_file)
-    l = f'cat {compressed_vcf}.stats'
     run_silent(l, log_file)
     return None
 
@@ -213,7 +205,7 @@ def snpeff_analysis(
     """
     # Analyze variants in VCF with snpeff
     logging.info(f"Analyzing variants from {vcf_file} with snpEff...")
-    l = f'java -Xmx4g -jar {snpeff_dir}/snpEff/snpEff.jar'
+    l = f'java -Xmx8g -jar {snpeff_dir}/snpEff/snpEff.jar'
     l += f' {genome_name} {vcf_file} > {snpeff_vcf}'
     run_silent(l, log_file)
     # Visualize the snpeff vcf file
