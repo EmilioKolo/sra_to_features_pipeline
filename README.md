@@ -16,7 +16,7 @@ The outputs will be generated in the provided output directory. If an output dir
 
 OPTIONAL: Run the SRA IDs one by one with the following command:
 
-`$ docker run -v {output_directory}:/content/data features-pipeline {sra_id} /content/data`
+`$ docker run -v {output_directory}:/content/data/output features-pipeline {sra_id} /content/data/output`
 
 All of the code is intended to work on cfDNA sequencing using Illumina with either single end or paired end sequencing reads.
 
