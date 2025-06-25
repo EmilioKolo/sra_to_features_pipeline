@@ -90,7 +90,7 @@ counts_file = f'{tmp_folder}/counts.csv'
 # vcf file used (must be snpeff, may be compressed)
 vcf_file = compressed_snpeff_vcf
 # bed files
-bed_variants = f'{output_dir}/variants.bed'
+bed_variants = f'{tmp_folder}/variants.bed'
 bed_intersect = f'{tmp_folder}/intersect.bed'
 bed_genes = f'{output_dir}/only_genes.bed'
 
