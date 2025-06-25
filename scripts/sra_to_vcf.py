@@ -4,7 +4,9 @@
 from scripts.snippet import remove_file, run_silent
 import json
 import logging
+import os
 import requests
+import time
 
 
 def align_bwa(
@@ -97,7 +99,32 @@ def download_fastq(
     if paired_end:
         l += ' --split-files'
     l += f' -O {output_folder} {sra_id}'
-    run_silent(l, log_file)
+    # Start a run counter
+    i = 0
+    while i < 5:
+        try:
+            run_silent(l, log_file)
+            # Exit loop if successful
+            break
+        except Exception as e:
+            logging.info(f"Attempt {i+1} failed: {e}")
+            # Check if the files were created and delete them if they exist
+            if paired_end:
+                if os.path.exists(reads_file_r1):
+                    remove_file(reads_file_r1)
+                if os.path.exists(reads_file_r2):
+                    remove_file(reads_file_r2)
+            else:
+                if os.path.exists(reads_file_single):
+                    remove_file(reads_file_single)
+            # Increment the attempt counter
+            i += 1
+            if i == 5:
+                w = "Failed to download FASTQ files after 5 attempts."
+                logging.info(w)
+                return None
+            # Wait before retrying
+            time.sleep(60)
     # Visualize file sizes
     t = f'Reads downloaded and extracted to:'
     if paired_end:
