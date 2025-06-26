@@ -179,7 +179,7 @@ def count_syn_nonsyn(
     # Initialize defaultdict (dictionary) for counts
     gene_counts = defaultdict(
         lambda: {"synonymous": 0, "nonsynonymous": 0}
-        )
+    )
     # Open the intersect bed file
     with open(bed_intersect, 'r') as f:
         # Go through lines
@@ -375,7 +375,7 @@ def variants_per_bin_os(
                 sep="\t",
                 header=None,
                 names=["chrom", "start", "end", "variant_count"]
-                )
+            )
         except Exception as e:
             logging.warning(f"Failed to read intersection result: {e}")
             return {}
@@ -434,7 +434,7 @@ def variants_per_bin(
             df_vg_bins['bin_region'] = df_vg_bins.apply(
                 lambda row: f'{row["chrom"]}:{row["start"]}-{row["end"]}',
                 axis=1
-                )
+            )
             #total_varcount = sum(df_vg_bins['variant_count'])
             for row in df_vg_bins.itertuples():
                 key = f'variants_in_{row.bin_region}'

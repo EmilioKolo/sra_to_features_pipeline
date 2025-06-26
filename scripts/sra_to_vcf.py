@@ -148,54 +148,73 @@ def get_sra_from_ncbi(sra_accession_id: str) -> dict | None:
     from NCBI via the European Nucleotide Archive (ENA) API.
 
     Args:
-        sra_accession_id (str): The SRA accession ID (e.g., 'SRR000001', 'ERR000001', 'DRR000001').
+        sra_accession_id (str): The SRA accession ID (e.g., 'SRR000001', 
+                                'ERR000001', 'DRR000001').
 
     Returns:
-        dict | None: A dictionary containing SRA metadata and download links if successful,
-                     otherwise None.
+        dict | None: A dictionary containing SRA metadata and download 
+                     links if successful, otherwise None.
     """
     # ENA's API endpoint for searching read runs.
     # We request JSON format and specify the fields we want to retrieve.
     # 'fastq_ftp' and 'sra_ftp' provide direct download links.
     # 'limit=1' ensures we only get one result for a specific accession.
     base_url = "https://www.ebi.ac.uk/ena/portal/api/search"
+    f = "run_accession,fastq_ftp,sra_ftp,experiment_accession"
+    f += ",sample_accession,study_accession,library_name,library_strategy"
+    f += ",library_source,library_selection,instrument_platform"
+    f += ",instrument_model,base_count,read_count,scientific_name,tax_id"
     params = {
         "result": "read_run",
         "query": f"run_accession={sra_accession_id}",
-        "fields": "run_accession,fastq_ftp,sra_ftp,experiment_accession,sample_accession,study_accession,library_name,library_strategy,library_source,library_selection,instrument_platform,instrument_model,base_count,read_count,scientific_name,tax_id",
+        "fields": f,
         "format": "json",
         "limit": 1
     }
-
-    logging.info(f"Attempting to retrieve SRA data for: {sra_accession_id}")
+    w = f"Attempting to retrieve SRA data for: {sra_accession_id}"
+    logging.info(w)
     try:
         # Make the HTTP GET request to the ENA API.
         response = requests.get(base_url, params=params)
-        response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
+        # Raise an HTTPError for bad responses (4xx or 5xx)
+        response.raise_for_status()
 
         # Parse the JSON response.
         data = response.json()
 
-        # The ENA API returns a list of results. For a single accession, it should be a list
-        # with one dictionary, or an empty list if not found.
+        # The ENA API returns a list of results. For a single accession, 
+        # it should be a list with one dictionary, or an empty list 
+        # if not found.
         if data:
             sra_info = data[0]
-            logging.info(f"Successfully retrieved data for {sra_accession_id}.")
+            w = f"Successfully retrieved data for {sra_accession_id}."
+            logging.info(w)
             return sra_info
         else:
-            logging.info(f"No SRA data found for accession ID: {sra_accession_id}. Please check the ID.")
+            w = f"No SRA data found for accession ID: {sra_accession_id}."
+            w += ' Please check the ID.'
+            logging.info(w)
             return None
 
     except requests.exceptions.HTTPError as http_err:
-        logging.info(f"HTTP error occurred: {http_err} - Status Code: {response.status_code}")
+        w = f"HTTP error occurred: {http_err}"
+        w += f" - Status Code: {response.status_code}"
+        logging.info(w)
     except requests.exceptions.ConnectionError as conn_err:
-        logging.info(f"Connection error occurred: {conn_err} - Unable to connect to ENA API.")
+        w = f"Connection error occurred: {conn_err}"
+        w += " - Unable to connect to ENA API."
+        logging.info(w)
     except requests.exceptions.Timeout as timeout_err:
-        logging.info(f"Timeout error occurred: {timeout_err} - Request to ENA API timed out.")
+        w = f"Timeout error occurred: {timeout_err}"
+        w += " - Request to ENA API timed out."
+        logging.info(w)
     except requests.exceptions.RequestException as req_err:
-        logging.info(f"An unexpected error occurred during the request: {req_err}")
+        w = f"An unexpected error occurred during the request: {req_err}"
+        logging.info(w)
     except json.JSONDecodeError as json_err:
-        logging.info(f"Error decoding JSON response: {json_err}. Response content: {response.text}")
+        w = f"Error decoding JSON response: {json_err}."
+        w += f" Response content: {response.text}"
+        logging.info(w)
     except Exception as e:
         logging.info(f"An unexpected error occurred: {e}")
 

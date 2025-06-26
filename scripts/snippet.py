@@ -98,7 +98,7 @@ def run_silent(cmd:str, log:str, log_ext:str='.log') -> None:
             log+'_timestamp',
             f'Running command: {cmd}',
             log_ext=log_ext
-            )
+        )
         full_cmd = f"bash -c \"{cmd}\" >> {log}{log_ext} 2>&1"
         print('Running command:', cmd)
         os.system(full_cmd)
@@ -106,5 +106,5 @@ def run_silent(cmd:str, log:str, log_ext:str='.log') -> None:
             log+'_timestamp',
             f'Finished command',
             log_ext=log_ext
-            )
+        )
     return None

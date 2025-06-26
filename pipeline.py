@@ -239,7 +239,7 @@ gene_counts = count_syn_nonsyn(
     vcf_file,
     bed_genes,
     bed_intersect
-    )
+)
 # Log and save results
 for gene, counts in gene_counts.items():
     syn = counts["synonymous"]
