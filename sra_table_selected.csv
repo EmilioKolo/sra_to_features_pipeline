@@ -1,11 +1,11 @@
 run	run_accession	disease	disease_stage	age	sex	ethnicity	metastasis	n_of_tumors	tumor_diameter	subtype
-	SRR17006154	Breast	IV	58	female	ASIAN				
-	SRR15505510	Colorectal	II	83	female	WHITE				
-	SRR16994271	Control		46	female					
-	SRR23280068	Breast	I	59	female		Yes	1	12x14mm	Luminal A
-	SRR17004030	Colorectal	I	66	female	WHITE				
-	SRR17005888	Control		57	female	OTHER				
-	SRR23280194	Breast	II	50	female		No	1	22x17mm	TNBC
+NB	SRR17006154	Breast	IV	58	female	ASIAN				
+NB	SRR15505510	Colorectal	II	83	female	WHITE				
+NB	SRR16994271	Control		46	female					
+NB	SRR23280068	Breast	I	59	female		Yes	1	12x14mm	Luminal A
+NB	SRR17004030	Colorectal	I	66	female	WHITE				
+NB	SRR17005888	Control		57	female	OTHER				
+NB	SRR23280194	Breast	II	50	female		No	1	22x17mm	TNBC
 NB	SRR16994300	Colorectal	I	69	female	WHITE				
 NB	SRR17004588	Control		70	male	WHITE				
 NB	SRR17006096	Breast	III	62	female	WHITE				
@@ -21,17 +21,17 @@ NB	SRR23279923	Breast	II	63	female		No	1	28x18mm	Luminal B
 NB	SRR16994412	Colorectal	II	68	female	WHITE				
 NB	SRR17004408	Control		79	female	WHITE				
 NB	SRR23279981	Breast	II	40	female		Yes	1	15x25mm	Luminal B
-	SRR16995139	Colorectal	III	68	male	WHITE				
-	SRR16994159	Control		78	female	WHITE				
-	SRR17004543	Breast	II	65	female	WHITE				
-	SRR17004535	Colorectal	IV	57	female	OTHER				
-	SRR23279758	Control		56	female					
-	SRR23279777	Breast	II	51	female		No	1	12x11mm	Luminal B
-	SRR17006178	Colorectal	II	58	male	WHITE				
-	SRR16993950	Control		58	female	WHITE				
-	SRR23280253	Breast	II	58	female		Yes	1	40mm	HER2
-	SRR17004729	Colorectal	II	66	male	WHITE				
-	SRR17004863	Control		61	male	WHITE				
+NB	SRR16995139	Colorectal	III	68	male	WHITE				
+NB	SRR16994159	Control		78	female	WHITE				
+NB	SRR17004543	Breast	II	65	female	WHITE				
+NB	SRR17004535	Colorectal	IV	57	female	OTHER				
+NB	SRR23279758	Control		56	female					
+NB	SRR23279777	Breast	II	51	female		No	1	12x11mm	Luminal B
+NB	SRR17006178	Colorectal	II	58	male	WHITE				
+NB	SRR16993950	Control		58	female	WHITE				
+NB	SRR23280253	Breast	II	58	female		Yes	1	40mm	HER2
+NB	SRR17004729	Colorectal	II	66	male	WHITE				
+NB	SRR17004863	Control		61	male	WHITE				
 	SRR17004217	Breast	IV	76	female	WHITE				
 	SRR16994888	Colorectal	II	50	male					
 	SRR16994938	Control		61	female	WHITE				
@@ -197,8 +197,8 @@ NB	SRR23279981	Breast	II	40	female		Yes	1	15x25mm	Luminal B
 	SRR23280051	Breast	II	50	female		No	1	23x21mm	HER2
 	SRR16994498	Colorectal	III	55	female	WHITE				
 	SRR16994249	Control		50	female					
-	SRR23280059	Breast	I	33	female		No	2	15x8 mm, 8x6 mm	Luminal B
-	SRR16993937	Colorectal	IV	73	male	WHITE				
+PC	SRR23280059	Breast	I	33	female		No	2	15x8 mm, 8x6 mm	Luminal B
+PC	SRR16993937	Colorectal	IV	73	male	WHITE				
 	SRR17004010	Control		67	female	OTHER				
 	SRR23280058	Breast	I	71	female		No	1	10,5x10mm	Luminal A
 	SRR16994146	Colorectal	I	51	male	ASIAN				
@@ -291,11 +291,11 @@ PC	SRR23279912	Breast	I	64	female		No	1	5mm	Luminal A
 PC	SRR16994932	Colorectal	II	64	female	WHITE				
 PC	SRR17004779	Control		64	male	WHITE				
 PC	SRR23279913	Breast	III	41	female		Yes	1	24x10x13mm	Luminal B - HER2
-	SRR16993812	Colorectal	III	73	female	WHITE				
-	SRR16994381	Control		52	female					
-	SRR23279778	Breast	II	56	female		Yes	1	2cm	Luminal B - HER2
-	SRR16995134	Colorectal	II	62	female	WHITE				
-	SRR23280092	Control		60	female					
-	SRR23279841	Breast	II	57	female		No			Luminal A
+PC	SRR16993812	Colorectal	III	73	female	WHITE				
+PC	SRR16994381	Control		52	female					
+PC	SRR23279778	Breast	II	56	female		Yes	1	2cm	Luminal B - HER2
+PC	SRR16995134	Colorectal	II	62	female	WHITE				
+PC	SRR23280092	Control		60	female					
+PC	SRR23279841	Breast	II	57	female		No			Luminal A
 PC	SRR17004933	Colorectal	II	59	male	WHITE				
 PC	SRR23280013	Control		44	female					
