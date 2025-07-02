@@ -16,7 +16,9 @@ from scripts.sra_to_vcf import sort_index_bam, varcall_mpileup
 import logging
 import os
 import pandas as pd
+import random
 import sys
+import time
 
 # Define logging print level
 # Options: DEBUG, INFO, WARNING, ERROR or CRITICAL
@@ -109,6 +111,20 @@ run_silent(l, '')
 
 # Obtain SRA data
 sra_data = get_sra_from_ncbi(sra_id)
+cont = 0
+while sra_data is None:
+    # Add random wait time
+    time.sleep(random.randint(15, 30))
+    w = f"Retrying to get SRA data for {sra_id} (attempt {cont+1})"
+    logging.info(w)
+    # Increment the counter
+    cont+=1
+    # Retry getting SRA data
+    sra_data = get_sra_from_ncbi(sra_id)
+    if cont>5:
+        er = f"Could not retrieve SRA data for ID: {sra_id}"
+        logging.error(er)
+        sys.exit(1)
 # Check for files
 l_ftp = sra_data['fastq_ftp'].split(';')
 if len(l_ftp)==1: # Single end
