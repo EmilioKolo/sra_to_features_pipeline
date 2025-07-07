@@ -199,8 +199,8 @@ NB	SRR23280179	Breast	IIA	61	female		Yes	1	22x11mm	Luminal B - HER2
 	SRR16994249	Control		50	female					
 PC	SRR23280059	Breast	I	33	female		No	2	15x8 mm, 8x6 mm	Luminal B
 PC	SRR16993937	Colorectal	IV	73	male	WHITE				
-	SRR17004010	Control		67	female	OTHER				
-	SRR23280058	Breast	I	71	female		No	1	10,5x10mm	Luminal A
+PC	SRR17004010	Control		67	female	OTHER				
+PC	SRR23280058	Breast	I	71	female		No	1	10,5x10mm	Luminal A
 	SRR16994146	Colorectal	I	51	male	ASIAN				
 	SRR16993844	Control		52	female					
 	SRR23280163	Breast	IIA	58	female					Luminal A
