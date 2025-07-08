@@ -1,5 +1,5 @@
 run	run_accession	disease	disease_stage	age	sex	ethnicity	metastasis	n_of_tumors	tumor_diameter	subtype
-NB	SRR17006154	Breast	IV	58	female	ASIAN				
+X	SRR17006154	Breast	IV	58	female	ASIAN				
 NB	SRR15505510	Colorectal	II	83	female	WHITE				
 NB	SRR16994271	Control		46	female					
 NB	SRR23280068	Breast	I	59	female		Yes	1	12x14mm	Luminal A
@@ -27,7 +27,7 @@ NB	SRR17004543	Breast	II	65	female	WHITE
 NB	SRR17004535	Colorectal	IV	57	female	OTHER				
 NB	SRR23279758	Control		56	female					
 NB	SRR23279777	Breast	II	51	female		No	1	12x11mm	Luminal B
-NB	SRR17006178	Colorectal	II	58	male	WHITE				
+X	SRR17006178	Colorectal	II	58	male	WHITE				
 NB	SRR16993950	Control		58	female	WHITE				
 NB	SRR23280253	Breast	II	58	female		Yes	1	40mm	HER2
 NB	SRR17004729	Colorectal	II	66	male	WHITE				
