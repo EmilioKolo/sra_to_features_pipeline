@@ -35,7 +35,7 @@ if len(sys.argv) > 1:
             reads_file_r2 = os.path.join(in_path, sys.argv[2])
             paired_end = True
             # Define basename
-            sra_id = define_bname(reads_file_r1, reads_file_r2)
+            sra_id = define_bname(sys.argv[1], sys.argv[2])
             w = "The provided fastq files are:"
             w += f' {reads_file_r1} and {reads_file_r2}'
             logging.info(w)
@@ -43,7 +43,7 @@ if len(sys.argv) > 1:
             reads_file_single = os.path.join(in_path, sys.argv[1])
             paired_end = False
             # Define basename
-            sra_id = reads_file_single.split('.')[0]
+            sra_id = sys.argv[1].split('.')[0]
             w = f"The provided fastq file is: {reads_file_single}"
             logging.info(w)
         output_dir = '/content/data/output'
