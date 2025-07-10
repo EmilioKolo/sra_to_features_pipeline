@@ -29,9 +29,10 @@ logging.basicConfig(level=logging.INFO)
 if len(sys.argv) > 1:
     if sys.argv[1].endswith(('.fastq', '.fastq.gz')):
         fastq_given = True
+        in_path = '/content/data/input'
         if len(sys.argv) > 2:
-            reads_file_r1 = sys.argv[0]
-            reads_file_r2 = sys.argv[1]
+            reads_file_r1 = os.path.join(in_path, sys.argv[0])
+            reads_file_r2 = os.path.join(in_path, sys.argv[1])
             paired_end = True
             # Define basename
             sra_id = define_bname(reads_file_r1, reads_file_r2)
@@ -39,7 +40,7 @@ if len(sys.argv) > 1:
             w += f' {reads_file_r1} and {reads_file_r2}'
             logging.info(w)
         else:
-            reads_file_single = sys.argv[0]
+            reads_file_single = os.path.join(in_path, sys.argv[0])
             paired_end = False
             # Define basename
             sra_id = reads_file_single.split('.')[0]
@@ -78,10 +79,11 @@ fasta_file = f'{BASE_DIR}/data/reference.fasta'
 gff_file = f'{BASE_DIR}/data/reference.gff'
 reference_genome = fasta_file
 
-# Variables for fastq files
-reads_file_r1 = f"{tmp_folder}/{sra_id}_1.fastq.gz"
-reads_file_r2 = f"{tmp_folder}/{sra_id}_2.fastq.gz"
-reads_file_single = f"{tmp_folder}/{sra_id}.fastq.gz"
+if not fastq_given:
+    # Variables for fastq files
+    reads_file_r1 = f"{tmp_folder}/{sra_id}_1.fastq.gz"
+    reads_file_r2 = f"{tmp_folder}/{sra_id}_2.fastq.gz"
+    reads_file_single = f"{tmp_folder}/{sra_id}.fastq.gz"
 
 # Variables for sam/bam files
 output_no_tmp = f'{output_dir}/{sra_id}'

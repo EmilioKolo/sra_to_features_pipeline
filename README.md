@@ -23,9 +23,9 @@ All of the code is intended to work on cfDNA sequencing using Illumina with eith
 
 ALTERNATIVE: Run the pipeline with fastq files with the following command
 
-`docker run -v {output_directory}:/content/data/output features-pipeline {fastq_read1} [{fastq_read2}]`
+`docker run -v {output_directory}:/content/data/output -v {fastq_folder}:/content/data/input features-pipeline {fastq_file1} [{fastq_file2}]`
 
-Only fastq_read1 assumes single-end Illumina sequencing. Defining fastq_read2 assumes paired-end Illumina sequencing.
+Using only fastq_file1 assumes single-end Illumina sequencing. Defining fastq_file2 assumes paired-end Illumina sequencing.
 
 
 # Output
