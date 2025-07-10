@@ -31,8 +31,8 @@ if len(sys.argv) > 1:
         fastq_given = True
         in_path = '/content/data/input'
         if len(sys.argv) > 2:
-            reads_file_r1 = os.path.join(in_path, sys.argv[0])
-            reads_file_r2 = os.path.join(in_path, sys.argv[1])
+            reads_file_r1 = os.path.join(in_path, sys.argv[1])
+            reads_file_r2 = os.path.join(in_path, sys.argv[2])
             paired_end = True
             # Define basename
             sra_id = define_bname(reads_file_r1, reads_file_r2)
@@ -40,7 +40,7 @@ if len(sys.argv) > 1:
             w += f' {reads_file_r1} and {reads_file_r2}'
             logging.info(w)
         else:
-            reads_file_single = os.path.join(in_path, sys.argv[0])
+            reads_file_single = os.path.join(in_path, sys.argv[1])
             paired_end = False
             # Define basename
             sra_id = reads_file_single.split('.')[0]
@@ -64,6 +64,8 @@ if len(sys.argv) > 1:
 else:
     logging.info("No SRA ID nor fastq files provided.")
     raise ValueError
+
+print(f'RUNNING FOR {sra_id}')
 
 # Define base directory (for non-output files)
 BASE_DIR = get_value('BASE_DIR').strip('"').rstrip('/')
