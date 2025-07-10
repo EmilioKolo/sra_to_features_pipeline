@@ -15,9 +15,9 @@ def align_bwa(
         reference_genome:str,
         paired_end:bool,
         log_file:str
-        ) -> None:
+    ) -> None:
     """
-    Runs an alignment with BWA.
+    Runs an alignment with BWA given an sra_id.
     """
     # Define file names
     reads_file_r1 = f'{output_folder}/{sra_id}_1.fastq.gz'
@@ -52,11 +52,60 @@ def align_bwa(
     run_silent(l, log_file)
     return None
 
+def align_bwa_reads(
+        l_reads:list[str],
+        output_folder:str,
+        out_id:str,
+        reference_genome:str,
+        paired_end:bool,
+        log_file:str
+    ) -> None:
+    """
+    Runs an alignment with BWA given a list of fastq reads.
+    """
+    # Define if the reads are paired end or single end
+    if len(l_reads)>=2:
+        paired_end = True
+        reads_file_r1 = l_reads[0]
+        reads_file_r2 = l_reads[1]
+    else:
+        paired_end = False
+        reads_file_single = l_reads[0]
+    # Define output files
+    output_prefix = f'{output_folder}/{out_id}'
+    output_sam = f'{output_prefix}.sam'
+    # Run alignment
+    t = f'Aligning reads to {reference_genome}'
+    t += ' and processing output...'
+    logging.info(t)
+    # -M: Mark shorter split hits as secondary (recommended for Picard compatibility)
+    # -t: Number of threads (Colab generally has 2 CPU cores available for free tier)
+    # The '|' pipes the SAM output of bwa to samtools view for conversion to BAM
+    # samtools sort sorts the BAM file
+    # samtools index creates the .bai index for quick access
+    l = 'bwa mem -M -t 2'
+    l += f' {reference_genome}'
+    if paired_end:
+        l += f' {reads_file_r1} {reads_file_r2}'
+    else:
+        l += f' {reads_file_single}'
+    l += f' > {output_sam}'
+    run_silent(l, log_file)
+    logging.info(f"Alignment to SAM file complete: {output_sam}")
+    # Check if the SAM file was created and has content
+    logging.info("Checking SAM file content...")
+    l = f'head -n 10 {output_sam}'
+    run_silent(l, log_file)
+    # Check file size
+    l = f'ls -lh {output_sam}'
+    run_silent(l, log_file)
+    return None
+
 def compress_index_vcf(
         vcf_file:str,
         compressed_vcf:str,
         log_file:str
-        ) -> None:
+    ) -> None:
     """
     Compresses a vcf file, indexes it with tabix and prints some stats.
     """
@@ -81,7 +130,7 @@ def download_fastq(
         sra_id:str,
         paired_end:bool,
         log_file:str
-        ) -> None:
+    ) -> None:
     """
     Download fastq files from an SRA ID using fastq-dump.
     """
@@ -245,7 +294,7 @@ def snpeff_analysis(
         genome_name:str,
         snpeff_dir:str,
         log_file:str
-        ) -> None:
+    ) -> None:
     """
     Runs snpeff on a vcf file, then compresses and indexes the output.
     """
@@ -299,7 +348,7 @@ def varcall_mpileup(
         vcf_file:str,
         reference_genome:str,
         log_file:str
-        ) -> None:
+    ) -> None:
     """
     Perform variant calling using bcftools mpileup.
     """

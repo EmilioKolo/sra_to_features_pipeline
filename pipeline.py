@@ -8,8 +8,10 @@ from scripts.feature_generation import count_syn_nonsyn, create_counts
 from scripts.feature_generation import extract_regions, fragment_lengths
 from scripts.feature_generation import parse_gff_for_genes
 from scripts.feature_generation import variants_per_bin_os
-from scripts.snippet import change_output_ownership, get_value, run_silent
-from scripts.sra_to_vcf import align_bwa, compress_index_vcf
+from scripts.snippet import change_output_ownership, define_bname
+from scripts.snippet import get_value, run_silent
+from scripts.sra_to_vcf import align_bwa, align_bwa_reads
+from scripts.sra_to_vcf import compress_index_vcf
 from scripts.sra_to_vcf import download_fastq, get_sra_from_ncbi
 from scripts.sra_to_vcf import sam_to_bam, snpeff_analysis
 from scripts.sra_to_vcf import sort_index_bam, varcall_mpileup
@@ -25,19 +27,41 @@ import time
 logging.basicConfig(level=logging.INFO)
 
 if len(sys.argv) > 1:
-    sra_id = sys.argv[1]
-    logging.info(f"The provided SRA ID is: {sra_id}")
-    if len(sys.argv) > 2:
-        output_dir = sys.argv[2].rstrip('/')
-        # Use the absolute path for output_dir
-        output_dir = os.path.abspath(output_dir)
+    if sys.argv[1].endswith(('.fastq', '.fastq.gz')):
+        fastq_given = True
+        if len(sys.argv) > 2:
+            reads_file_r1 = sys.argv[0]
+            reads_file_r2 = sys.argv[1]
+            paired_end = True
+            # Define basename
+            sra_id = define_bname(reads_file_r1, reads_file_r2)
+            w = "The provided fastq files are:"
+            w += f' {reads_file_r1} and {reads_file_r2}'
+            logging.info(w)
+        else:
+            reads_file_single = sys.argv[0]
+            paired_end = False
+            # Define basename
+            sra_id = reads_file_single.split('.')[0]
+            w = f"The provided fastq file is: {reads_file_single}"
+            logging.info(w)
+        output_dir = '/content/data/output'
         logging.info(f'The output directory is "{output_dir}"')
     else:
-        output_dir = '/content/data/output'
-        w = f'Output directory not provided, using "{output_dir}"'
-        logging.info(w)
+        fastq_given = False
+        sra_id = sys.argv[1]
+        logging.info(f"The provided SRA ID is: {sra_id}")
+        if len(sys.argv) > 2:
+            output_dir = sys.argv[2].rstrip('/')
+            # Use the absolute path for output_dir
+            output_dir = os.path.abspath(output_dir)
+            logging.info(f'The output directory is "{output_dir}"')
+        else:
+            output_dir = '/content/data/output'
+            w = f'Output directory not provided, using "{output_dir}"'
+            logging.info(w)
 else:
-    logging.info("No SRA ID provided.")
+    logging.info("No SRA ID nor fastq files provided.")
     raise ValueError
 
 # Define base directory (for non-output files)
@@ -109,38 +133,54 @@ run_silent(l, '')
 l = f'mkdir -p {output_no_tmp}'
 run_silent(l, '')
 
-# Obtain SRA data
-sra_data = get_sra_from_ncbi(sra_id)
-cont = 0
-while sra_data is None:
-    # Add random wait time
-    time.sleep(random.randint(15, 30))
-    w = f"Retrying to get SRA data for {sra_id} (attempt {cont+1})"
-    logging.info(w)
-    # Increment the counter
-    cont+=1
-    # Retry getting SRA data
+if not fastq_given:
+    # Obtain SRA data
     sra_data = get_sra_from_ncbi(sra_id)
-    if cont>5:
-        er = f"Could not retrieve SRA data for ID: {sra_id}"
-        logging.error(er)
-        sys.exit(1)
-# Check for files
-l_ftp = sra_data['fastq_ftp'].split(';')
-if len(l_ftp)==1: # Single end
-    paired_end = False
-elif len(l_ftp)==2: # Paired end
-    paired_end = True
-else:
-    logging.info(f'WARNING: More than two elements in l_ftp.\n{l_ftp}')
-    paired_end = True
+    cont = 0
+    while sra_data is None:
+        # Add random wait time
+        time.sleep(random.randint(15, 30))
+        w = f"Retrying to get SRA data for {sra_id} (attempt {cont+1})"
+        logging.info(w)
+        # Increment the counter
+        cont+=1
+        # Retry getting SRA data
+        sra_data = get_sra_from_ncbi(sra_id)
+        if cont>5:
+            er = f"Could not retrieve SRA data for ID: {sra_id}"
+            logging.error(er)
+            sys.exit(1)
+    # Check for files
+    l_ftp = sra_data['fastq_ftp'].split(';')
+    if len(l_ftp)==1: # Single end
+        paired_end = False
+    elif len(l_ftp)==2: # Paired end
+        paired_end = True
+    else:
+        logging.info(f'WARNING: More than two elements in l_ftp.\n{l_ftp}')
+        paired_end = True
 
 ######################### SRA TO VCF PIPELINE ###########################
 
-# Download the fastq files from SRA ID
-download_fastq(tmp_folder, sra_id, paired_end, log_file)
+if not fastq_given:
+    # Download the fastq files from SRA ID
+    download_fastq(tmp_folder, sra_id, paired_end, log_file)
 # Align the reads to the reference genome
-align_bwa(tmp_folder, sra_id, reference_genome, paired_end, log_file)
+if fastq_given:
+    if paired_end:
+        l_reads = [reads_file_r1, reads_file_r2]
+    else:
+        l_reads = [reads_file_single]
+    align_bwa_reads(
+        l_reads,
+        tmp_folder,
+        sra_id,
+        reference_genome,
+        paired_end,
+        log_file
+    )
+else:
+    align_bwa(tmp_folder, sra_id, reference_genome, paired_end, log_file)
 # Convert sam file to bam
 sam_to_bam(output_sam, output_bam, log_file)
 # Sort and index the bam file

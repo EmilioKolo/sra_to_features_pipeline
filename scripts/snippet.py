@@ -39,6 +39,21 @@ def change_output_ownership(output_dir:str) -> None:
                 continue
     return None
 
+def define_bname(str_1:str, str_2:str) -> str:
+    """
+    Defines the basename between two strings by getting the part they
+    have in common.
+    """
+    # Initialize the string that is returned
+    bname = ''
+    # Go through both strings
+    for i in min(len(str_1), len(str_2)):
+        if str_1[i]==str_2[i]:
+            bname += str_1[i]
+        else:
+            break
+    return bname
+
 def get_value(valname:str, sourcefile:str='config.env') -> str:
     """
     Gets the value valname from sourcefile.
