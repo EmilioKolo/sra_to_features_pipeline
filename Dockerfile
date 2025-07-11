@@ -34,7 +34,6 @@ RUN apt-get update && \
         unzip \
         && apt-get clean
 
-
 # Install pip packages
 RUN pip3 install --no-cache-dir \
     numpy==1.26.4 \
@@ -45,9 +44,7 @@ RUN pip3 install --no-cache-dir \
 # Create working directory for pipeline
 WORKDIR /pipeline
 
-# Copy needed files
-COPY scripts/ ./scripts/
-COPY __init__.py .
+# Copy files needed for setup
 COPY amplicons.bed .
 COPY config.env .
 COPY gene_list.txt .
@@ -64,6 +61,8 @@ RUN ./setup.sh
 RUN python3 ./install.py
 
 # Copy basic scripts
+COPY scripts/ ./scripts/
+COPY __init__.py .
 COPY pipeline.py .
 
 # Run the Python script at container start

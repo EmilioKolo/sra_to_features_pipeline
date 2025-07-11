@@ -1,8 +1,34 @@
 #!/usr/bin/env python3
 
 
-from scripts.snippet import get_value
 import os
+
+
+def get_value(valname:str, sourcefile:str='config.env') -> str:
+    """
+    Gets the value valname from sourcefile.
+
+    Args:
+        valname (str): Name of the value to be found.
+        sourcefile (str): Path to the file where the value is located.
+                          Defaults to 'variables'.
+    """
+    # Initialize value that is returned
+    val:str = ''
+    # Open sourcefile
+    with open(sourcefile, 'r') as f_src:
+        # Go through lines in sourcefile
+        for line in f_src.readlines():
+            # If valname is in line
+            if line.startswith(valname):
+                # Split line by '='
+                l_line = line.split('=')
+                # Get the value and remove spaces and endline
+                val = l_line[1].rstrip('\n').strip(' ')
+    # Check if value was found
+    if val=='':
+        print(f'Value {valname} not found in "{sourcefile}".')
+    return val
 
 
 # Define base directory (for non-output files)
