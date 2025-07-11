@@ -19,7 +19,7 @@ def cnvpytor_pipeline(
         bin_size:int,
         log_file:str,
         use_baf:bool = True
-        ) -> str:
+    ) -> str:
     logging.info('Starting CNV calling...')
     # Construct full paths
     BAM_PATH = bam_sorted
@@ -117,7 +117,7 @@ def create_counts(
         counts_file:str,
         regions:list[list[str,int,int,str]],
         vcf_compressed:str
-        ) -> None:
+    ) -> None:
     # Clear intermediary output file before appending
     with open(counts_file, "w") as f:
         f.write("")
@@ -143,7 +143,7 @@ def count_syn_nonsyn(
         vcf_file:str,
         bed_genes:str,
         bed_intersect:str
-        ) -> dict[str, dict[str, int]]:
+    ) -> dict[str, dict[str, int]]:
     """
     Counts the proportion of synonymous to nonsynonymous variants per gene.
     """
@@ -230,7 +230,7 @@ def fragment_lengths(
         output_dir:str,
         sra_id:str,
         bam_sorted:str
-        ) -> tuple[float]:
+    ) -> tuple[float]:
     logging.info('Starting to obtain fragment lengths...')
     fl_file = f"{output_dir}/fl_{sra_id}.txt"
     l = 'samtools view -f '
@@ -318,7 +318,7 @@ def variants_per_bin_os(
         vcf_file:str,
         genome_sizes:str,
         bin_size:int
-        ) -> dict[str, int]:
+    ) -> dict[str, int]:
     """
     Count variants per genome bin using bedtools.
 
@@ -392,83 +392,3 @@ def variants_per_bin_os(
                 output_dict[key] = row.variant_count
     return output_dict
 
-"""
-def variants_per_bin(
-        vcf_file:str,
-        genome_sizes:str,
-        bin_size:int
-        ) -> dict:
-    # Initialize the output dictionary
-    output_dict = {}
-    # Generate genome bins
-    genome = BedTool().window_maker(g=genome_sizes, w=bin_size)
-    variants = vcf_to_bed(vcf_file)
-    # Sort (just in case)
-    genome = genome.sort()
-    variants = variants.sort()
-    # Intersect genome and variants to obtain variants per bin
-    counts = genome.intersect(variants, c=True)
-    if len(list(counts)) == 0:
-        w = 'counts variable is empty. Variants per bin not recorded.'
-        logging.warning(w)
-        # Show the first 5 lines of genome bins
-        print("GENOME BINS (BED format, first 5):")
-        for i, feature in enumerate(genome):
-            if i >= 5: break
-            print(str(feature).strip())
-        # Show the first 5 lines of the VCF input (converted to BED)
-        print("VCF VARIANTS (BEDTools-parsed, first 5):")
-        for i, feature in enumerate(variants):
-            if i >= 5: break
-            print(str(feature).strip())
-        # Show the first 5 lines of the intersect result
-        print("INTERSECT RESULT (first 5):")
-        for i, feature in enumerate(counts):
-            if i >= 5: break
-            print(str(feature).strip())
-    else:
-        # Put counts in dataframe
-        l_names = ['chrom', 'start', 'end', 'variant_count']
-        df_vg_bins = counts.to_dataframe(names=l_names)
-        if len(list(df_vg_bins)) != 0:
-            df_vg_bins['bin_region'] = df_vg_bins.apply(
-                lambda row: f'{row["chrom"]}:{row["start"]}-{row["end"]}',
-                axis=1
-            )
-            #total_varcount = sum(df_vg_bins['variant_count'])
-            for row in df_vg_bins.itertuples():
-                key = f'variants_in_{row.bin_region}'
-                output_dict[key] = row.variant_count
-                #key = f'variants_in_{row.bin_region}_normalized'
-                #output_dict[key] = float(row.variant_count)/total_varcount
-        else:
-            w = 'df_vg_bins variable is empty.'
-            w += ' Variants per bin not recorded.'
-            logging.warning(w)
-            # Show the first 5 lines of genome bins
-            print("GENOME BINS (BED format, first 5):")
-            for i, feature in enumerate(genome):
-                if i >= 5: break
-                print(str(feature).strip())
-            # Show the first 5 lines of the VCF input (converted to BED)
-            print("VCF VARIANTS (BEDTools-parsed, first 5):")
-            for i, feature in enumerate(variants):
-                if i >= 5: break
-                print(str(feature).strip())
-            # Show the first 5 lines of the intersect result
-            print("INTERSECT RESULT (first 5):")
-            for i, feature in enumerate(counts):
-                if i >= 5: break
-                print(str(feature).strip())
-    return output_dict
-
-def vcf_to_bed(vcf_file):
-    def converter():
-        for feature in BedTool(vcf_file):
-            chrom = feature.chrom
-            start = int(feature.start)
-            ref = feature[3]
-            end = start + max(len(ref), 1)
-            yield f"{chrom}\t{start}\t{end}"
-    return BedTool(converter()).saveas()
-"""
