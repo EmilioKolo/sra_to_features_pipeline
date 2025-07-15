@@ -27,9 +27,11 @@ import time
 logging.basicConfig(level=logging.INFO)
 
 if len(sys.argv) > 1:
+    # Define if the input is a fastq file or a SRA ID
     if sys.argv[1].endswith(('.fastq', '.fastq.gz')):
         fastq_given = True
         in_path = '/content/data/input'
+        # If there are two files, paired-end is assumed
         if len(sys.argv) > 2:
             reads_file_r1 = os.path.join(in_path, sys.argv[1])
             reads_file_r2 = os.path.join(in_path, sys.argv[2])
@@ -42,6 +44,7 @@ if len(sys.argv) > 1:
             w = "The provided fastq files are:"
             w += f' {reads_file_r1} and {reads_file_r2}'
             logging.info(w)
+        # If there is only one file, single-end is assumed
         else:
             reads_file_single = os.path.join(in_path, sys.argv[1])
             paired_end = False
@@ -51,7 +54,7 @@ if len(sys.argv) > 1:
             logging.info(w)
         output_dir = '/content/data/output'
         logging.info(f'The output directory is "{output_dir}"')
-    else:
+    else: # SRA ID input
         fastq_given = False
         sra_id = sys.argv[1]
         logging.info(f"The provided SRA ID is: {sra_id}")
