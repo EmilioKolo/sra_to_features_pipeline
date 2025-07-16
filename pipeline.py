@@ -3,18 +3,9 @@
 
 from collections import Counter
 from scripts.checks import classify_unaligned_reads
-from scripts.feature_generation import cnvpytor_pipeline
-from scripts.feature_generation import count_syn_nonsyn, create_counts
-from scripts.feature_generation import extract_regions, fragment_lengths
-from scripts.feature_generation import parse_gff_for_genes
-from scripts.feature_generation import variants_per_bin_os
-from scripts.snippet import change_output_ownership, define_bname
-from scripts.snippet import get_value, run_silent
-from scripts.sra_to_vcf import align_bwa, align_bwa_reads
-from scripts.sra_to_vcf import compress_index_vcf
-from scripts.sra_to_vcf import download_fastq, get_sra_from_ncbi
-from scripts.sra_to_vcf import sam_to_bam, snpeff_analysis
-from scripts.sra_to_vcf import sort_index_bam, varcall_mpileup
+from scripts.feature_generation import *
+from scripts.snippet import *
+from scripts.sra_to_vcf import *
 import logging
 import os
 import pandas as pd
