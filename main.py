@@ -1,54 +1,61 @@
 #!/usr/bin/env python3
 
 
-import logging
-import os
-import sys
+"""
+Main function to run the pipeline from SRA IDs or fastq files to 
+a set of defined features.
+"""
+
+from scripts.arg_handler import get_variables
+from scripts.pipeline import *
 
 
-# Define logging print level
-# Options: DEBUG, INFO, WARNING, ERROR or CRITICAL
-logging.basicConfig(level=logging.INFO)
+def main():
+    """
+    Function to run when __name__=="__main__"
+    """
 
-# Get system variables
-if len(sys.argv) > 1:
-    sra_file = sys.argv[1]
-    sra_file = os.path.abspath(sra_file)
-    logging.info(f"The provided file with SRA IDs is: {sra_file}")
-    if len(sys.argv) > 2:
-        output_dir = sys.argv[2].rstrip('/')
-        # Use the absolute path for output_dir
-        abs_output_dir = os.path.abspath(output_dir)
-        logging.info(f'The output directory is "{abs_output_dir}"')
-    else:
-        output_dir = '../output'
-        abs_output_dir = os.path.abspath(output_dir)
-        w = f'Output directory not provided, using "{abs_output_dir}"'
-        logging.info(w)
-else:
-    # Get the directory containing this script
-    script_path = os.path.abspath(__file__)
-    script_directory = os.path.dirname(script_path)
-    # Define default SRA file name
-    sra_file = os.path.join(script_directory, 'sra_table_selected.txt')
-    w = f'No filename provided. Running with default file "{sra_file}".'
-    logging.info(w)
+    # Get variables using the get_variables function
+    dict_var = get_variables()
 
-# Define output folder inside docker and inside the computer
-output_docker = '/content/data/output'
-# Create the output directory if it does not exist
-os.makedirs(abs_output_dir, exist_ok=True)
+    ### Display
+    print(f'### Starting pipeline with {dict_var['sra_id']}...')
+    ###
 
-# Initialize dict-list of sras
-sra_data = {}
+    # Check if sra was given as input
+    if dict_var['sra_given']:
+        # Download fastq files
+        dict_var = download_sra(dict_var)
+    
+    # Align the fastq files to the reference sequence
+    dict_var = align_to_reference(dict_var)
 
-l_sra = open(sra_file, 'r').read().split('\n')
+    # Perform variant calling and analysis
+    dict_var = variant_call_and_analysis(dict_var)
 
-for sra_id in l_sra:
-    logging.info(f'About to run pipeline.py with {sra_id}...')
-    l = 'docker run'
-    l += f' -v {abs_output_dir}:{output_docker}'
-    l += ' -e HOST_UID=$(id -u)'
-    l += ' -e HOST_GID=$(id -g)'
-    l += f' features-pipeline {sra_id} {output_docker}'
-    os.system(l)
+    ### Display
+    print(f'### Starting checks of intermediate files...')
+    ###
+
+    # Perform checks on the intermediate files
+    perform_checks(dict_var)
+
+    ### Display
+    print(f'### Starting feature generation...')
+    ###
+
+    # Generate features
+    dict_features = feature_generation(dict_var)
+
+    ### Display
+    print(f'### Features generated. Saving...')
+    ###
+
+    # Save features
+    save_features(dict_var, dict_features)
+
+    return None
+
+
+if __name__=='__main__':
+    main()

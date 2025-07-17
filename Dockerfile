@@ -46,12 +46,12 @@ WORKDIR /pipeline
 
 # Copy files needed for setup
 COPY amplicons.bed .
-COPY config.env .
-COPY gene_list.txt .
+COPY config.ini .
 COPY gene_regions.bed .
-COPY install.py .
 COPY regions.bed .
 COPY setup.sh .
+COPY install.py .
+COPY scripts/get_config_value.py .
 
 # Make setup script executable
 RUN chmod +x setup.sh
@@ -63,7 +63,7 @@ RUN python3 ./install.py
 # Copy basic scripts
 COPY scripts/ ./scripts/
 COPY __init__.py .
-COPY pipeline.py .
+COPY main.py .
 
 # Run the Python script at container start
 ENTRYPOINT ["python3", "pipeline.py"]

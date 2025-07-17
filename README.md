@@ -9,23 +9,19 @@ In order to run the pipeline, first create the container by running the followin
 
 `docker build -t features-pipeline .`
 
-Then you can run main.py and pass the path to a list of SRA IDs to analyze. Example script:
+Then you can run the SRA IDs one by one with the following command:
 
-`python3 main.py ./sra_table_selected.txt {output_directory}`
-
-The outputs will be generated in the provided output directory. If an output directory is not provided, the results will be on a folder next to the extracted git code.
-
-OPTIONAL: Run the SRA IDs one by one with the following command:
-
-`docker run -v {output_directory}:/content/data/output features-pipeline {sra_id} /content/data/output`
+`docker run -v {output_directory}:/content/data/output features-pipeline --sra-id {sra_id}`
 
 All of the code is intended to work on cfDNA sequencing using Illumina with either single end or paired end sequencing reads.
 
-ALTERNATIVE: Run the pipeline with fastq files with the following command
+ALTERNATIVE: Run the pipeline with fastq files using the following command
 
-`docker run -v {output_directory}:/content/data/output -v {fastq_folder}:/content/data/input features-pipeline {fastq_file1} [{fastq_file2}]`
+`docker run -v {output_directory}:/content/data/output -v {fastq_folder}:/content/data/input features-pipeline --fastq {fastq_file1} [{fastq_file2}]`
 
-Using only fastq_file1 assumes single-end Illumina sequencing. Defining fastq_file2 assumes paired-end Illumina sequencing.
+The variables `fastq_file1` and `fastq_file2` must be the full name of fastq files in the directory `fastq_folder`.
+
+Using only `fastq_file1` assumes single-end Illumina sequencing. Defining `fastq_file2` assumes paired-end Illumina sequencing.
 
 
 # Output
