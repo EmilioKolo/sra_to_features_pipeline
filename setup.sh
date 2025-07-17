@@ -6,47 +6,47 @@ set -euo pipefail
 # Define the config file
 CONFIG_FILE="config.ini"
 # Get relevant variables
-BASE_DIR=$(python3 get_config_value.py "$CONFIG_FILE" "Paths" "BASE_DIR")
+BASE_DIR=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Paths" "BASE_DIR")
 if [ -z "$BASE_DIR" ]; then
     echo "Error: BASE_DIR not found in config.ini"
     exit 1
 fi
-KRAKEN_DB=$(python3 get_config_value.py "$CONFIG_FILE" "Paths" "KRAKEN_DB")
+KRAKEN_DB=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Paths" "KRAKEN_DB")
 if [ -z "$KRAKEN_DB" ]; then
     echo "Error: KRAKEN_DB not found in config.ini"
     exit 1
 fi
-SNPEFF_DIR=$(python3 get_config_value.py "$CONFIG_FILE" "Paths" "SNPEFF_DIR")
+SNPEFF_DIR=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Paths" "SNPEFF_DIR")
 if [ -z "$SNPEFF_DIR" ]; then
     echo "Error: SNPEFF_DIR not found in config.ini"
     exit 1
 fi
-GENOME_NAME=$(python3 get_config_value.py "$CONFIG_FILE" "Parameters" "GENOME_NAME")
+GENOME_NAME=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Parameters" "GENOME_NAME")
 if [ -z "$GENOME_NAME" ]; then
     echo "Error: GENOME_NAME not found in config.ini"
     exit 1
 fi
-THREADS=$(python3 get_config_value.py "$CONFIG_FILE" "Parameters" "THREADS")
+THREADS=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Parameters" "THREADS")
 if [ -z "$THREADS" ]; then
     echo "Error: THREADS not found in config.ini"
     exit 1
 fi
-FASTA_URL=$(python3 get_config_value.py "$CONFIG_FILE" "Links" "FASTA_URL")
+FASTA_URL=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Links" "FASTA_URL")
 if [ -z "$FASTA_URL" ]; then
     echo "Error: FASTA_URL not found in config.ini"
     exit 1
 fi
-GFF_URL=$(python3 get_config_value.py "$CONFIG_FILE" "Links" "GFF_URL")
+GFF_URL=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Links" "GFF_URL")
 if [ -z "$GFF_URL" ]; then
     echo "Error: GFF_URL not found in config.ini"
     exit 1
 fi
-SNPEFF_URL=$(python3 get_config_value.py "$CONFIG_FILE" "Links" "SNPEFF_URL")
+SNPEFF_URL=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Links" "SNPEFF_URL")
 if [ -z "$SNPEFF_URL" ]; then
     echo "Error: SNPEFF_URL not found in config.ini"
     exit 1
 fi
-KRAKEN2_DB_URL=$(python3 get_config_value.py "$CONFIG_FILE" "Links" "KRAKEN2_DB_URL")
+KRAKEN2_DB_URL=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Links" "KRAKEN2_DB_URL")
 if [ -z "$KRAKEN2_DB_URL" ]; then
     echo "Error: KRAKEN2_DB_URL not found in config.ini"
     exit 1

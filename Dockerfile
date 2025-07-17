@@ -50,7 +50,7 @@ COPY config.ini .
 COPY gene_regions.bed .
 COPY regions.bed .
 COPY setup.sh .
-COPY scripts/get_config_value.py .
+COPY scripts/get_config_value.py ./scripts/get_config_value.py
 
 # Make setup script executable
 RUN chmod +x setup.sh
