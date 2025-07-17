@@ -50,13 +50,15 @@ COPY config.ini .
 COPY gene_regions.bed .
 COPY regions.bed .
 COPY setup.sh .
-COPY install.py .
 COPY scripts/get_config_value.py .
 
 # Make setup script executable
 RUN chmod +x setup.sh
 # Run setup script at build time
 RUN ./setup.sh
+
+# Copy install.py file
+COPY install.py .
 # Run python install script
 RUN python3 ./install.py
 

@@ -11,14 +11,24 @@ if [ -z "$BASE_DIR" ]; then
     echo "Error: BASE_DIR not found in config.ini"
     exit 1
 fi
-THREADS=$(python3 get_config_value.py "$CONFIG_FILE" "Parameters" "THREADS")
-if [ -z "$THREADS" ]; then
-    echo "Error: THREADS not found in config.ini"
+KRAKEN_DB=$(python3 get_config_value.py "$CONFIG_FILE" "Paths" "KRAKEN_DB")
+if [ -z "$KRAKEN_DB" ]; then
+    echo "Error: KRAKEN_DB not found in config.ini"
+    exit 1
+fi
+SNPEFF_DIR=$(python3 get_config_value.py "$CONFIG_FILE" "Paths" "SNPEFF_DIR")
+if [ -z "$SNPEFF_DIR" ]; then
+    echo "Error: SNPEFF_DIR not found in config.ini"
     exit 1
 fi
 GENOME_NAME=$(python3 get_config_value.py "$CONFIG_FILE" "Parameters" "GENOME_NAME")
 if [ -z "$GENOME_NAME" ]; then
     echo "Error: GENOME_NAME not found in config.ini"
+    exit 1
+fi
+THREADS=$(python3 get_config_value.py "$CONFIG_FILE" "Parameters" "THREADS")
+if [ -z "$THREADS" ]; then
+    echo "Error: THREADS not found in config.ini"
     exit 1
 fi
 FASTA_URL=$(python3 get_config_value.py "$CONFIG_FILE" "Links" "FASTA_URL")
@@ -56,6 +66,8 @@ mkdir -p "$INSTALL_DIR"
 mkdir -p "$LOGS_DIR"
 mkdir -p "$BIN_DIR"
 mkdir -p "$TMP_DIR"
+# Define snpEff variables
+snpeff_jar="$SNPEFF_DIR/snpEff/snpEff.jar"
 # Add the bin directory to PATH
 export PATH="$BIN_DIR:$PATH"
 
@@ -83,22 +95,18 @@ download "$GFF_URL" "$DATA_DIR/reference.gff.gz"
 gunzip -f "$DATA_DIR/reference.gff.gz"
 
 log "Finished reference genome download. Starting snpEff download."
-# Define snpEff variables
-snpeff_dir="$BIN_DIR"
-genome_name="$GENOME_NAME"
-snpeff_jar="$snpeff_dir/snpEff/snpEff.jar"
 # Install snpEff
-mkdir -p "$snpeff_dir"
-download "$SNPEFF_URL" "$snpeff_dir/snpEff.zip"
-unzip -o "$snpeff_dir/snpEff.zip" -d "$snpeff_dir"
-rm -f "$snpeff_dir/snpEff.zip"
+mkdir -p "$SNPEFF_DIR"
+download "$SNPEFF_URL" "$SNPEFF_DIR/snpEff.zip"
+unzip -o "$SNPEFF_DIR/snpEff.zip" -d "$SNPEFF_DIR"
+rm -f "$SNPEFF_DIR/snpEff.zip"
 log "Finished snpEff download. Starting snpEff custom genome setup."
 # Create custom genome for snpeff
-mkdir -p "$snpeff_dir/snpEff/data/$genome_name"
-cp "$DATA_DIR/reference.fasta" "$snpeff_dir/snpEff/data/$genome_name/sequences.fa"
-cp "$DATA_DIR/reference.gff" "$snpeff_dir/snpEff/data/$genome_name/genes.gff"
-echo "${genome_name}.genome : Custom genome" >> "$snpeff_dir/snpEff/snpEff.config"
-java -Xmx4g -jar "$snpeff_jar" build -gff3 -v "$genome_name"
+mkdir -p "$SNPEFF_DIR/snpEff/data/$GENOME_NAME"
+cp "$DATA_DIR/reference.fasta" "$SNPEFF_DIR/snpEff/data/$GENOME_NAME/sequences.fa"
+cp "$DATA_DIR/reference.gff" "$SNPEFF_DIR/snpEff/data/$GENOME_NAME/genes.gff"
+echo "${GENOME_NAME}.genome : Custom genome" >> "$SNPEFF_DIR/snpEff/snpEff.config"
+java -Xmx4g -jar "$snpeff_jar" build -gff3 -v "$GENOME_NAME"
 
 log "Finished snpEff custom genome setup. Starting BWA indexing."
 # Index reference genome with bwa
@@ -110,9 +118,8 @@ cnvpytor -download
 
 log "Finished cnvpytor data download. Starting Kraken2 database creation."
 # Download Kraken2 database
-kraken_db="$INSTALL_DIR/kraken2-db"
-mkdir -p "$kraken_db"
-download "$KRAKEN2_DB_URL" "$kraken_db/k2.tar.gz"
-tar -xzf "$kraken_db/k2.tar.gz" -C "$kraken_db"
-rm -f "$kraken_db/k2.tar.gz"
+mkdir -p "$KRAKEN_DB"
+download "$KRAKEN2_DB_URL" "$KRAKEN_DB/k2.tar.gz"
+tar -xzf "$KRAKEN_DB/k2.tar.gz" -C "$KRAKEN_DB"
+rm -f "$KRAKEN_DB/k2.tar.gz"
 log "Finished Kraken2 database creation."
