@@ -255,27 +255,27 @@ def feature_generation(dict_var:dict) -> dict[str:float|int]:
         dict_features['fl_stdv'] = 'NA'
 
     # Get the CNV features
-    feature_dict = ft_cnv_prediction(
+    dict_features = ft_cnv_prediction(
         dict_var['sra_id'],
         dict_var['sorted_bam'],
         dict_var['compressed_snpeff_vcf'],
         dict_var['bin_size_gvs'],
         feat_dir,
-        feature_dict
+        dict_features
     )
 
     # Get the dn/ds variant proportion features
-    feature_dict = ft_dn_ds(
+    dict_features = ft_dn_ds(
         dict_var['compressed_snpeff_vcf'],
         dict_var['bed_genes'],
         dict_var['bed_variants'],
         dict_var['bed_intersect'],
         feat_dir,
-        feature_dict
+        dict_features
     )
 
     # Get the GV per region features
-    feature_dict = ft_gv_per_region(
+    dict_features = ft_gv_per_region(
         dict_var['compressed_snpeff_vcf'],
         dict_var['gff_ref'],
         dict_var['bed_file'],
@@ -283,7 +283,7 @@ def feature_generation(dict_var:dict) -> dict[str:float|int]:
         dict_var['genome_sizes'],
         dict_var['bin_size_gvs'],
         feat_dir,
-        feature_dict
+        dict_features
     )
 
     return dict_features

@@ -73,10 +73,10 @@ export PATH="$BIN_DIR:$PATH"
 
 # Function to download with either curl or wget (whichever exists)
 download() {
-    if command -v curl >/dev/null; then
-        curl -L "$1" -o "$2"
-    elif command -v wget >/dev/null; then
+    if command -v wget >/dev/null; then
         wget "$1" -O "$2"
+    elif command -v curl >/dev/null; then
+        curl -L "$1" -o "$2"
     else
         echo "ERROR: Need either curl or wget to download files."
         exit 1

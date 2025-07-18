@@ -1,6 +1,11 @@
 # SRA to features pipeline
+
 Pipeline to go from an SRA ID to features used to train an LLM.
 
+
+# Pipeline schema
+
+![Simplified pipeline ran in these scripts.](/pipeline_full.png)
 
 # Instructions
 
