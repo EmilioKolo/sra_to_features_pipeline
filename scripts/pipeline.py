@@ -50,8 +50,10 @@ def download_sra(dict_var:dict) -> dict:
     # Check for files associated to the SRA ID
     l_ftp = sra_data['fastq_ftp'].split(';')
     if len(l_ftp)==1: # Single end
+        dict_var['l_fastq'] = ['']
         dict_var['l_fastq'][0] = l_ftp[0]
     elif len(l_ftp)==2: # Paired end
+        dict_var['l_fastq'] = ['', '']
         dict_var['l_fastq'][0] = l_ftp[0]
         dict_var['l_fastq'][1] = l_ftp[1]
     else:
@@ -200,7 +202,11 @@ def perform_checks(dict_var:dict) -> None:
     # Define a general output folder for checks
     checks_out = os.path.join(dict_var['OUTPUT_DIR'] + 'checks')
     # Make the output directory if it does not exist
-    os.mkdir(checks_out, exist_ok=True)
+    try:
+        os.mkdir(checks_out)
+    except FileExistsError:
+        pass
+
     # Define other needed output folders
     kraken_out = os.path.join(checks_out, 'kraken_out')
 
@@ -228,7 +234,10 @@ def feature_generation(dict_var:dict) -> dict[str:float|int]:
     # Define an output folder for feature files
     feat_dir = os.path.join(dict_var['OUTPUT_DIR'] + 'feature_files')
     # Make the directory if it does not exist
-    os.mkdir(feat_dir, exist_ok=True)
+    try:
+        os.mkdir(feat_dir)
+    except FileExistsError:
+        pass
 
     # Get the features associated with fragment length
     if len(dict_var['l_fastq'])==2:
@@ -325,7 +334,10 @@ def bwa_align(
     Returns the path to the output SAM file.
     """
     # Make the output directory if it does not exist
-    os.mkdir(output_dir, exist_ok=True)
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
     # Define output
     output_sam = os.path.join(output_dir, sra_id+'.sam')
     # Initialize script
@@ -377,7 +389,10 @@ def check_kraken(
     Classify unaligned reads from a BAM file using Kraken2.
     """
     # Make the output directory if it does not exist
-    os.mkdir(output_dir, exist_ok=True)
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
     # Define intermediate and output files
     unaligned_bam = os.path.join(output_dir, sra_id+'_unaligned.bam')
     unaligned_fastq = os.path.join(output_dir, sra_id+'_unaligned.fastq')
@@ -415,7 +430,10 @@ def compress_index_vcf(sra_id:str, vcf_file:str, output_dir:str) -> str:
     Returns the path to the compressed and indexed VCF file.
     """
     # Make the output directory if it does not exist
-    os.mkdir(output_dir, exist_ok=True)
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
     # Define output files
     compressed_vcf = os.path.join(output_dir, sra_id+'.vcf.gz')
     # Compress VCF
@@ -500,7 +518,10 @@ def ft_cnv_prediction(
     Calculates the number of CNVs per chromosome given a BAM file.
     """
     # Make the output directory if it does not exist
-    os.mkdir(output_dir, exist_ok=True)
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
 
     print('Starting CNV calling...')
     # Define the root file for CNVpytor
@@ -612,7 +633,10 @@ def ft_dn_ds(
     variants for all genes in ref_genome.
     """
     # Make the output directory if it does not exist
-    os.mkdir(output_dir, exist_ok=True)
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
 
     t = 'Starting to obtain Syn/Nonsyn variant proportion per gene...'
     print(t)
@@ -689,7 +713,10 @@ def ft_fragment_lengths(
     for a BAM file.
     """
     # Make the output directory if it does not exist
-    os.mkdir(output_dir, exist_ok=True)
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
     # Define the fragment length file
     fl_file = os.path.join(output_dir, sra_id+'_fl.txt')
     # Initialize the scipt
@@ -743,7 +770,10 @@ def ft_gv_per_region(
     in region_file.
     """
     # Make the output directory if it does not exist
-    os.mkdir(output_dir, exist_ok=True)
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
 
     # Obtain number of variants in genome bins
     bins_dict = variants_per_bin_os(vcf_file, genome_sizes, bin_sizes)
@@ -843,7 +873,10 @@ def sam_to_bam(
     Returns the path to the output BAM file.
     """
     # Make the output directory if it does not exist
-    os.mkdir(output_dir, exist_ok=True)
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
     # Define output
     bam_file = os.path.join(output_dir, sra_id+'.bam')
     # Initialize script
@@ -862,7 +895,10 @@ def sort_index_bam(sra_id:str, bam_file:str, output_dir:str) -> str:
     Returns the sorted BAM file name.
     """
     # Make the output directory if it does not exist
-    os.mkdir(output_dir, exist_ok=True)
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
     # Define output
     bam_sorted = os.path.join(output_dir, sra_id+'_sorted.bam')
     print(f"Sorting BAM file: {bam_file} -> {bam_sorted}...")
@@ -968,7 +1004,10 @@ def sra_to_fastq(
     Downloads a fastq file from a SRA ID using fastq-dump.
     """
     # Make the output directory if it does not exist
-    os.mkdir(output_dir, exist_ok=True)
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
     # Initialize script
     l = 'fastq-dump --gzip'
     if len(l_fastq)==2:
@@ -1008,7 +1047,10 @@ def variant_analysis_snpeff(
     Analyses a vcf file with snpeff. It compresses and indexes the output.
     """
     # Make the output directory if it does not exist
-    os.mkdir(output_dir, exist_ok=True)
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
     # Define output
     snpeff_vcf = os.path.join(output_dir, sra_id+'_snpeff.vcf')
     # Analyze variants in VCF with snpeff
@@ -1052,7 +1094,10 @@ def variant_call_mpileup(
     Returns the path to the output vcf file.
     """
     # Make the output directory if it does not exist
-    os.mkdir(output_dir, exist_ok=True)
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
     # Define output files
     bcf_file = os.path.join(output_dir, sra_id+'.bcf')
     vcf_file = os.path.join(output_dir, sra_id+'.vcf')

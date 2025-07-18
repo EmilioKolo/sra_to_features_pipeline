@@ -68,4 +68,4 @@ COPY __init__.py .
 COPY main.py .
 
 # Run the Python script at container start
-ENTRYPOINT ["python3", "pipeline.py"]
+ENTRYPOINT ["python3", "main.py"]

@@ -19,7 +19,7 @@ def main():
     dict_var = get_variables()
 
     ### Display
-    print(f'### Starting pipeline with {dict_var['sra_id']}...')
+    print(f"### Starting pipeline with {dict_var['sra_id']}...")
     ###
 
     # Check if sra was given as input
