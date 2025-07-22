@@ -51,11 +51,11 @@ def download_sra(dict_var:dict) -> dict:
     l_ftp = sra_data['fastq_ftp'].split(';')
     if len(l_ftp)==1: # Single end
         dict_var['l_fastq'] = ['']
-        dict_var['l_fastq'][0] = l_ftp[0]
+        dict_var['l_fastq'][0] = l_ftp[0].split('/')[-1]
     elif len(l_ftp)==2: # Paired end
         dict_var['l_fastq'] = ['', '']
-        dict_var['l_fastq'][0] = l_ftp[0]
-        dict_var['l_fastq'][1] = l_ftp[1]
+        dict_var['l_fastq'][0] = l_ftp[0].split('/')[-1]
+        dict_var['l_fastq'][1] = l_ftp[1].split('/')[-1]
     else:
         er = f'More than two elements in l_ftp.\n{l_ftp}'
         raise ValueError(er)
@@ -83,7 +83,7 @@ def download_sra(dict_var:dict) -> dict:
     t = f'Reads downloaded and extracted to:'
     for i in dict_var['l_fastq_full']:
         t += f'\n{i}'
-    print(i)
+    print(t)
     print("Checking file sizes.")
     l = 'du -h'
     for i in dict_var['l_fastq_full']:
