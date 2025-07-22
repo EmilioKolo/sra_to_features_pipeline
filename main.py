@@ -8,6 +8,7 @@ a set of defined features.
 
 from scripts.arg_handler import get_variables
 from scripts.pipeline import *
+from scripts.quality_control import *
 
 
 def main():
