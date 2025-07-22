@@ -952,12 +952,13 @@ def sra_to_fastq(
                     os.remove(i)
             # Increment the attempt counter
             i += 1
-            if i == 5:
+            if i >= 5:
                 w = f"Failed to download FASTQ files after {i} attempts."
                 print(w)
-                return None
-            # Wait before retrying
-            time.sleep(60)
+                # This exits the loop
+            else:
+                # Wait before retrying
+                time.sleep(60)
     return None
 
 def variant_analysis_snpeff(
