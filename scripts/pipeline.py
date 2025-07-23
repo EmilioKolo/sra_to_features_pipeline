@@ -395,6 +395,9 @@ def create_counts(
         regions:list[list[str,int,int,str]],
         vcf_compressed:str
     ) -> None:
+    """
+    Create a counts file with number of variants per region.
+    """
     # Clear intermediary output file before appending
     with open(counts_file, "w") as f:
         f.write("")
