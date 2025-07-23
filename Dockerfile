@@ -27,6 +27,7 @@ RUN apt-get update && \
         bwa \
         bcftools \
         bedtools \
+        fastqc \
         kraken2 \
         samtools \
         sra-toolkit \

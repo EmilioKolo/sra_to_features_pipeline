@@ -11,7 +11,7 @@ def perform_checks(dict_var:dict) -> None:
     Performs checks on the different intermediate files.
     """
     # Define a general output folder for checks
-    checks_out = os.path.join(dict_var['OUTPUT_DIR'] + 'checks')
+    checks_out = os.path.join(dict_var['OUTPUT_DIR'], 'checks')
     # Make the output directory if it does not exist
     try:
         os.mkdir(checks_out)

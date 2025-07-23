@@ -202,10 +202,20 @@ def feature_generation(dict_var:dict) -> dict[str:float|int]:
     # Initialize the dictionary of features
     dict_features = {}
     # Define an output folder for feature files
-    feat_dir = os.path.join(dict_var['OUTPUT_DIR'] + 'feature_files')
+    feat_dir = os.path.join(dict_var['OUTPUT_DIR'], 'feature_files')
     # Make the directory if it does not exist
     try:
         os.mkdir(feat_dir)
+    except FileExistsError:
+        pass
+    # Define the temporary folder for intermediate files
+    tmp_dir = os.path.join(
+        dict_var['BASE_DIR'],
+        'tmp_' + dict_var['sra_id']
+    )
+    # Make the directory if it does not exist
+    try:
+        os.mkdir(tmp_dir)
     except FileExistsError:
         pass
 
@@ -658,6 +668,19 @@ def ft_fragment_lengths(
     fragment_lengths = open(fl_file, "r").read().splitlines()
     # Convert to integers
     fragment_lengths = list(map(int, fragment_lengths))
+    # Perform a first check for fragment lengths
+    if len(fragment_lengths) == 0:
+        w = 'WARNING: No "properly paired" reads found.'
+        w += ' Calculating read lengths'
+        print(w)
+        # Rerun the script with less strict selection of paired ends
+        l = f'samtools view -f 0x1 -F 0xC -F 0x904 {bam_file} | awk \''
+        l += '{if ($9 != 0) {l=$9; if (l<0) l=-l; if (l<1000) print l}}\''
+        l += f' > {fl_file}'
+        os.system(l)
+        # Open fl_file again amd get fragment lengths
+        fragment_lengths = open(fl_file, "r").read().splitlines()
+        fragment_lengths = list(map(int, fragment_lengths))
     # Get mean, median and standard deviation of fragment lengths (fl)
     if len(fragment_lengths) > 0:
         feature_dict['fl_mean'] = statistics.mean(fragment_lengths)
