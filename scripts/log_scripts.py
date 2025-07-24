@@ -12,6 +12,7 @@ import time
 # Options: DEBUG, INFO, WARNING, ERROR or CRITICAL
 logging.basicConfig(level=logging.WARNING)
 
+
 def log_print(
         s:str,
         level:str|int='debug',
@@ -43,7 +44,6 @@ def log_print(
     with open(log_file, 'a+') as f:
         f.write(lev+' '+s+'\n')
     return None
-
 
 def log_code(
         l:str,
