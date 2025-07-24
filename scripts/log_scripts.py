@@ -10,7 +10,7 @@ import time
 
 # Define logging print level
 # Options: DEBUG, INFO, WARNING, ERROR or CRITICAL
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 
 def log_print(
         s:str,
@@ -39,8 +39,6 @@ def log_print(
     else:
         logging.warning(f'Log level {level} not recognised.')
         lev = 'UNRECOGNISED:'
-    # Print the message
-    print(lev, s)
     # Add message to log_file
     with open(log_file, 'a+') as f:
         f.write(lev+' '+s+'\n')
