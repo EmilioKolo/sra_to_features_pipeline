@@ -325,12 +325,12 @@ def feature_generation(dict_var:dict) -> dict[str:float|int]:
         dict_var['sra_id'],
         dict_var['sorted_bam'],
         dict_var['compressed_snpeff_vcf'],
-        dict_var['bin_size_gvs'],
         feat_dir,
         dict_features,
         log_file=dict_var['log_print'],
         log_scr=dict_var['log_scripts']
     )
+            dict_var['bin_size_cnv'],
 
     # Get the dn/ds variant proportion features
     dict_features = ft_dn_ds(

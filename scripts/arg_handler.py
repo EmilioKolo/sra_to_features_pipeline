@@ -97,6 +97,7 @@ def get_variables() -> dict[str:str|int|bool|list]:
     dict_variables['genome_sizes'] = config['Paths']['GENOME_SIZES']
     dict_variables['genome_name'] = config['Parameters']['GENOME_NAME']
     dict_variables['bin_size_gvs'] = config['Parameters']['BIN_SIZE_GVS']
+    dict_variables['bin_size_cnv'] = config['Parameters']['BIN_SIZE_CNV']
     dict_variables['THREADS'] = int(args.threads)
     dict_variables['OUTPUT_DIR'] = str(args.output_dir)
     # Define some base values
