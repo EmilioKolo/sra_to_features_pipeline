@@ -8,7 +8,6 @@ Functions to be used for the main pipeline.
 from collections import Counter, defaultdict
 from scripts.log_scripts import *
 import json
-import logging
 import os
 import pandas as pd
 import random
@@ -321,42 +320,63 @@ def feature_generation(dict_var:dict) -> dict[str:float|int]:
         dict_features['fl_stdv'] = 'NA'
 
     # Get the CNV features
-    dict_features = ft_cnv_prediction(
-        dict_var['sra_id'],
-        dict_var['sorted_bam'],
-        dict_var['compressed_snpeff_vcf'],
-        feat_dir,
-        dict_features,
-        log_file=dict_var['log_print'],
-        log_scr=dict_var['log_scripts']
-    )
+    try:
+        dict_features = ft_cnv_prediction(
+            dict_var['sra_id'],
+            dict_var['sorted_bam'],
+            dict_var['compressed_snpeff_vcf'],
             dict_var['bin_size_cnv'],
+            feat_dir,
+            dict_features,
+            log_file=dict_var['log_print'],
+            log_scr=dict_var['log_scripts']
+        )
+    except Exception as e:
+        log_print(
+            f"Error in CNV prediction: {e}",
+            level='error',
+            log_file=dict_var['log_print']
+        )
 
     # Get the dn/ds variant proportion features
-    dict_features = ft_dn_ds(
-        dict_var['compressed_snpeff_vcf'],
-        dict_var['bed_genes'],
-        dict_var['bed_variants'],
-        dict_var['bed_intersect'],
-        feat_dir,
-        dict_features,
-        log_file=dict_var['log_print'],
-        log_scr=dict_var['log_scripts']
-    )
+    try:
+        dict_features = ft_dn_ds(
+            dict_var['compressed_snpeff_vcf'],
+            dict_var['bed_genes'],
+            dict_var['bed_variants'],
+            dict_var['bed_intersect'],
+            feat_dir,
+            dict_features,
+            log_file=dict_var['log_print'],
+            log_scr=dict_var['log_scripts']
+        )
+    except Exception as e:
+        log_print(
+            f"Error in dn/ds calculation: {e}",
+            level='error',
+            log_file=dict_var['log_print']
+        )
 
     # Get the GV per region features
-    dict_features = ft_gv_per_region(
-        dict_var['compressed_snpeff_vcf'],
-        dict_var['gff_ref'],
-        dict_var['bed_file'],
-        dict_var['counts_file'],
-        dict_var['genome_sizes'],
-        dict_var['bin_size_gvs'],
-        feat_dir,
-        dict_features,
-        log_file=dict_var['log_print'],
-        log_scr=dict_var['log_scripts']
-    )
+    try:
+        dict_features = ft_gv_per_region(
+            dict_var['compressed_snpeff_vcf'],
+            dict_var['gff_ref'],
+            dict_var['bed_file'],
+            dict_var['counts_file'],
+            dict_var['genome_sizes'],
+            dict_var['bin_size_gvs'],
+            feat_dir,
+            dict_features,
+            log_file=dict_var['log_print'],
+            log_scr=dict_var['log_scripts']
+        )
+    except Exception as e:
+        log_print(
+            f"Error in gv per gene region count: {e}",
+            level='error',
+            log_file=dict_var['log_print']
+        )
 
     return dict_features
 
@@ -948,7 +968,8 @@ def ft_fragment_lengths(
     os.system(l)
 
     # Open the created file to obtain values
-    fragment_lengths = open(fl_file, "r").read().splitlines()
+    with open(fl_file, "r") as f:
+        fragment_lengths = f.read().splitlines()
     # Convert to integers
     fragment_lengths = list(map(int, fragment_lengths))
     # Perform a first check for fragment lengths
@@ -970,7 +991,8 @@ def ft_fragment_lengths(
         )
         os.system(l)
         # Open fl_file again amd get fragment lengths
-        fragment_lengths = open(fl_file, "r").read().splitlines()
+        with open(fl_file, "r") as f:
+            fragment_lengths = f.read().splitlines()
         fragment_lengths = list(map(int, fragment_lengths))
     # Get mean, median and standard deviation of fragment lengths (fl)
     if len(fragment_lengths) > 0:
@@ -1024,7 +1046,13 @@ def ft_gv_per_region(
         pass
 
     # Obtain number of variants in genome bins
-    bins_dict = variants_per_bin_os(vcf_file, genome_sizes, bin_sizes)
+    bins_dict = variants_per_bin_os(
+        vcf_file,
+        genome_sizes,
+        bin_sizes,
+        log_file=log_file,
+        log_scr=log_scr
+    )
     # Load items from bins_dict to dict_features
     for key, value in bins_dict.items():
         feature_dict[key] = value
@@ -1541,7 +1569,9 @@ def variant_call_mpileup(
 def variants_per_bin_os(
         vcf_file:str,
         genome_sizes:str,
-        bin_size:int
+        bin_size:int,
+        log_file:str,
+        log_scr:str
     ) -> dict[str, int]:
     """
     Count variants per genome bin using bedtools.
@@ -1566,9 +1596,17 @@ def variants_per_bin_os(
         # Generate genome bins using bedtools makewindows
         l = f"bedtools makewindows -g {genome_sizes} -w {bin_size}"
         l += f' > {bins_bed}'
+        log_code(
+            l,
+            log_file=log_scr
+        )
         if os.system(l) != 0:
             w = "Failed to generate genome bins using bedtools."
-            logging.warning(w)
+            log_print(
+                w,
+                level='warn',
+                log_file=log_file
+            )
             return {}
         # Convert VCF to BED format (skip headers and adjust coordinates)
         try:
@@ -1583,14 +1621,26 @@ def variants_per_bin_os(
                     end = start + max(len(ref), 1) # Minimum 1 base
                     bed.write(f"{chrom}\t{start}\t{end}\n")
         except Exception as e:
-            logging.warning(f"Failed to convert VCF to BED: {e}")
+            log_print(
+                f"Failed to convert VCF to BED: {e}",
+                level='warn',
+                log_file=log_file
+            )
             return {}
         # Count variants per bin using `bedtools intersect -c`
         l = f"bedtools intersect -a {bins_bed} -b {variants_bed} -c"
         l += f' > {intersected}'
+        log_code(
+            l,
+            log_file=log_scr
+        )
         if os.system(l) != 0:
             w = "Failed to intersect variants with genome bins."
-            logging.warning(w)
+            log_print(
+                w,
+                level='warn',
+                log_file=log_file
+            )
             return {}
         # Parse intersection output into a DataFrame
         try:
@@ -1601,11 +1651,19 @@ def variants_per_bin_os(
                 names=["chrom", "start", "end", "variant_count"]
             )
         except Exception as e:
-            logging.warning(f"Failed to read intersection result: {e}")
+            log_print(
+                f"Failed to read intersection result: {e}",
+                level='warn',
+                log_file=log_file
+            )
             return {}
         # Format the output dictionary
         if df.empty:
-            logging.warning("No intersected variants found.")
+            log_print(
+                "No intersected variants found.",
+                level='warn',
+                log_file=log_file
+            )
         else:
             df["bin_region"] = df.apply(
                 lambda row: f"{row['chrom']}:{row['start']}-{row['end']}", 
