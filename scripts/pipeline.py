@@ -30,7 +30,7 @@ def download_sra(dict_var:dict) -> dict:
     # Define sra_id
     sra_id = dict_var['sra_id']
     # Obtain SRA data
-    sra_data = sra_id_data(sra_id)
+    sra_data = sra_id_data(sra_id, log_file=dict_var['log_print'])
     cont = 0
     while sra_data is None:
         # Add random wait time
@@ -45,7 +45,7 @@ def download_sra(dict_var:dict) -> dict:
         # Increment the counter
         cont+=1
         # Retry getting SRA data
-        sra_data = sra_id_data(sra_id)
+        sra_data = sra_id_data(sra_id, log_file=dict_var['log_print'])
         if cont>5:
             er = "Could not retrieve SRA data for ID: "
             er += str(sra_id)
@@ -85,7 +85,9 @@ def download_sra(dict_var:dict) -> dict:
     sra_to_fastq(
         sra_id,
         l_fastq=dict_var['l_fastq_full'],
-        output_dir=dict_var['fastq_dir']
+        output_dir=dict_var['fastq_dir'],
+        log_file=dict_var['log_print'],
+        log_scr=dict_var['log_scripts']
     )
 
     # Visualize file sizes
@@ -126,6 +128,7 @@ def align_to_reference(dict_var:dict) -> dict:
         dict_var['l_fastq_full'],
         ref_genome=dict_var['fasta_ref'],
         output_dir=dict_var['sam_bam_dir'],
+        log_scr=dict_var['log_scripts'],
         threads=dict_var['THREADS']
     )
     log_print(
@@ -157,7 +160,8 @@ def align_to_reference(dict_var:dict) -> dict:
     bam_file = sam_to_bam(
         dict_var['sra_id'],
         sam_file,
-        output_dir=dict_var['sam_bam_dir']
+        output_dir=dict_var['sam_bam_dir'],
+        log_scr=dict_var['log_scripts']
     )
     log_print(
         f"SAM to BAM conversion complete: {sam_file}",
@@ -177,7 +181,9 @@ def align_to_reference(dict_var:dict) -> dict:
     sorted_bam = sort_index_bam(
         dict_var['sra_id'],
         bam_file,
-        output_dir=dict_var['sam_bam_dir']
+        output_dir=dict_var['sam_bam_dir'],
+        log_file=dict_var['log_print'],
+        log_scr=dict_var['log_scripts']
     )
 
     # Check sorted file size
@@ -226,14 +232,18 @@ def variant_call_and_analysis(dict_var:dict) -> dict:
         dict_var['sra_id'],
         dict_var['sorted_bam'],
         ref_genome=dict_var['fasta_ref'],
-        output_dir=dict_var['vcf_dir']
+        output_dir=dict_var['vcf_dir'],
+        log_file=dict_var['log_print'],
+        log_scr=dict_var['log_scripts']
     )
     
     # Compress and index the created vcf file
     compressed_vcf = compress_index_vcf(
         dict_var['sra_id'],
         vcf_file,
-        dict_var['OUTPUT_DIR']
+        dict_var['OUTPUT_DIR'],
+        log_file=dict_var['log_print'],
+        log_scr=dict_var['log_scripts']
     )
     # Check compressed vcf stats
     log_print(
@@ -256,7 +266,9 @@ def variant_call_and_analysis(dict_var:dict) -> dict:
         compressed_vcf,
         dict_var['genome_name'],
         dict_var['snpeff_dir'],
-        dict_var['OUTPUT_DIR']
+        dict_var['OUTPUT_DIR'],
+        log_file=dict_var['log_print'],
+        log_scr=dict_var['log_scripts']
     )
 
     # Add relevant variables to dict_var
@@ -294,7 +306,9 @@ def feature_generation(dict_var:dict) -> dict[str:float|int]:
             dict_var['sra_id'],
             dict_var['sorted_bam'],
             feat_dir,
-            dict_features
+            dict_features,
+            log_file=dict_var['log_print'],
+            log_scr=dict_var['log_scripts']
         )
     else:
         log_print(
@@ -313,7 +327,9 @@ def feature_generation(dict_var:dict) -> dict[str:float|int]:
         dict_var['compressed_snpeff_vcf'],
         dict_var['bin_size_gvs'],
         feat_dir,
-        dict_features
+        dict_features,
+        log_file=dict_var['log_print'],
+        log_scr=dict_var['log_scripts']
     )
 
     # Get the dn/ds variant proportion features
@@ -323,7 +339,9 @@ def feature_generation(dict_var:dict) -> dict[str:float|int]:
         dict_var['bed_variants'],
         dict_var['bed_intersect'],
         feat_dir,
-        dict_features
+        dict_features,
+        log_file=dict_var['log_print'],
+        log_scr=dict_var['log_scripts']
     )
 
     # Get the GV per region features
@@ -335,7 +353,9 @@ def feature_generation(dict_var:dict) -> dict[str:float|int]:
         dict_var['genome_sizes'],
         dict_var['bin_size_gvs'],
         feat_dir,
-        dict_features
+        dict_features,
+        log_file=dict_var['log_print'],
+        log_scr=dict_var['log_scripts']
     )
 
     return dict_features
@@ -380,7 +400,10 @@ def save_features(dict_var:dict, dict_features:dict) -> None:
         log_file=dict_var['log_print']
     )
     # Change ownership of output files to the host user
-    change_output_ownership(dict_var['OUTPUT_DIR'])
+    change_output_ownership(
+        dict_var['OUTPUT_DIR'],
+        log_file=dict_var['log_print']
+    )
 
     return None
 
@@ -391,6 +414,7 @@ def bwa_align(
         l_fastq:list[str],
         ref_genome:str,
         output_dir:str,
+        log_scr:str,
         threads:int=2
     ) -> str:
     """
@@ -414,10 +438,14 @@ def bwa_align(
     # Define output file
     l += f' > {output_sam}'
     # Run the script
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
     return output_sam
 
-def change_output_ownership(output_dir:str) -> None:
+def change_output_ownership(output_dir:str, log_file:str) -> None:
     """
     Changes the ownership of all files and directories in output_dir.
     Requires HOST_UID and HOST_GID environment variables to be set.
@@ -427,10 +455,14 @@ def change_output_ownership(output_dir:str) -> None:
         uid = int(os.environ["HOST_UID"])
         gid = int(os.environ["HOST_GID"])
     except KeyError as e:
-        w = 'Permissions could not be changed.'
+        w = 'Permissions cannot be changed.'
         w += '\nTo do it manually, run:'
         w += f'\nsudo chmod 777 {output_dir}'
-        print(w)
+        log_print(
+            w,
+            level='warn',
+            log_file=log_file
+        )
         return None
     # Walk through the output directory
     for root, dirs, files in os.walk(output_dir):
@@ -438,13 +470,28 @@ def change_output_ownership(output_dir:str) -> None:
             path = os.path.join(root, name)
             try:
                 os.chown(path, uid, gid)
+                log_print(
+                    f"Changed ownership of file {path}",
+                    level='info',
+                    log_file=log_file
+                )
             except PermissionError as e:
-                logging.warning(f"Permission denied on {path}: {e}")
+                log_print(
+                    f"Permission denied on {path}: {e}",
+                    level='warn',
+                    log_file=log_file
+                )
             except FileNotFoundError:
                 continue
     return None
 
-def compress_index_vcf(sra_id:str, vcf_file:str, output_dir:str) -> str:
+def compress_index_vcf(
+        sra_id:str,
+        vcf_file:str,
+        output_dir:str,
+        log_file:str,
+        log_scr:str
+    ) -> str:
     """
     Compresses and indexes a given VCF file.
     Returns the path to the compressed and indexed VCF file.
@@ -457,7 +504,11 @@ def compress_index_vcf(sra_id:str, vcf_file:str, output_dir:str) -> str:
     # Define output files
     compressed_vcf = os.path.join(output_dir, sra_id+'.vcf.gz')
     # Compress VCF
-    print(f"Compressing {vcf_file} with bgzip...")
+    log_print(
+        f"Compressing {vcf_file} with bgzip...",
+        level='info',
+        log_file=log_file
+    )
     # Define bgzip script
     l = f'bgzip'
     # Define input file
@@ -465,21 +516,42 @@ def compress_index_vcf(sra_id:str, vcf_file:str, output_dir:str) -> str:
     # Define output file
     l += f' > {compressed_vcf}'
     # Run the script
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
-    print(f"Compressed VCF: {compressed_vcf}")
+    log_print(
+        f"Compressed VCF: {compressed_vcf}",
+        level='info',
+        log_file=log_file
+    )
 
-    print((f"Indexing {compressed_vcf} with tabix..."))
+    log_print(
+        f"Indexing {compressed_vcf} with tabix...",
+        level='info',
+        log_file=log_file
+    )
     # Define tabix script
     l = f'tabix -p vcf {compressed_vcf}'
     # Run the script
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
-    print(f"VCF index: {compressed_vcf}.tbi")
+    log_print(
+        f"VCF index: {compressed_vcf}.tbi",
+        level='info',
+        log_file=log_file
+    )
     return compressed_vcf
 
 def create_counts(
         counts_file:str,
         regions:list[list[str,int,int,str]],
-        vcf_compressed:str
+        vcf_compressed:str,
+        log_scr:str
     ) -> None:
     """
     Create a counts file with number of variants per region.
@@ -501,6 +573,10 @@ def create_counts(
         # Use bcftools to check how many variables are in region_str
         l = 'bcftools view -r "$region_str"'
         l += ' "$vcf_file" | grep -vc "^#" >> "$tmp_output"'
+        log_code(
+            l,
+            log_file=log_scr
+        )
         os.system(l)
     return None
 
@@ -535,7 +611,9 @@ def ft_cnv_prediction(
         snpeff_vcf:str,
         bin_sizes:int,
         output_dir:str,
-        feature_dict:dict[str:float|int]
+        feature_dict:dict[str:float|int],
+        log_file:str,
+        log_scr:str
     ) -> dict[str:float|int]:
     """
     Calculates the number of CNVs per chromosome given a BAM file.
@@ -546,10 +624,18 @@ def ft_cnv_prediction(
     except FileExistsError:
         pass
 
-    print('Starting CNV calling...')
+    log_print(
+        'Starting CNV calling...',
+        level='info',
+        log_file=log_file
+    )
     # Define the root file for CNVpytor
     ROOT_FILE = os.path.join(output_dir, f"{sra_id}.pytor")
-    print(f"CNVpytor root file will be: {ROOT_FILE}")
+    log_print(
+        f"CNVpytor root file will be: {ROOT_FILE}",
+        level='info',
+        log_file=log_file
+    )
     # Remove existing root file if it exists
     if os.path.exists(ROOT_FILE):
         os.remove(ROOT_FILE)
@@ -559,68 +645,140 @@ def ft_cnv_prediction(
     bool_bai = os.path.exists(f"{bam_file}.bai")
     bool_crai = os.path.exists(f"{bam_file}.crai")
     if not bool_bam:
-        print(f"Error: BAM/CRAM file not found at {bam_file}")
+        log_print(
+            f"BAM/CRAM file not found at {bam_file}",
+            level='error',
+            log_file=log_file
+        )
         exit()
     if not (bool_bai or bool_crai):
-        t = "Warning: BAM/CRAM index file not found."
+        t = "BAM/CRAM index file not found."
         t += f" Please ensure '{bam_file}.bai' or '{bam_file}.crai'"
         t += " exists alongside the BAM/CRAM. CNVpytor might fail."
-        print(t)
+        log_print(
+            t,
+            level='warn',
+            log_file=log_file
+        )
     # Define if you have a VCF/GVCF
     use_baf = True
     bool_vcf = os.path.exists(snpeff_vcf)
     bool_tbi = os.path.exists(f"{snpeff_vcf}.tbi")
     bool_gz_tbi = os.path.exists(f"{snpeff_vcf}.gz.tbi")
     if not bool_vcf:
-        t = f"Warning: VCF/GVCF file not found at {snpeff_vcf}."
+        t = f"VCF/GVCF file not found at {snpeff_vcf}."
         t += " BAF analysis will be skipped."
-        print(t)
+        log_print(
+            t,
+            level='warn',
+            log_file=log_file
+        )
         use_baf = False
     elif not (bool_tbi or bool_gz_tbi):
-        t = "Warning: VCF/GVCF index file not found."
+        t = "VCF/GVCF index file not found."
         t += f" Ensure '{snpeff_vcf}.tbi' or '{snpeff_vcf}.gz.tbi'"
         t += " exists alongside the VCF/GVCF."
         t += " BAF analysis might fail or be inaccurate."
-        print(t)
+        log_print(
+            t,
+            level='warn',
+            log_file=log_file
+        )
     
     # Process Read Depth (RD) Data
-    print("Processing Read Depth (RD) data...")
+    log_print(
+        "Processing Read Depth (RD) data...",
+        level='info',
+        log_file=log_file
+    )
     l = f'cnvpytor -root {ROOT_FILE} -rd {bam_file}'
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
-    print("Read Depth processing complete.")
+    log_print(
+        "Read Depth processing complete.",
+        level='info',
+        log_file=log_file
+    )
 
     # Process BAF (BAF) Data
     if use_baf:
-        print("Processing B-allele Frequency (BAF) data...")
+        log_print(
+            "Processing B-allele Frequency (BAF) data...",
+            level='info',
+            log_file=log_file
+        )
         # First, add SNPs from VCF to the root file
         l = f'cnvpytor -root {ROOT_FILE}'
         l += f' -snp {snpeff_vcf} -sample {sra_id}'
+        log_code(
+            l,
+            log_file=log_scr
+        )
         os.system(l)
         # Then, perform BAF analysis with specified bin sizes
         l = f'cnvpytor -root {ROOT_FILE} -baf {bin_sizes}'
+        log_code(
+            l,
+            log_file=log_scr
+        )
         os.system(l)
         t = "B-allele Frequency processing complete."
-        print(t)
+        log_print(
+            t,
+            level='info',
+            log_file=log_file
+        )
     else:
         t = "BAF analysis skipped as specified"
         t += " or due to missing VCF/index."
-        print(t)
+        log_print(
+            t,
+            level='info',
+            log_file=log_file
+        )
     # Create Histograms and Partitioning
     t = "Generating histograms and partitioning data..."
-    print(t)
+    log_print(
+        t,
+        level='info',
+        log_file=log_file
+    )
     # Create histograms for RD and BAF (if used)
     l = f'cnvpytor -root {ROOT_FILE} -his {bin_sizes} --verbose debug'
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
     # Partition data for CNV calling
     l = f'cnvpytor -root {ROOT_FILE}'
     l += f' -partition {bin_sizes} --verbose debug'
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
-    print("Histograms and partitioning complete.")
+    log_print(
+        "Histograms and partitioning complete.",
+        level='info',
+        log_file=log_file
+    )
     # Call CNVs
     cnv_call_file = f'{output_dir}/cnv_calls_{bin_sizes}.txt'
     l = f'cnvpytor -root {ROOT_FILE} -call {bin_sizes} > {cnv_call_file}'
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
-    print("CNV calling complete.")
+    log_print(
+        "CNV calling complete.",
+        level='info',
+        log_file=log_file
+    )
 
     # Read CNVpytor output with python 
     calls = []
@@ -635,10 +793,18 @@ def ft_cnv_prediction(
     # Save result
     for chrom, count in sorted(cnv_counts.items()):
         if str(chrom).startswith('chr'):
-            print(f"{chrom}: {count} CNVs")
+            log_print(
+                f"{chrom}: {count} CNVs",
+                level='info',
+                log_file=log_file
+            )
             key = f'{chrom}_cnv_count'
         else:
-            print(f"chr{chrom}: {count} CNVs")
+            log_print(
+                f"chr{chrom}: {count} CNVs",
+                level='info',
+                log_file=log_file
+            )
             key = f'chr{chrom}_cnv_count'
         feature_dict[key] = count
     return feature_dict
@@ -649,7 +815,9 @@ def ft_dn_ds(
         bed_variants:str,
         bed_intersect:str,
         output_dir:str,
-        feature_dict:dict[str:float|int]
+        feature_dict:dict[str:float|int],
+        log_file:str,
+        log_scr:str
     ) -> dict[str:float|int]:
     """
     Calculates the proportion of synonymous variants to nonsynonymous
@@ -662,7 +830,11 @@ def ft_dn_ds(
         pass
 
     t = 'Starting to obtain Syn/Nonsyn variant proportion per gene...'
-    print(t)
+    log_print(
+        t,
+        level='info',
+        log_file=log_file
+    )
     # Define variants using environ
     os.environ['bed_variants'] = bed_variants
     os.environ['vcf_file'] = snpeff_vcf
@@ -673,13 +845,29 @@ def ft_dn_ds(
     l = 'bcftools query -f \'%CHROM\t%POS\t%END\t%INFO/ANN\n\' $vcf_file'
     l += ' | awk \'BEGIN{OFS=\"\t\"} {print $1, $2-1, $2, $4}\''
     l += ' > $bed_variants'
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
-    print(f'{bed_variants} created.')
+    log_print(
+        f'{bed_variants} created.',
+        level='info',
+        log_file=log_file
+    )
     # Intersect variants with genes
     l = f'bedtools intersect -a {bed_variants}'
     l += f' -b {bed_genes} -wa -wb > {bed_intersect}'
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
-    print(f'{bed_intersect} created.')
+    log_print(
+        f'{bed_intersect} created.',
+        level='info',
+        log_file=log_file
+    )
 
     # Define effect categories
     synonymous_terms = {"synonymous_variant"}
@@ -729,7 +917,9 @@ def ft_fragment_lengths(
         sra_id:str,
         bam_file:str,
         output_dir:str,
-        feature_dict:dict[str:float|int]
+        feature_dict:dict[str:float|int],
+        log_file:str,
+        log_scr:str
     ) -> dict[str:float|int]:
     """
     Calculates the mean, median and st. deviation of fragment lengths 
@@ -751,6 +941,10 @@ def ft_fragment_lengths(
     # Define output
     l += f' > {fl_file}'
     # Run the script
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
 
     # Open the created file to obtain values
@@ -759,13 +953,21 @@ def ft_fragment_lengths(
     fragment_lengths = list(map(int, fragment_lengths))
     # Perform a first check for fragment lengths
     if len(fragment_lengths) == 0:
-        w = 'WARNING: No "properly paired" reads found.'
+        w = 'No "properly paired" reads found.'
         w += ' Calculating read lengths'
-        print(w)
+        log_print(
+            w,
+            level='warn',
+            log_file=log_file
+        )
         # Rerun the script with less strict selection of paired ends
         l = f'samtools view -f 0x1 -F 0xC -F 0x904 {bam_file} | awk \''
         l += '{if ($9 != 0) {l=$9; if (l<0) l=-l; if (l<1000) print l}}\''
         l += f' > {fl_file}'
+        log_code(
+            l,
+            log_file=log_scr
+        )
         os.system(l)
         # Open fl_file again amd get fragment lengths
         fragment_lengths = open(fl_file, "r").read().splitlines()
@@ -775,16 +977,24 @@ def ft_fragment_lengths(
         feature_dict['fl_mean'] = statistics.mean(fragment_lengths)
         feature_dict['fl_median'] = statistics.median(fragment_lengths)
         feature_dict['fl_stdv'] = statistics.stdev(fragment_lengths)
-        print('Fragment mean, median and standard deviation:')
-        print(
-            feature_dict['fl_mean'],
-            '/',
-            feature_dict['fl_median'],
-            '/',
-            feature_dict['fl_stdv']
+        log_print(
+            'Fragment mean, median and standard deviation:',
+            level='info',
+            log_file=log_file
+        )
+        w = feature_dict['fl_mean']+'/'+feature_dict['fl_median']+ \
+            '/'+feature_dict['fl_stdv']
+        log_print(
+            w,
+            level='info',
+            log_file=log_file
         )
     else:
-        print('No fragment lengths found. Returning NA.')
+        log_print(
+            'No fragment lengths found. Returning NA.',
+            level='warn',
+            log_file=log_file
+        )
         feature_dict['fl_mean'] = 'NA'
         feature_dict['fl_median'] = 'NA'
         feature_dict['fl_stdv'] = 'NA'
@@ -799,7 +1009,9 @@ def ft_gv_per_region(
         genome_sizes:str,
         bin_sizes:int,
         output_dir:str,
-        feature_dict:dict[str:float|int]
+        feature_dict:dict[str:float|int],
+        log_file:str,
+        log_scr:str
     ) -> dict[str:float|int]:
     """
     Calculates the number of genetic variants (GVs) per region defined 
@@ -818,7 +1030,11 @@ def ft_gv_per_region(
         feature_dict[key] = value
 
     # Count variants per region/gene in selected regions/genes
-    print('Starting to obtain variants per region and genes...')
+    log_print(
+        'Starting to obtain variants per region and genes...',
+        level='info',
+        log_file=log_file
+    )
     # Get regions from bed_file
     selected_regions = extract_regions(bed_file)
     all_genes = parse_gff_for_genes(gff_file)
@@ -827,7 +1043,8 @@ def ft_gv_per_region(
     create_counts(
         counts_file,
         regions,
-        vcf_file
+        vcf_file,
+        log_scr=log_scr
     )
     # Read counts back into Python variable
     counts = []
@@ -902,7 +1119,8 @@ def parse_gff_for_genes(gff_file:str) -> list[list[str,int,int,str]]:
 def sam_to_bam(
         sra_id:str,
         sam_file:str,
-        output_dir:str
+        output_dir:str,
+        log_scr:str
     ) -> str:
     """
     Transforms a SAM file into a BAM file.
@@ -922,10 +1140,20 @@ def sam_to_bam(
     # Define output file
     l += f' -o {bam_file}'
     # Run the script
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
     return bam_file
 
-def sort_index_bam(sra_id:str, bam_file:str, output_dir:str) -> str:
+def sort_index_bam(
+        sra_id:str,
+        bam_file:str,
+        output_dir:str,
+        log_file:str,
+        log_scr:str
+    ) -> str:
     """
     Sorts and indexes a bam file using samtools sort and samtools index.
     Returns the sorted BAM file name.
@@ -937,23 +1165,47 @@ def sort_index_bam(sra_id:str, bam_file:str, output_dir:str) -> str:
         pass
     # Define output
     bam_sorted = os.path.join(output_dir, sra_id+'_sorted.bam')
-    print(f"Sorting BAM file: {bam_file} -> {bam_sorted}...")
+    log_print(
+        f"Sorting BAM file: {bam_file} -> {bam_sorted}...",
+        level='info',
+        log_file=log_file
+    )
     # Initialize the script to sort the bam file
     l = f'samtools sort {bam_file} -o {bam_sorted}'
     # Run the script
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
-    print(f"BAM sorting complete: {bam_sorted}")
+    log_print(
+        f"BAM sorting complete: {bam_sorted}",
+        level='info',
+        log_file=log_file
+    )
 
-    print(f"Indexing sorted BAM file: {bam_sorted}...")
+    log_print(
+        f"Indexing sorted BAM file: {bam_sorted}...",
+        level='info',
+        log_file=log_file
+    )
     # Initialize the script to index the bam file
     l = f'samtools index {bam_sorted}'
     # Run the script
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
-    print(f"BAM indexing complete. Index file: {bam_sorted}.bai")
+    log_print(
+        f"BAM indexing complete. Index file: {bam_sorted}.bai",
+        level='info',
+        log_file=log_file
+    )
     
     return bam_sorted
 
-def sra_id_data(sra_id:str) -> dict:
+def sra_id_data(sra_id:str, log_file:str) -> dict:
     """
     Retrieves SRA (Sequence Read Archive) metadata and download links
     from NCBI via the European Nucleotide Archive (ENA) API.
@@ -983,7 +1235,11 @@ def sra_id_data(sra_id:str) -> dict:
         "limit": 1
     }
     w = f"Attempting to retrieve SRA data for: {sra_id}"
-    logging.info(w)
+    log_print(
+        w,
+        level='info',
+        log_file=log_file
+    )
     try:
         # Make the HTTP GET request to the ENA API.
         response = requests.get(base_url, params=params)
@@ -999,42 +1255,76 @@ def sra_id_data(sra_id:str) -> dict:
         if data:
             sra_info = data[0]
             w = f"Successfully retrieved data for {sra_id}."
-            logging.info(w)
+            log_print(
+                w,
+                level='info',
+                log_file=log_file
+            )
             return sra_info
         else:
             w = f"No SRA data found for accession ID: {sra_id}."
             w += ' Please check the ID.'
-            logging.info(w)
+            log_print(
+                w,
+                level='info',
+                log_file=log_file
+            )
             return None
 
     except requests.exceptions.HTTPError as http_err:
         w = f"HTTP error occurred: {http_err}"
         w += f" - Status Code: {response.status_code}"
-        logging.info(w)
+        log_print(
+            w,
+            level='info',
+            log_file=log_file
+        )
     except requests.exceptions.ConnectionError as conn_err:
         w = f"Connection error occurred: {conn_err}"
         w += " - Unable to connect to ENA API."
-        logging.info(w)
+        log_print(
+            w,
+            level='info',
+            log_file=log_file
+        )
     except requests.exceptions.Timeout as timeout_err:
         w = f"Timeout error occurred: {timeout_err}"
         w += " - Request to ENA API timed out."
-        logging.info(w)
+        log_print(
+            w,
+            level='info',
+            log_file=log_file
+        )
     except requests.exceptions.RequestException as req_err:
         w = f"An unexpected error occurred during the request: {req_err}"
-        logging.info(w)
+        log_print(
+            w,
+            level='info',
+            log_file=log_file
+        )
     except json.JSONDecodeError as json_err:
         w = f"Error decoding JSON response: {json_err}."
         w += f" Response content: {response.text}"
-        logging.info(w)
+        log_print(
+            w,
+            level='info',
+            log_file=log_file
+        )
     except Exception as e:
-        logging.info(f"An unexpected error occurred: {e}")
+        log_print(
+            f"An unexpected error occurred: {e}",
+            level='warn',
+            log_file=log_file
+        )
 
     return None
 
 def sra_to_fastq(
         sra_id:str,
         l_fastq:list[str],
-        output_dir:str
+        output_dir:str,
+        log_file:str,
+        log_scr:str
     ) -> None:
     """
     Downloads a fastq file from a SRA ID using fastq-dump.
@@ -1053,11 +1343,19 @@ def sra_to_fastq(
     i = 0
     while i < 5:
         try:
+            log_code(
+                l,
+                log_file=log_scr
+            )
             os.system(l)
             # Exit loop if successful
             break
         except Exception as e:
-            print(f"Attempt {i+1} failed: {e}")
+            log_print(
+                f"Attempt {i+1} failed: {e}",
+                level='warn',
+                log_file=log_file
+            )
             # Check if the files were created and delete them if they exist
             for i in l_fastq:
                 if os.path.exists(i):
@@ -1066,7 +1364,11 @@ def sra_to_fastq(
             i += 1
             if i >= 5:
                 w = f"Failed to download FASTQ files after {i} attempts."
-                print(w)
+                log_print(
+                    w,
+                    level='error',
+                    log_file=log_file
+                )
                 # This exits the loop
             else:
                 # Wait before retrying
@@ -1078,7 +1380,9 @@ def variant_analysis_snpeff(
         vcf_file:str,
         genome_name:str,
         snpeff_dir:str,
-        output_dir:str
+        output_dir:str,
+        log_file:str,
+        log_scr:str
     ) -> None:
     """
     Analyses a vcf file with snpeff. It compresses and indexes the output.
@@ -1091,7 +1395,11 @@ def variant_analysis_snpeff(
     # Define output
     snpeff_vcf = os.path.join(output_dir, sra_id+'_snpeff.vcf')
     # Analyze variants in VCF with snpeff
-    print(f"Analyzing variants from {vcf_file} with snpEff...")
+    log_print(
+        f"Analyzing variants from {vcf_file} with snpEff...",
+        level='info',
+        log_file=log_file
+    )
     # Initialize script
     l = f'java -Xmx8g -jar {snpeff_dir}/snpEff/snpEff.jar'
     # Define snpeff genome name
@@ -1101,22 +1409,54 @@ def variant_analysis_snpeff(
     # Define output vcf file
     l += f' > {snpeff_vcf}'
     # Run the script
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
 
     # Visualize the snpeff vcf file
     l = f'tail {snpeff_vcf}'
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
 
     # Run compression with bgzip
-    print(f"Compressing {snpeff_vcf} with bgzip...")
+    log_print(
+        f"Compressing {snpeff_vcf} with bgzip...",
+        level='info',
+        log_file=log_file
+    )
     l = f'bgzip -c {snpeff_vcf} > {snpeff_vcf}.gz'
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
-    print(f"Compressed VCF: {snpeff_vcf}.gz")
+    log_print(
+        f"Compressed VCF: {snpeff_vcf}.gz",
+        level='info',
+        log_file=log_file
+    )
     # Index the compressed snpeff vcf file
-    print(f"Indexing {snpeff_vcf}.gz with tabix...")
+    log_print(
+        f"Indexing {snpeff_vcf}.gz with tabix...",
+        level='info',
+        log_file=log_file
+    )
     l = f'tabix -p vcf {snpeff_vcf}.gz'
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
-    print(f"VCF index: {snpeff_vcf}.gz.tbi")
+    log_print(
+        f"VCF index: {snpeff_vcf}.gz.tbi",
+        level='info',
+        log_file=log_file
+    )
 
     return snpeff_vcf+'.gz'
 
@@ -1124,7 +1464,9 @@ def variant_call_mpileup(
         sra_id:str,
         sorted_bam:str,
         ref_genome:str,
-        output_dir:str
+        output_dir:str,
+        log_file:str,
+        log_scr:str
     ) -> str:
     """
     Performs variant calling with bcftools mpileup.
@@ -1147,11 +1489,23 @@ def variant_call_mpileup(
     # Define the output bcf file
     l += f' > {bcf_file}'
     # Run the script
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
 
-    print(f"Pileup and BCF file generated: {bcf_file}")
+    log_print(
+        f"Pileup and BCF file generated: {bcf_file}",
+        level='info',
+        log_file=log_file
+    )
     # Check bcf file
     l = f'tail {bcf_file}'
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
 
     # Initialize script to generate vcf file
@@ -1161,14 +1515,26 @@ def variant_call_mpileup(
     # Define input bcf file
     l += f' {bcf_file}'
     # Run the script
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
 
     # Delete bcf file
     os.remove(bcf_file)
 
-    print(f"Variant calling complete. Output VCF: {vcf_file}")
+    log_print(
+        f"Variant calling complete. Output VCF: {vcf_file}",
+        level='info',
+        log_file=log_file
+    )
     # Check vcf file
     l = f'tail {vcf_file}'
+    log_code(
+        l,
+        log_file=log_scr
+    )
     os.system(l)
     return vcf_file
 
