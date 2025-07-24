@@ -208,14 +208,9 @@ def feature_generation(dict_var:dict) -> dict[str:float|int]:
         os.mkdir(feat_dir)
     except FileExistsError:
         pass
-    # Define the temporary folder for intermediate files
-    tmp_dir = os.path.join(
-        dict_var['BASE_DIR'],
-        'tmp_' + dict_var['sra_id']
-    )
-    # Make the directory if it does not exist
+    # Make the temporary folder for intermediate files if it does not exist
     try:
-        os.mkdir(tmp_dir)
+        os.mkdir(dict_var['tmp_sra'])
     except FileExistsError:
         pass
 

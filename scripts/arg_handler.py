@@ -99,6 +99,11 @@ def get_variables() -> dict[str:str|int|bool|list]:
     dict_variables['bin_size_gvs'] = config['Parameters']['BIN_SIZE_GVS']
     dict_variables['THREADS'] = int(args.threads)
     dict_variables['OUTPUT_DIR'] = str(args.output_dir)
+    # Define some base values
+    dict_variables['DATA_DIR'] = os.path.join(
+        dict_variables['BASE_DIR'],
+        'data'
+    )
     # Define if SRA ID or fastq were given
     if args.sra_id is not None:
         # SRA ID was provided
@@ -107,7 +112,7 @@ def get_variables() -> dict[str:str|int|bool|list]:
         dict_variables['l_fastq'] = []
         # Define a fastq directory
         dict_variables['fastq_dir'] = os.path.join(
-            dict_variables['BASE_DIR'],
+            dict_variables['DATA_DIR'],
             'fastq'
         )
     elif args.fastq is not None:
@@ -161,27 +166,28 @@ def get_variables() -> dict[str:str|int|bool|list]:
     dict_variables['l_fastq_full'] = l_fastq_full
 
     # Define non-base folders and files
+    dict_variables['tmp_sra'] = os.path.join(
+        dict_variables['DATA_DIR'],
+        'tmp_'+dict_variables['sra_id']
+    )
     dict_variables['sam_bam_dir'] = os.path.join(
-        dict_variables['BASE_DIR'],
+        dict_variables['DATA_DIR'],
         'sam_bam'
     )
     dict_variables['vcf_dir'] = os.path.join(
-        dict_variables['BASE_DIR'],
+        dict_variables['DATA_DIR'],
         'vcf'
     )
     dict_variables['counts_file'] = os.path.join(
-        dict_variables['BASE_DIR'],
-        'tmp_' + dict_variables['sra_id'],
+        dict_variables['tmp_sra'],
         'counts.csv'
     )
     dict_variables['bed_variants'] = os.path.join(
-        dict_variables['BASE_DIR'],
-        'tmp_' + dict_variables['sra_id'],
+        dict_variables['tmp_sra'],
         'variants.bed'
     )
     dict_variables['bed_intersect'] = os.path.join(
-        dict_variables['BASE_DIR'],
-        'tmp_' + dict_variables['sra_id'],
+        dict_variables['tmp_sra'],
         'intersect.bed'
     )
     return dict_variables
