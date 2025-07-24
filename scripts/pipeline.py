@@ -339,8 +339,10 @@ def change_output_ownership(output_dir:str) -> None:
         gid = int(os.environ["HOST_GID"])
     except KeyError as e:
         w = 'Permissions could not be changed.'
-        w += f' Missing environment variable: {e}'
-        raise RuntimeError(w)
+        w += '\nTo do it manually, run:'
+        w += f'\nsudo chmod 777 {output_dir}'
+        print(w)
+        return None
     # Walk through the output directory
     for root, dirs, files in os.walk(output_dir):
         for name in dirs + files:
