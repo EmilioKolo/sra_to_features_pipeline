@@ -6,6 +6,7 @@ Functions to be used for the main pipeline.
 """
 
 from collections import Counter, defaultdict
+from scripts.log_scripts import *
 import json
 import logging
 import os
@@ -36,7 +37,11 @@ def download_sra(dict_var:dict) -> dict:
         time.sleep(random.randint(15, 30))
         w = f"Retrying to get SRA data for {sra_id}"
         w += f" (attempt {cont+1})"
-        print(w)
+        log_print(
+            w,
+            level='warn',
+            log_file=dict_var['log_print']
+        )
         # Increment the counter
         cont+=1
         # Retry getting SRA data
@@ -69,7 +74,11 @@ def download_sra(dict_var:dict) -> dict:
     ### Display
     t = 'Downloading and extracting FASTQ files for'
     t += f' {sra_id} using fastq-dump...'
-    print(t)
+    log_print(
+        t,
+        level='info',
+        log_file=dict_var['log_print']
+    )
     ###
 
     # Download fastq files
@@ -83,11 +92,23 @@ def download_sra(dict_var:dict) -> dict:
     t = f'Reads downloaded and extracted to:'
     for i in dict_var['l_fastq_full']:
         t += f'\n{i}'
-    print(t)
-    print("Checking file sizes.")
+    log_print(
+        t,
+        level='info',
+        log_file=dict_var['log_print']
+    )
+    log_print(
+        t,
+        level='info',
+        log_file=dict_var['log_print']
+    )
     l = 'du -h'
     for i in dict_var['l_fastq_full']:
         l += ' ' + i
+    log_code(
+        l,
+        log_file=dict_var['log_scripts']
+    )
     os.system(l)
     return dict_var
 
@@ -107,13 +128,29 @@ def align_to_reference(dict_var:dict) -> dict:
         output_dir=dict_var['sam_bam_dir'],
         threads=dict_var['THREADS']
     )
-    print(f"Alignment to SAM file complete: {sam_file}")
+    log_print(
+        f"Alignment to SAM file complete: {sam_file}",
+        level='info',
+        log_file=dict_var['log_print']
+    )
     # Check if the SAM file was created and has content
-    print("Checking SAM file content...")
+    log_print(
+        "Checking SAM file content...",
+        level='info',
+        log_file=dict_var['log_print']
+    )
     l = f'head -n 10 {sam_file}'
+    log_code(
+        l,
+        log_file=dict_var['log_scripts']
+    )
     os.system(l)
     # Check file size
     l = f'ls -lh {sam_file}'
+    log_code(
+        l,
+        log_file=dict_var['log_scripts']
+    )
     os.system(l)
 
     # Transform the sam file into a bam file
@@ -122,9 +159,17 @@ def align_to_reference(dict_var:dict) -> dict:
         sam_file,
         output_dir=dict_var['sam_bam_dir']
     )
-    print(f"SAM to BAM conversion complete: {sam_file}")
+    log_print(
+        f"SAM to BAM conversion complete: {sam_file}",
+        level='info',
+        log_file=dict_var['log_print']
+    )
     # Check file size
     l = f'ls -lh {bam_file}'
+    log_code(
+        l,
+        log_file=dict_var['log_scripts']
+    )
     os.system(l)
     # Remove the sam file
     os.remove(sam_file)
@@ -137,13 +182,29 @@ def align_to_reference(dict_var:dict) -> dict:
 
     # Check sorted file size
     l = f'ls -lh {sorted_bam}'
+    log_code(
+        l,
+        log_file=dict_var['log_scripts']
+    )
     os.system(l)
     # Check index file size
     l = f'ls -lh {sorted_bam}.bai'
+    log_code(
+        l,
+        log_file=dict_var['log_scripts']
+    )
     os.system(l)
     # Generate alignment statistics
-    print("Alignment statistics...")
+    log_print(
+        "Alignment statistics...",
+        level='info',
+        log_file=dict_var['log_print']
+    )
     l = f'samtools flagstat {sorted_bam}'
+    log_code(
+        l,
+        log_file=dict_var['log_scripts']
+    )
     os.system(l)
 
     # Add new variables to dict_var
@@ -175,10 +236,18 @@ def variant_call_and_analysis(dict_var:dict) -> dict:
         dict_var['OUTPUT_DIR']
     )
     # Check compressed vcf stats
-    print("Variant calling statistics.")
+    log_print(
+        "Variant calling statistics.",
+        level='info',
+        log_file=dict_var['log_print']
+    )
     l = f'bcftools stats'
     l += f' {compressed_vcf}'
     l += f' > {compressed_vcf}.stats'
+    log_code(
+        l,
+        log_file=dict_var['log_scripts']
+    )
     os.system(l)
 
     # Analyze variants in VCF with snpeff
@@ -216,7 +285,11 @@ def feature_generation(dict_var:dict) -> dict[str:float|int]:
 
     # Get the features associated with fragment length
     if len(dict_var['l_fastq'])==2:
-        print('Calculating fragment length of reads')
+        log_print(
+            'Calculating fragment length of reads',
+            level='info',
+            log_file=dict_var['log_print']
+        )
         dict_features = ft_fragment_lengths(
             dict_var['sra_id'],
             dict_var['sorted_bam'],
@@ -224,7 +297,11 @@ def feature_generation(dict_var:dict) -> dict[str:float|int]:
             dict_features
         )
     else:
-        print('Single-end reads. Fragment length not calculated.')
+        log_print(
+            'Single-end reads. Fragment length not calculated.',
+            level='warn',
+            log_file=dict_var['log_print']
+        )
         dict_features['fl_mean'] = 'NA'
         dict_features['fl_median'] = 'NA'
         dict_features['fl_stdv'] = 'NA'
@@ -274,7 +351,11 @@ def save_features(dict_var:dict, dict_features:dict) -> None:
         dict_var['OUTPUT_DIR'],
         dict_var['sra_id']+'_features.csv'
     )
-    print(f'Saving features to: {features_file}')
+    log_print(
+        f'Saving features to: {features_file}',
+        level='info',
+        log_file=dict_var['log_print']
+    )
     try:
         df_features.transpose().to_csv(
             features_file,
@@ -287,9 +368,17 @@ def save_features(dict_var:dict, dict_features:dict) -> None:
             sep=';',
             header=False
         )
-    print('Features loaded and saved.')
+    log_print(
+        'Features loaded and saved.',
+        level='info',
+        log_file=dict_var['log_print']
+    )
 
-    print('Changing ownership of output files...')
+    log_print(
+        'Changing ownership of output files...',
+        level='info',
+        log_file=dict_var['log_print']
+    )
     # Change ownership of output files to the host user
     change_output_ownership(dict_var['OUTPUT_DIR'])
 

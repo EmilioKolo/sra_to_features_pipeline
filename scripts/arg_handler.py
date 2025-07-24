@@ -104,6 +104,14 @@ def get_variables() -> dict[str:str|int|bool|list]:
         dict_variables['BASE_DIR'],
         'data'
     )
+    dict_variables['log_print'] = os.path.join(
+        dict_variables['BASE_DIR'],
+        'log/print.log'
+    )
+    dict_variables['log_scripts'] = os.path.join(
+        dict_variables['BASE_DIR'],
+        'log/scripts.log'
+    )
     # Define if SRA ID or fastq were given
     if args.sra_id is not None:
         # SRA ID was provided

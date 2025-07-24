@@ -9,6 +9,7 @@ a set of defined features.
 from scripts.arg_handler import get_variables
 from scripts.pipeline import *
 from scripts.quality_control import *
+from scripts.log_scripts import *
 
 
 def main():
@@ -20,7 +21,11 @@ def main():
     dict_var = get_variables()
 
     ### Display
-    print(f"### Starting pipeline with {dict_var['sra_id']}...")
+    log_print(
+        f"### Starting pipeline with {dict_var['sra_id']}...",
+        level='info',
+        log_file=dict_var['log_print']
+    )
     ###
 
     # Check if sra was given as input
@@ -35,21 +40,33 @@ def main():
     dict_var = variant_call_and_analysis(dict_var)
 
     ### Display
-    print(f'### Starting checks of intermediate files...')
+    log_print(
+        f'### Starting checks of intermediate files...',
+        level='info',
+        log_file=dict_var['log_print']
+    )
     ###
 
     # Perform checks on the intermediate files
     perform_checks(dict_var)
 
     ### Display
-    print(f'### Starting feature generation...')
+    log_print(
+        f'### Starting feature generation...',
+        level='info',
+        log_file=dict_var['log_print']
+    )
     ###
 
     # Generate features
     dict_features = feature_generation(dict_var)
 
     ### Display
-    print(f'### Features generated. Saving...')
+    log_print(
+        f'### Features generated. Saving...',
+        level='info',
+        log_file=dict_var['log_print']
+    )
     ###
 
     # Save features
