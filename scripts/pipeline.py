@@ -277,7 +277,7 @@ def variant_call_and_analysis(dict_var:dict) -> dict:
 
 def feature_generation(dict_var:dict) -> dict[str:float|int]:
     """
-    Generates features from the different generated files
+    Generates features from the different generated files.
     """
     # Initialize the dictionary of features
     dict_features = {}
