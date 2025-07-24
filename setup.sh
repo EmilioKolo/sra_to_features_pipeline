@@ -58,11 +58,9 @@ mkdir -p "$BASE_DIR"
 # Create data, install, logs, bin and tmp directories
 DATA_DIR="$BASE_DIR/data"
 INSTALL_DIR="$BASE_DIR/install"
-LOGS_DIR="$BASE_DIR/logs"
 BIN_DIR="$BASE_DIR/bin"
 mkdir -p "$DATA_DIR"
 mkdir -p "$INSTALL_DIR"
-mkdir -p "$LOGS_DIR"
 mkdir -p "$BIN_DIR"
 # Define snpEff variables
 snpeff_jar="$SNPEFF_DIR/snpEff/snpEff.jar"

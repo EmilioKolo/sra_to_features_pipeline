@@ -104,13 +104,21 @@ def get_variables() -> dict[str:str|int|bool|list]:
         dict_variables['BASE_DIR'],
         'data'
     )
+    if not os.path.exists(dict_variables['DATA_DIR']):
+        os.mkdir(dict_variables['DATA_DIR'])
+    dict_variables['log_dir'] = os.path.join(
+        dict_variables['OUTPUT_DIR'],
+        'logs'
+    )
+    if not os.path.exists(dict_variables['log_dir']):
+        os.mkdir(dict_variables['log_dir'])
     dict_variables['log_print'] = os.path.join(
-        dict_variables['BASE_DIR'],
-        'log/print.log'
+        dict_variables['log_dir'],
+        'print.log'
     )
     dict_variables['log_scripts'] = os.path.join(
-        dict_variables['BASE_DIR'],
-        'log/scripts.log'
+        dict_variables['log_dir'],
+        'scripts.log'
     )
     # Define if SRA ID or fastq were given
     if args.sra_id is not None:
@@ -178,6 +186,8 @@ def get_variables() -> dict[str:str|int|bool|list]:
         dict_variables['DATA_DIR'],
         'tmp_'+dict_variables['sra_id']
     )
+    if not os.path.exists(dict_variables['tmp_sra']):
+        os.mkdir(dict_variables['tmp_sra'])
     dict_variables['sam_bam_dir'] = os.path.join(
         dict_variables['DATA_DIR'],
         'sam_bam'
