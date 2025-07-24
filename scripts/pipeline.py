@@ -7,6 +7,7 @@ Functions to be used for the main pipeline.
 
 from collections import Counter, defaultdict
 from scripts.log_scripts import *
+import gzip
 import json
 import os
 import pandas as pd
@@ -1608,7 +1609,8 @@ def variants_per_bin_os(
             return {}
         # Convert VCF to BED format (skip headers and adjust coordinates)
         try:
-            with open(vcf_file) as vcf, open(variants_bed, "w") as bed:
+            with gzip.open(vcf_file, 'rt') as vcf, \
+                 open(variants_bed, "w") as bed:
                 for line in vcf:
                     if line.startswith("#"):
                         continue
