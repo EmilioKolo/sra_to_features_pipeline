@@ -593,10 +593,7 @@ def create_counts(
         # Use bcftools to check how many variables are in region_str
         l = 'bcftools view -r "$region_str"'
         l += ' "$vcf_file" | grep -vc "^#" >> "$tmp_output"'
-        log_code(
-            l,
-            log_file=log_scr
-        )
+        # No code log here, too slow
         os.system(l)
     return None
 
@@ -1004,8 +1001,9 @@ def ft_fragment_lengths(
             level='info',
             log_file=log_file
         )
-        w = feature_dict['fl_mean']+'/'+feature_dict['fl_median']+ \
-            '/'+feature_dict['fl_stdv']
+        w = str(feature_dict['fl_mean'])+'/'+ \
+            str(feature_dict['fl_median'])+ \
+            '/'+str(feature_dict['fl_stdv'])
         log_print(
             w,
             level='info',
