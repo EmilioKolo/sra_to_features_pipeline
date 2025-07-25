@@ -32,9 +32,13 @@ Using only `fastq_file1` assumes single-end Illumina sequencing. Defining `fastq
 
 # Instructions (no Docker)
 
-To run the code without a Docker container, first it is recommended to define the BASE_DIR value in config.ini to a local folder, then run the following command from inside this folder to install the required programs:
+To run the code without a Docker container, first it is recommended to define the BASE_DIR value in config.ini to a local folder, then run the following commands from inside this folder to install the required programs:
 
-`sudo chmod +x setup.sh; sudo setup.sh; python3 install.py`
+```
+sudo chmod +x setup.sh
+sudo setup.sh
+python3 install.py
+```
 
 After the setup finishes preparing the needed programs and files, the pipeline can be run with the following command:
 
