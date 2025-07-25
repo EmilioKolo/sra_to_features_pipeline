@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
+
 """
-Functions using for logging purposes.
+Functions used for logging purposes.
 """
 
 import logging
