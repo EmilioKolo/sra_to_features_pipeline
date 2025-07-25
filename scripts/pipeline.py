@@ -1384,9 +1384,9 @@ def sra_to_fastq(
                 log_file=log_file
             )
             # Check if the files were created and delete them if they exist
-            for i in l_fastq:
-                if os.path.exists(i):
-                    os.remove(i)
+            for fq in l_fastq:
+                if os.path.exists(fq):
+                    os.remove(fq)
             # Increment the attempt counter
             i += 1
             if i >= 5:
