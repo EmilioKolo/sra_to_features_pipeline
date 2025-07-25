@@ -1351,7 +1351,8 @@ def sra_to_fastq(
         l_fastq:list[str],
         output_dir:str,
         log_file:str,
-        log_scr:str
+        log_scr:str,
+        max_retry:int=5
     ) -> None:
     """
     Downloads a fastq file from a SRA ID using fastq-dump.
@@ -1368,7 +1369,7 @@ def sra_to_fastq(
     l += f' -O {output_dir} {sra_id}'
     # Start a run counter
     i = 0
-    while i < 5:
+    while i < max(1, max_retry):
         try:
             log_code(
                 l,
@@ -1389,7 +1390,7 @@ def sra_to_fastq(
                     os.remove(fq)
             # Increment the attempt counter
             i += 1
-            if i >= 5:
+            if i >= max_retry:
                 w = f"Failed to download FASTQ files after {i} attempts."
                 log_print(
                     w,
