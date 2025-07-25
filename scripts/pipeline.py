@@ -571,8 +571,7 @@ def compress_index_vcf(
 def create_counts(
         counts_file:str,
         regions:list[list[str,int,int,str]],
-        vcf_compressed:str,
-        log_scr:str
+        vcf_compressed:str
     ) -> None:
     """
     Create a counts file with number of variants per region.
@@ -1070,8 +1069,7 @@ def ft_gv_per_region(
     create_counts(
         counts_file,
         regions,
-        vcf_file,
-        log_scr=log_scr
+        vcf_file
     )
     # Read counts back into Python variable
     counts = []
@@ -1126,7 +1124,8 @@ def parse_gff_for_genes(gff_file:str) -> list[list[str,int,int,str]]:
             if len(fields) != 9:
                 continue
             # Assign fields
-            seqid, source, feature_type, start, end, score, strand, phase, attributes = fields
+            seqid, source, feature_type, start, end, score, strand, \
+                phase, attributes = fields
             # Select only genes
             if feature_type.lower() != "gene":
                 continue
@@ -1137,7 +1136,9 @@ def parse_gff_for_genes(gff_file:str) -> list[list[str,int,int,str]]:
                     key, value = attr.split("=", 1)
                     attr_dict[key.strip()] = value.strip()
 
-            gene_name = attr_dict.get("Name") or attr_dict.get("gene_name") or attr_dict.get("ID") or "unknown"
+            gene_name = attr_dict.get("Name") or \
+                attr_dict.get("gene_name") or \
+                    attr_dict.get("ID") or "unknown"
 
             regions.append([seqid, int(start), int(end), gene_name])
 
