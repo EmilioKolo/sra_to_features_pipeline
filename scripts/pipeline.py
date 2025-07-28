@@ -107,10 +107,7 @@ def download_sra(dict_var:dict) -> dict:
     l = 'du -h'
     for i in dict_var['l_fastq_full']:
         l += ' ' + i
-    log_code(
-        l,
-        log_file=dict_var['log_scripts']
-    )
+    log_code(l, log_file=dict_var['log_scripts'])
     os.system(l)
     return dict_var
 
@@ -143,17 +140,11 @@ def align_to_reference(dict_var:dict) -> dict:
         log_file=dict_var['log_print']
     )
     l = f'head -n 10 {sam_file}'
-    log_code(
-        l,
-        log_file=dict_var['log_scripts']
-    )
+    log_code(l, log_file=dict_var['log_scripts'])
     os.system(l)
     # Check file size
     l = f'ls -lh {sam_file}'
-    log_code(
-        l,
-        log_file=dict_var['log_scripts']
-    )
+    log_code(l, log_file=dict_var['log_scripts'])
     os.system(l)
 
     # Transform the sam file into a bam file
@@ -170,10 +161,7 @@ def align_to_reference(dict_var:dict) -> dict:
     )
     # Check file size
     l = f'ls -lh {bam_file}'
-    log_code(
-        l,
-        log_file=dict_var['log_scripts']
-    )
+    log_code(l, log_file=dict_var['log_scripts'])
     os.system(l)
     # Remove the sam file
     os.remove(sam_file)
@@ -188,17 +176,11 @@ def align_to_reference(dict_var:dict) -> dict:
 
     # Check sorted file size
     l = f'ls -lh {sorted_bam}'
-    log_code(
-        l,
-        log_file=dict_var['log_scripts']
-    )
+    log_code(l, log_file=dict_var['log_scripts'])
     os.system(l)
     # Check index file size
     l = f'ls -lh {sorted_bam}.bai'
-    log_code(
-        l,
-        log_file=dict_var['log_scripts']
-    )
+    log_code(l, log_file=dict_var['log_scripts'])
     os.system(l)
     # Generate alignment statistics
     log_print(
@@ -207,10 +189,7 @@ def align_to_reference(dict_var:dict) -> dict:
         log_file=dict_var['log_print']
     )
     l = f'samtools flagstat {sorted_bam}'
-    log_code(
-        l,
-        log_file=dict_var['log_scripts']
-    )
+    log_code(l, log_file=dict_var['log_scripts'])
     os.system(l)
 
     # Add new variables to dict_var
@@ -254,10 +233,7 @@ def variant_call_and_analysis(dict_var:dict) -> dict:
     l = f'bcftools stats'
     l += f' {compressed_vcf}'
     l += f' > {compressed_vcf}.stats'
-    log_code(
-        l,
-        log_file=dict_var['log_scripts']
-    )
+    log_code(l, log_file=dict_var['log_scripts'])
     os.system(l)
 
     # Analyze variants in VCF with snpeff
@@ -459,10 +435,7 @@ def bwa_align(
     # Define output file
     l += f' > {output_sam}'
     # Run the script
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     return output_sam
 
@@ -537,10 +510,7 @@ def compress_index_vcf(
     # Define output file
     l += f' > {compressed_vcf}'
     # Run the script
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     log_print(
         f"Compressed VCF: {compressed_vcf}",
@@ -556,10 +526,7 @@ def compress_index_vcf(
     # Define tabix script
     l = f'tabix -p vcf {compressed_vcf}'
     # Run the script
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     log_print(
         f"VCF index: {compressed_vcf}.tbi",
@@ -709,10 +676,7 @@ def ft_cnv_prediction(
         log_file=log_file
     )
     l = f'cnvpytor -root {ROOT_FILE} -rd {bam_file}'
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     log_print(
         "Read Depth processing complete.",
@@ -730,17 +694,11 @@ def ft_cnv_prediction(
         # First, add SNPs from VCF to the root file
         l = f'cnvpytor -root {ROOT_FILE}'
         l += f' -snp {snpeff_vcf} -sample {sra_id}'
-        log_code(
-            l,
-            log_file=log_scr
-        )
+        log_code(l, log_file=log_scr)
         os.system(l)
         # Then, perform BAF analysis with specified bin sizes
         l = f'cnvpytor -root {ROOT_FILE} -baf {bin_sizes}'
-        log_code(
-            l,
-            log_file=log_scr
-        )
+        log_code(l, log_file=log_scr)
         os.system(l)
         t = "B-allele Frequency processing complete."
         log_print(
@@ -765,18 +723,12 @@ def ft_cnv_prediction(
     )
     # Create histograms for RD and BAF (if used)
     l = f'cnvpytor -root {ROOT_FILE} -his {bin_sizes} --verbose debug'
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     # Partition data for CNV calling
     l = f'cnvpytor -root {ROOT_FILE}'
     l += f' -partition {bin_sizes} --verbose debug'
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     log_print(
         "Histograms and partitioning complete.",
@@ -786,10 +738,7 @@ def ft_cnv_prediction(
     # Call CNVs
     cnv_call_file = f'{output_dir}/cnv_calls_{bin_sizes}.txt'
     l = f'cnvpytor -root {ROOT_FILE} -call {bin_sizes} > {cnv_call_file}'
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     log_print(
         "CNV calling complete.",
@@ -862,10 +811,7 @@ def ft_dn_ds(
     l = 'bcftools query -f \'%CHROM\t%POS\t%END\t%INFO/ANN\n\' $vcf_file'
     l += ' | awk \'BEGIN{OFS=\"\t\"} {print $1, $2-1, $2, $4}\''
     l += ' > $bed_variants'
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     log_print(
         f'{bed_variants} created.',
@@ -875,10 +821,7 @@ def ft_dn_ds(
     # Intersect variants with genes
     l = f'bedtools intersect -a {bed_variants}'
     l += f' -b {bed_genes} -wa -wb > {bed_intersect}'
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     log_print(
         f'{bed_intersect} created.',
@@ -958,10 +901,7 @@ def ft_fragment_lengths(
     # Define output
     l += f' > {fl_file}'
     # Run the script
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
 
     # Open the created file to obtain values
@@ -982,10 +922,7 @@ def ft_fragment_lengths(
         l = f'samtools view -f 0x1 -F 0xC -F 0x904 {bam_file} | awk \''
         l += '{if ($9 != 0) {l=$9; if (l<0) l=-l; if (l<1000) print l}}\''
         l += f' > {fl_file}'
-        log_code(
-            l,
-            log_file=log_scr
-        )
+        log_code(l, log_file=log_scr)
         os.system(l)
         # Open fl_file again amd get fragment lengths
         with open(fl_file, "r") as f:
@@ -1168,10 +1105,7 @@ def sam_to_bam(
     # Define output file
     l += f' -o {bam_file}'
     # Run the script
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     return bam_file
 
@@ -1201,10 +1135,7 @@ def sort_index_bam(
     # Initialize the script to sort the bam file
     l = f'samtools sort {bam_file} -o {bam_sorted}'
     # Run the script
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     log_print(
         f"BAM sorting complete: {bam_sorted}",
@@ -1220,10 +1151,7 @@ def sort_index_bam(
     # Initialize the script to index the bam file
     l = f'samtools index {bam_sorted}'
     # Run the script
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     log_print(
         f"BAM indexing complete. Index file: {bam_sorted}.bai",
@@ -1372,10 +1300,7 @@ def sra_to_fastq(
     i = 0
     while i < max(1, max_retry):
         try:
-            log_code(
-                l,
-                log_file=log_scr
-            )
+            log_code(l, log_file=log_scr)
             os.system(l)
             # Exit loop if successful
             break
@@ -1438,18 +1363,12 @@ def variant_analysis_snpeff(
     # Define output vcf file
     l += f' > {snpeff_vcf}'
     # Run the script
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
 
     # Visualize the snpeff vcf file
     l = f'tail {snpeff_vcf}'
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
 
     # Run compression with bgzip
@@ -1459,10 +1378,7 @@ def variant_analysis_snpeff(
         log_file=log_file
     )
     l = f'bgzip -c {snpeff_vcf} > {snpeff_vcf}.gz'
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     log_print(
         f"Compressed VCF: {snpeff_vcf}.gz",
@@ -1476,10 +1392,7 @@ def variant_analysis_snpeff(
         log_file=log_file
     )
     l = f'tabix -p vcf {snpeff_vcf}.gz'
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     log_print(
         f"VCF index: {snpeff_vcf}.gz.tbi",
@@ -1518,10 +1431,7 @@ def variant_call_mpileup(
     # Define the output bcf file
     l += f' > {bcf_file}'
     # Run the script
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
 
     log_print(
@@ -1531,10 +1441,7 @@ def variant_call_mpileup(
     )
     # Check bcf file
     l = f'tail {bcf_file}'
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
 
     # Initialize script to generate vcf file
@@ -1544,10 +1451,7 @@ def variant_call_mpileup(
     # Define input bcf file
     l += f' {bcf_file}'
     # Run the script
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
 
     # Delete bcf file
@@ -1560,10 +1464,7 @@ def variant_call_mpileup(
     )
     # Check vcf file
     l = f'tail {vcf_file}'
-    log_code(
-        l,
-        log_file=log_scr
-    )
+    log_code(l, log_file=log_scr)
     os.system(l)
     return vcf_file
 
@@ -1597,10 +1498,7 @@ def variants_per_bin_os(
         # Generate genome bins using bedtools makewindows
         l = f"bedtools makewindows -g {genome_sizes} -w {bin_size}"
         l += f' > {bins_bed}'
-        log_code(
-            l,
-            log_file=log_scr
-        )
+        log_code(l, log_file=log_scr)
         if os.system(l) != 0:
             w = "Failed to generate genome bins using bedtools."
             log_print(
@@ -1632,10 +1530,7 @@ def variants_per_bin_os(
         # Count variants per bin using `bedtools intersect -c`
         l = f"bedtools intersect -a {bins_bed} -b {variants_bed} -c"
         l += f' > {intersected}'
-        log_code(
-            l,
-            log_file=log_scr
-        )
+        log_code(l, log_file=log_scr)
         if os.system(l) != 0:
             w = "Failed to intersect variants with genome bins."
             log_print(
