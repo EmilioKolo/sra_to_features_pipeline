@@ -27,8 +27,40 @@ def perform_checks(dict_var:dict) -> None:
     kraken_out = os.path.join(checks_out, 'kraken_out')
     fastqc_out = os.path.join(checks_out, 'fastqc_out')
 
+    # FastQC analysis
     try:
-        print("Classifying unaligned reads with Kraken2...")
+        log_print(
+            'Analyzing fastq files with FastQC...',
+            level='info',
+            log_file=dict_var['log_print']
+        )
+        # Go through full paths of all fastq files
+        for fastq_file in dict_var['l_fastq_full']:
+            # Run FastQC on each file
+            run_fastqc(
+                fastq_file,
+                fastqc_out,
+                log_scr=dict_var['log_scripts']
+            )
+    except Exception as e:
+        log_print(
+            f"Error analyzing fastq files: {e}",
+            level='error',
+            log_file=dict_var['log_print']
+        )
+        log_print(
+            'Skipping fastq file analysis.',
+            level='info',
+            log_file=dict_var['log_print']
+        )
+
+    # Kraken2 analysis
+    try:
+        log_print(
+            'Classifying unaligned reads with Kraken2...',
+            level='info',
+            log_file=dict_var['log_print']
+        )
         # Perform Kraken check on sorted BAM file
         check_kraken(
             dict_var['sra_id'],
@@ -40,22 +72,17 @@ def perform_checks(dict_var:dict) -> None:
             threads=dict_var['THREADS']
         )
     except Exception as e:
-        print(f"Error classifying unaligned reads: {e}")
-        print("Skipping unaligned reads classification.")
+        log_print(
+            f"Error classifying unaligned reads: {e}",
+            level='error',
+            log_file=dict_var['log_print']
+        )
+        log_print(
+            'Skipping unaligned reads classification.',
+            level='info',
+            log_file=dict_var['log_print']
+        )
     
-    try:
-        print('Analyzing fastq files with FastQC')
-        # Go through full paths of all fastq files
-        for fastq_file in dict_var['l_fastq_full']:
-            # Run FastQC on each file
-            run_fastqc(
-                fastq_file,
-                fastqc_out,
-                log_scr=dict_var['log_scripts']
-            )
-    except Exception as e:
-        print(f"Error analyzing fastq files: {e}")
-        print("Skipping fastq file analysis.")
     return None
 
 
