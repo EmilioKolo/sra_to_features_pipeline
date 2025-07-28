@@ -219,7 +219,7 @@ def run_bedtools_coverage(
     # Add bam file
     l += f' -b {bam_sorted}'
     # Define as histogram
-    l += ' -hist'
+    l += ' -sorted -hist'
     # Define output
     l += f' > {output_file}'
     # Run the script
