@@ -669,110 +669,25 @@ def ft_cnv_prediction(
             log_file=log_file
         )
     
-    # Process Read Depth (RD) Data
-    log_print(
-        "Processing Read Depth (RD) data...",
-        level='info',
-        log_file=log_file
-    )
-    l = f'cnvpytor -root {ROOT_FILE} -rd {bam_file}'
-    log_code(l, log_file=log_scr)
-    os.system(l)
-    log_print(
-        "Read Depth processing complete.",
-        level='info',
-        log_file=log_file
+    # Run all cnvpytor scripts in order
+    cnv_call_file = run_cnvpytor(
+        sra_id,
+        bam_file,
+        snpeff_vcf,
+        output_dir,
+        ROOT_FILE,
+        use_baf,
+        bin_sizes,
+        log_file,
+        log_scr
     )
 
-    # Process BAF (BAF) Data
-    if use_baf:
-        log_print(
-            "Processing B-allele Frequency (BAF) data...",
-            level='info',
-            log_file=log_file
-        )
-        # First, add SNPs from VCF to the root file
-        l = f'cnvpytor -root {ROOT_FILE}'
-        l += f' -snp {snpeff_vcf} -sample {sra_id}'
-        log_code(l, log_file=log_scr)
-        os.system(l)
-        # Then, perform BAF analysis with specified bin sizes
-        l = f'cnvpytor -root {ROOT_FILE} -baf {bin_sizes}'
-        log_code(l, log_file=log_scr)
-        os.system(l)
-        t = "B-allele Frequency processing complete."
-        log_print(
-            t,
-            level='info',
-            log_file=log_file
-        )
-    else:
-        t = "BAF analysis skipped as specified"
-        t += " or due to missing VCF/index."
-        log_print(
-            t,
-            level='info',
-            log_file=log_file
-        )
-    # Create Histograms and Partitioning
-    t = "Generating histograms and partitioning data..."
-    log_print(
-        t,
-        level='info',
-        log_file=log_file
+    # Read CNVpytor output and extract CNV features
+    feature_dict = read_cnvpytor_out(
+        feature_dict,
+        cnv_call_file,
+        log_file
     )
-    # Create histograms for RD and BAF (if used)
-    l = f'cnvpytor -root {ROOT_FILE} -his {bin_sizes} --verbose debug'
-    log_code(l, log_file=log_scr)
-    os.system(l)
-    # Partition data for CNV calling
-    l = f'cnvpytor -root {ROOT_FILE}'
-    l += f' -partition {bin_sizes} --verbose debug'
-    log_code(l, log_file=log_scr)
-    os.system(l)
-    log_print(
-        "Histograms and partitioning complete.",
-        level='info',
-        log_file=log_file
-    )
-    # Call CNVs
-    cnv_call_file = f'{output_dir}/cnv_calls_{bin_sizes}.txt'
-    l = f'cnvpytor -root {ROOT_FILE} -call {bin_sizes} > {cnv_call_file}'
-    log_code(l, log_file=log_scr)
-    os.system(l)
-    log_print(
-        "CNV calling complete.",
-        level='info',
-        log_file=log_file
-    )
-
-    # Read CNVpytor output with python 
-    calls = []
-    with open(cnv_call_file, 'r') as f:
-        for line in f.readlines():
-            calls.append(line.rstrip('\n').split('\t'))
-    # Count CNVs per chromosome
-    cnv_counts = Counter()
-    for call in calls:
-        chrom = call[1].split(':')[0]
-        cnv_counts[chrom] += 1
-    # Save result
-    for chrom, count in sorted(cnv_counts.items()):
-        if str(chrom).startswith('chr'):
-            log_print(
-                f"{chrom}: {count} CNVs",
-                level='info',
-                log_file=log_file
-            )
-            key = f'{chrom}_cnv_count'
-        else:
-            log_print(
-                f"chr{chrom}: {count} CNVs",
-                level='info',
-                log_file=log_file
-            )
-            key = f'chr{chrom}_cnv_count'
-        feature_dict[key] = count
     return feature_dict
 
 def ft_dn_ds(
@@ -1080,6 +995,136 @@ def parse_gff_for_genes(gff_file:str) -> list[list[str,int,int,str]]:
             regions.append([seqid, int(start), int(end), gene_name])
 
     return regions
+
+def read_cnvpytor_out(
+        feature_dict:dict[str:float|int],
+        cnv_call_file:str,
+        log_file:str
+    ) -> dict[str:float|int]:
+    """
+    Extracts CNV features from a cnvpytor call output file.
+    """
+    # Extract calls from cnv_call_file
+    calls = []
+    with open(cnv_call_file, 'r') as f:
+        for line in f.readlines():
+            calls.append(line.rstrip('\n').split('\t'))
+    # Count CNVs per chromosome
+    cnv_counts = Counter()
+    for call in calls:
+        chrom = call[1].split(':')[0]
+        cnv_counts[chrom] += 1
+    # Save result to feature_dict
+    for chrom, count in sorted(cnv_counts.items()):
+        if str(chrom).startswith('chr'):
+            log_print(
+                f"{chrom}: {count} CNVs",
+                level='info',
+                log_file=log_file
+            )
+            key = f'{chrom}_cnv_count'
+        else:
+            log_print(
+                f"chr{chrom}: {count} CNVs",
+                level='info',
+                log_file=log_file
+            )
+            key = f'chr{chrom}_cnv_count'
+        feature_dict[key] = count
+    return feature_dict
+
+def run_cnvpytor(
+        sra_id:str,
+        bam_file:str,
+        snpeff_vcf:str,
+        output_dir:str,
+        ROOT_FILE:str,
+        use_baf:bool,
+        bin_sizes:int|str,
+        log_file:str,
+        log_scr:str
+    ) -> str:
+    """
+    Runs several cnvpytor scripts in order.
+    Returns the path to the cnv call file.
+    """
+    # Process Read Depth (RD) Data
+    log_print(
+        "Processing Read Depth (RD) data...",
+        level='info',
+        log_file=log_file
+    )
+    l = f'cnvpytor -root {ROOT_FILE} -rd {bam_file}'
+    log_code(l, log_file=log_scr)
+    os.system(l)
+    log_print(
+        "Read Depth processing complete.",
+        level='info',
+        log_file=log_file
+    )
+
+    # Process BAF (BAF) Data
+    if use_baf:
+        log_print(
+            "Processing B-allele Frequency (BAF) data...",
+            level='info',
+            log_file=log_file
+        )
+        # First, add SNPs from VCF to the root file
+        l = f'cnvpytor -root {ROOT_FILE}'
+        l += f' -snp {snpeff_vcf} -sample {sra_id}'
+        log_code(l, log_file=log_scr)
+        os.system(l)
+        # Then, perform BAF analysis with specified bin sizes
+        l = f'cnvpytor -root {ROOT_FILE} -baf {bin_sizes}'
+        log_code(l, log_file=log_scr)
+        os.system(l)
+        t = "B-allele Frequency processing complete."
+        log_print(
+            t,
+            level='info',
+            log_file=log_file
+        )
+    else:
+        t = "BAF analysis skipped as specified"
+        t += " or due to missing VCF/index."
+        log_print(
+            t,
+            level='info',
+            log_file=log_file
+        )
+    # Create Histograms and Partitioning
+    t = "Generating histograms and partitioning data..."
+    log_print(
+        t,
+        level='info',
+        log_file=log_file
+    )
+    # Create histograms for RD and BAF (if used)
+    l = f'cnvpytor -root {ROOT_FILE} -his {bin_sizes} --verbose debug'
+    log_code(l, log_file=log_scr)
+    os.system(l)
+    # Partition data for CNV calling
+    l = f'cnvpytor -root {ROOT_FILE}'
+    l += f' -partition {bin_sizes} --verbose debug'
+    log_code(l, log_file=log_scr)
+    os.system(l)
+    log_print(
+        "Histograms and partitioning complete.",
+        level='info',
+        log_file=log_file
+    )
+    # Call CNVs
+    cnv_call_file = f'{output_dir}/cnv_calls_{bin_sizes}.txt'
+    l = f'cnvpytor -root {ROOT_FILE} -call {bin_sizes} > {cnv_call_file}'
+    log_code(l, log_file=log_scr)
+    os.system(l)
+    log_print(
+        "CNV calling complete.",
+        level='info',
+        log_file=log_file
+    )
+    return cnv_call_file
 
 def sam_to_bam(
         sra_id:str,
