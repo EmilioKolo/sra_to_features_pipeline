@@ -26,6 +26,7 @@ def perform_checks(dict_var:dict) -> None:
     # Define other needed output folders
     kraken_out = os.path.join(checks_out, 'kraken_out')
     fastqc_out = os.path.join(checks_out, 'fastqc_out')
+    coverage_out = os.path.join(checks_out, 'coverage_out')
 
     # FastQC analysis
     try:
@@ -83,6 +84,41 @@ def perform_checks(dict_var:dict) -> None:
             log_file=dict_var['log_print']
         )
     
+    # Coverage analysis
+    try:
+        log_print(
+            'Obtaining coverage statistics...',
+            level='info',
+            log_file=dict_var['log_print']
+        )
+        # Get coverage statistics using bedtools
+        run_bedtools_coverage(
+            dict_var['sra_id'],
+            dict_var['sorted_bam'],
+            coverage_out,
+            log_scr=dict_var['log_scripts'],
+            region_file=dict_var['bed_genes']
+        )
+        # Get coverage statistics using samtools
+        run_samtools_depth(
+            dict_var['sra_id'],
+            dict_var['sorted_bam'],
+            coverage_out,
+            log_scr=dict_var['log_scripts'],
+            region_file=dict_var['bed_genes']
+        )
+    except Exception as e:
+        log_print(
+            f"Error obtaining coverage statistics: {e}",
+            level='error',
+            log_file=dict_var['log_print']
+        )
+        log_print(
+            'Skipping coverage statistics.',
+            level='info',
+            log_file=dict_var['log_print']
+        )
+
     return None
 
 
