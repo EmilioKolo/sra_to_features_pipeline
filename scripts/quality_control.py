@@ -24,9 +24,9 @@ def perform_checks(dict_var:dict) -> None:
         pass
 
     # Define other needed output folders
-    kraken_out = os.path.join(checks_out, 'kraken_out')
     fastqc_out = os.path.join(checks_out, 'fastqc_out')
     coverage_out = os.path.join(checks_out, 'coverage_out')
+    kraken_out = os.path.join(checks_out, 'kraken_out')
 
     # FastQC analysis
     try:
