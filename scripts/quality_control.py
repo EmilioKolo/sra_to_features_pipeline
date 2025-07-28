@@ -55,35 +55,6 @@ def perform_checks(dict_var:dict) -> None:
             log_file=dict_var['log_print']
         )
 
-    # Kraken2 analysis
-    try:
-        log_print(
-            'Classifying unaligned reads with Kraken2...',
-            level='info',
-            log_file=dict_var['log_print']
-        )
-        # Perform Kraken check on sorted BAM file
-        check_kraken(
-            dict_var['sra_id'],
-            bam_file=dict_var['sorted_bam'],
-            kraken_db=dict_var['kraken_db'],
-            output_dir=kraken_out,
-            log_file=dict_var['log_print'],
-            log_scr=dict_var['log_scripts'],
-            threads=dict_var['THREADS']
-        )
-    except Exception as e:
-        log_print(
-            f"Error classifying unaligned reads: {e}",
-            level='error',
-            log_file=dict_var['log_print']
-        )
-        log_print(
-            'Skipping unaligned reads classification.',
-            level='info',
-            log_file=dict_var['log_print']
-        )
-    
     # Coverage analysis
     try:
         log_print(
@@ -119,6 +90,35 @@ def perform_checks(dict_var:dict) -> None:
             log_file=dict_var['log_print']
         )
 
+    # Kraken2 analysis
+    try:
+        log_print(
+            'Classifying unaligned reads with Kraken2...',
+            level='info',
+            log_file=dict_var['log_print']
+        )
+        # Perform Kraken check on sorted BAM file
+        check_kraken(
+            dict_var['sra_id'],
+            bam_file=dict_var['sorted_bam'],
+            kraken_db=dict_var['kraken_db'],
+            output_dir=kraken_out,
+            log_file=dict_var['log_print'],
+            log_scr=dict_var['log_scripts'],
+            threads=dict_var['THREADS']
+        )
+    except Exception as e:
+        log_print(
+            f"Error classifying unaligned reads: {e}",
+            level='error',
+            log_file=dict_var['log_print']
+        )
+        log_print(
+            'Skipping unaligned reads classification.',
+            level='info',
+            log_file=dict_var['log_print']
+        )
+    
     return None
 
 
@@ -191,6 +191,42 @@ def check_kraken(
     os.remove(unaligned_fastq)
     return None
 
+def run_bedtools_coverage(
+        sra_id:str,
+        bam_sorted:str,
+        output_dir:str,
+        log_scr:str,
+        region_file:str=''
+    ) -> None:
+    """
+    Runs bedtools coverage for a list of regions (optional).
+    """
+    # Make the output directory if it does not exist
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
+    # Define output file
+    output_file = os.path.join(
+        output_dir,
+        sra_id+'_bedtools_coverage_hist.txt'
+    )
+    # Initialize the script to run
+    l = 'bedtools coverage'
+    # Add region file if provided
+    if region_file!='':
+        l += f' -a {region_file}'
+    # Add bam file
+    l += f' -b {bam_sorted}'
+    # Define as histogram
+    l += ' -hist'
+    # Define output
+    l += f' > {output_file}'
+    # Run the script
+    log_code(l, log_file=log_scr)
+    os.system(l)
+    return None
+
 def run_fastqc(
         fastq_file:str,
         output_dir:str,
@@ -237,42 +273,6 @@ def run_fastqc_folder(
     l += f' -t {threads}'
     # Define fastq folder to analyze
     l += f' {fastq_folder}/*'
-    # Run the script
-    log_code(l, log_file=log_scr)
-    os.system(l)
-    return None
-
-def run_bedtools_coverage(
-        sra_id:str,
-        bam_sorted:str,
-        output_dir:str,
-        log_scr:str,
-        region_file:str=''
-    ) -> None:
-    """
-    Runs bedtools coverage for a list of regions (optional).
-    """
-    # Make the output directory if it does not exist
-    try:
-        os.mkdir(output_dir)
-    except FileExistsError:
-        pass
-    # Define output file
-    output_file = os.path.join(
-        output_dir,
-        sra_id+'_bedtools_coverage_hist.txt'
-    )
-    # Initialize the script to run
-    l = 'bedtools coverage'
-    # Add region file if provided
-    if region_file!='':
-        l += f' -a {region_file}'
-    # Add bam file
-    l += f' -b {bam_sorted}'
-    # Define as histogram
-    l += ' -hist'
-    # Define output
-    l += f' > {output_file}'
     # Run the script
     log_code(l, log_file=log_scr)
     os.system(l)
