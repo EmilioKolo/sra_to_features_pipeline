@@ -55,6 +55,32 @@ def perform_checks(dict_var:dict) -> None:
             log_file=dict_var['log_print']
         )
 
+    # BAM stats
+    try:
+        log_print(
+            'Obtaining BAM file statistics...',
+            level='info',
+            log_file=dict_var['log_print']
+        )
+        # Get BAM file statistics
+        samtools_stats(
+            dict_var['sra_id'],
+            dict_var['sorted_bam'],
+            coverage_out,
+            log_scr=dict_var['log_scripts']
+        )
+    except Exception as e:
+        log_print(
+            f"Error obtaining BAM file statistics: {e}",
+            level='error',
+            log_file=dict_var['log_print']
+        )
+        log_print(
+            'Skipping BAM file statistics.',
+            level='info',
+            log_file=dict_var['log_print']
+        )
+
     # Coverage analysis
     try:
         log_print(
@@ -71,13 +97,13 @@ def perform_checks(dict_var:dict) -> None:
             region_file=dict_var['bed_genes']
         )
         # Get coverage statistics using samtools
-        run_samtools_depth(
-            dict_var['sra_id'],
-            dict_var['sorted_bam'],
-            coverage_out,
-            log_scr=dict_var['log_scripts'],
-            region_file=dict_var['bed_genes']
-        )
+        #run_samtools_depth(
+        #    dict_var['sra_id'],
+        #    dict_var['sorted_bam'],
+        #    coverage_out,
+        #    log_scr=dict_var['log_scripts'],
+        #    region_file=dict_var['bed_genes']
+        #)
     except Exception as e:
         log_print(
             f"Error obtaining coverage statistics: {e}",
@@ -180,11 +206,7 @@ def check_kraken(
     # Visualize output data
     p = 'Kraken2 classification complete. Results in:'
     p += f'\n * {kraken_output}\n * {kraken_report}'
-    log_print(
-        p,
-        level='info',
-        log_file=log_file
-    )
+    log_print(p, level='info', log_file=log_file)
 
     # Clean up intermediate files
     os.remove(unaligned_bam)
@@ -207,10 +229,8 @@ def run_bedtools_coverage(
     except FileExistsError:
         pass
     # Define output file
-    output_file = os.path.join(
-        output_dir,
-        sra_id+'_bedtools_coverage_hist.txt'
-    )
+    output_name = f'{sra_id}_bedtools_coverage_hist.txt'
+    output_file = os.path.join(output_dir, output_name)
     # Initialize the script to run
     l = 'bedtools coverage'
     # Add region file if provided
@@ -294,10 +314,7 @@ def run_samtools_depth(
     except FileExistsError:
         pass
     # Define output file
-    output_file = os.path.join(
-        output_dir,
-        sra_id+'_samtools_depth.txt'
-    )
+    output_file = os.path.join(output_dir, sra_id+'_samtools_depth.txt')
     # Initialize the script to run
     l = 'samtools depth'
     # Add region file if provided
@@ -305,6 +322,33 @@ def run_samtools_depth(
         l += f' -b {region_file}'
     # Add bam file
     l += f' {bam_sorted}'
+    # Define output
+    l += f' > {output_file}'
+    # Run the script
+    log_code(l, log_file=log_scr)
+    os.system(l)
+    return None
+
+def samtools_stats(
+        sra_id:str,
+        bam_file:str,
+        output_dir:str,
+        log_scr:str
+    ) -> None:
+    """
+    Runs samtools stats on a BAM file.
+    """
+    # Make the output directory if it does not exist
+    try:
+        os.mkdir(output_dir)
+    except FileExistsError:
+        pass
+    # Define output file
+    output_file = os.path.join(output_dir, sra_id+'_samtools_stats.txt')
+    # Initialize the script to run
+    l = 'samtools stats'
+    # Add bam file
+    l += f' {bam_file}'
     # Define output
     l += f' > {output_file}'
     # Run the script
