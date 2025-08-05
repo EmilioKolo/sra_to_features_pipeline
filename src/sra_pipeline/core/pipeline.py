@@ -76,6 +76,61 @@ class Pipeline:
             
             return self._run_pipeline(sample_id, fastq_files)
     
+    def run_batch(self, sra_ids: List[str], merge_vcfs: bool = True) -> List[FeatureSet]:
+        """
+        Run the pipeline on multiple SRA IDs with optional VCF merging.
+        
+        Args:
+            sra_ids: List of SRA accession IDs
+            merge_vcfs: Whether to merge VCF files from all samples
+            
+        Returns:
+            List of FeatureSet objects for each sample
+        """
+        with PipelineLogger(self.logger, f"batch_pipeline_{len(sra_ids)}_samples") as plog:
+            plog.add_context(sra_ids=sra_ids, merge_vcfs=merge_vcfs)
+            
+            feature_sets = []
+            vcf_files = []
+            
+            # Process each SRA ID
+            for i, sra_id in enumerate(sra_ids):
+                try:
+                    plog.log_progress(f"Processing sample {i+1}/{len(sra_ids)}: {sra_id}")
+                    
+                    # Run pipeline for this sample
+                    feature_set = self.run_sra(sra_id)
+                    feature_sets.append(feature_set)
+                    
+                    # Collect VCF file path for merging
+                    vcf_file = self.config.output_dir / sra_id / f"{sra_id}_variants.vcf.gz"
+                    if vcf_file.exists():
+                        vcf_files.append(str(vcf_file))
+                    
+                except Exception as e:
+                    log_error(self.logger, e, context={"sra_id": sra_id, "operation": "batch_processing"})
+                    plog.log_progress(f"Failed to process {sra_id}: {str(e)}")
+                    continue
+            
+            # Merge VCF files if requested and multiple files exist
+            if merge_vcfs and len(vcf_files) > 1:
+                try:
+                    plog.log_progress("Merging VCF files from all samples")
+                    
+                    merged_vcf = variant_calling.merge_vcf_files(
+                        vcf_files=vcf_files,
+                        output_dir=self.config.output_dir,
+                        logger=self.logger
+                    )
+                    
+                    plog.log_progress(f"VCF merging completed: {merged_vcf}")
+                    
+                except Exception as e:
+                    log_error(self.logger, e, context={"operation": "vcf_merging"})
+                    plog.log_progress(f"VCF merging failed: {str(e)}")
+            
+            return feature_sets
+    
     def _download_sra_data(self, sra_id: str) -> List[Path]:
         """Download FASTQ files for an SRA ID."""
         with PipelineLogger(self.logger, f"download_sra_{sra_id}") as plog:

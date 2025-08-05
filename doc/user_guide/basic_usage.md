@@ -183,15 +183,24 @@ sra-pipeline run \
 cat results/sample/summary.txt
 ```
 
-### Workflow 3: Multiple Samples
+### Workflow 3: Multiple Samples (Batch Processing)
 
 ```bash
-# Process multiple samples
-for sra_id in SRR123456 SRR123457 SRR123458; do
-    echo "Processing $sra_id..."
-    sra-pipeline run --sra-id $sra_id --output-dir ./batch_results
-done
+# Process multiple samples with VCF merging (recommended)
+sra-pipeline batch --sra-ids SRR123456,SRR123457,SRR123458 --output-dir ./batch_results
+
+# Process multiple samples without VCF merging
+sra-pipeline batch --sra-ids SRR123456,SRR123457,SRR123458 --output-dir ./batch_results --no-merge-vcfs
+
+# Process multiple samples with custom configuration
+sra-pipeline batch \
+  --sra-ids SRR123456,SRR123457,SRR123458 \
+  --output-dir ./batch_results \
+  --threads 8 \
+  --config batch_config.env
 ```
+
+**Note**: The batch command automatically merges VCF files from all samples into a single `merged_variants.vcf.gz` file, while keeping individual sample VCF files and cleaning up intermediate files.
 
 ## ⚙️ Customization Options
 

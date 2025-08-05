@@ -171,6 +171,114 @@ def run(
 
 @cli.command()
 @click.option(
+    "--sra-ids",
+    required=True,
+    help="Comma-separated list of SRA Run Accession IDs (e.g., SRR123456,SRR123457)",
+    type=str,
+)
+@click.option(
+    "--output-dir",
+    default="./output",
+    help="Output directory for results",
+    type=click.Path(path_type=Path),
+)
+@click.option(
+    "--config",
+    help="Configuration file path",
+    type=click.Path(exists=True, path_type=Path),
+)
+@click.option(
+    "--threads",
+    default=1,
+    help="Number of threads to use",
+    type=int,
+)
+@click.option(
+    "--log-level",
+    default="INFO",
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"]),
+    help="Logging level",
+)
+@click.option(
+    "--log-file",
+    help="Log file path",
+    type=click.Path(path_type=Path),
+)
+@click.option(
+    "--no-merge-vcfs",
+    is_flag=True,
+    help="Disable VCF merging (keep individual VCF files only)",
+)
+def batch(
+    sra_ids: str,
+    output_dir: Path,
+    config: Optional[Path],
+    threads: int,
+    log_level: str,
+    log_file: Optional[Path],
+    no_merge_vcfs: bool,
+):
+    """Run the SRA to Features Pipeline on multiple SRA IDs with VCF merging."""
+    
+    # Parse SRA IDs
+    sra_id_list = [s.strip() for s in sra_ids.split(",") if s.strip()]
+    if not sra_id_list:
+        console.print("[red]Error: No valid SRA IDs provided[/red]")
+        sys.exit(1)
+    
+    console.print(f"[green]Processing {len(sra_id_list)} SRA IDs: {', '.join(sra_id_list)}[/green]")
+    
+    # Load configuration
+    try:
+        if config:
+            pipeline_config = PipelineConfig(_env_file=config)
+        else:
+            pipeline_config = PipelineConfig()
+        
+        # Override config with CLI options
+        pipeline_config.output_dir = output_dir
+        pipeline_config.threads = threads
+        pipeline_config.log_level = log_level
+        pipeline_config.log_file = log_file
+        
+    except Exception as e:
+        console.print(f"[red]Error loading configuration: {e}[/red]")
+        sys.exit(1)
+    
+    # Setup logging
+    logger = setup_logging(
+        log_level=pipeline_config.log_level,
+        log_file=pipeline_config.log_file,
+    )
+    
+    try:
+        # Initialize pipeline
+        pipeline = Pipeline(pipeline_config, logger)
+        
+        # Run batch processing
+        merge_vcfs = not no_merge_vcfs
+        feature_sets = pipeline.run_batch(sra_id_list, merge_vcfs=merge_vcfs)
+        
+        # Display results
+        console.print(f"\n[green]✓ Batch processing completed successfully![/green]")
+        console.print(f"Processed {len(feature_sets)} samples")
+        
+        if merge_vcfs:
+            merged_vcf = output_dir / "merged_variants.vcf.gz"
+            if merged_vcf.exists():
+                console.print(f"Merged VCF file: {merged_vcf}")
+        
+        # Display summary for each sample
+        for feature_set in feature_sets:
+            display_results(feature_set)
+        
+    except Exception as e:
+        console.print(f"[red]Error during batch processing: {e}[/red]")
+        sys.exit(1)
+
+
+@cli.command()
+@click.option(
     "--config",
     help="Configuration file path",
     type=click.Path(exists=True, path_type=Path),

@@ -31,7 +31,7 @@ def run_variant_calling(
         logger: Logger instance
         
     Returns:
-        Path to the final VCF file
+        Path to the final merged VCF file
         
     Raises:
         RuntimeError: If variant calling fails
@@ -46,23 +46,47 @@ def run_variant_calling(
     # Ensure output directory exists
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Step 1: Generate pileup
-    bcf_file = _run_mpileup(sample_id, bam_file, reference_fasta, output_dir, logger)
+    # Create temporary directory for intermediate files
+    tmp_dir = output_dir / "tmp"
+    tmp_dir.mkdir(exist_ok=True)
     
-    # Step 2: Call variants
-    vcf_file = _call_variants(sample_id, bcf_file, output_dir, min_quality_score, logger)
+    intermediate_files = []
     
-    # Step 3: Filter variants
-    filtered_vcf_file = _filter_variants(sample_id, vcf_file, output_dir, min_quality_score, min_coverage, logger)
-    
-    # Step 4: Compress and index VCF
-    final_vcf_file = _compress_and_index_vcf(sample_id, filtered_vcf_file, logger)
-    
-    logger.info("Variant calling completed", 
-                sample_id=sample_id, 
-                output_vcf=str(final_vcf_file))
-    
-    return final_vcf_file
+    try:
+        # Step 1: Generate pileup
+        bcf_file = _run_mpileup(sample_id, bam_file, reference_fasta, tmp_dir, logger)
+        intermediate_files.append(bcf_file)
+        
+        # Step 2: Call variants
+        vcf_file = _call_variants(sample_id, bcf_file, tmp_dir, min_quality_score, logger)
+        intermediate_files.append(vcf_file)
+        
+        # Step 3: Filter variants
+        filtered_vcf_file = _filter_variants(sample_id, vcf_file, tmp_dir, min_quality_score, min_coverage, logger)
+        intermediate_files.append(filtered_vcf_file)
+        
+        # Step 4: Compress and index VCF
+        compressed_vcf_file = _compress_and_index_vcf(sample_id, filtered_vcf_file, tmp_dir, logger)
+        intermediate_files.append(compressed_vcf_file)
+        
+        # Step 5: Move final VCF to output directory and rename
+        final_vcf_file = output_dir / f"{sample_id}_variants.vcf.gz"
+        final_vcf_file.unlink(missing_ok=True)  # Remove if exists
+        compressed_vcf_file.rename(final_vcf_file)
+        
+        # Step 6: Clean up intermediate files
+        _cleanup_intermediate_files(intermediate_files, logger)
+        
+        logger.info("Variant calling completed", 
+                    sample_id=sample_id, 
+                    output_vcf=str(final_vcf_file))
+        
+        return final_vcf_file
+        
+    except Exception as e:
+        # Clean up intermediate files on error
+        _cleanup_intermediate_files(intermediate_files, logger)
+        raise e
 
 
 def _run_mpileup(
@@ -192,10 +216,11 @@ def _filter_variants(
 def _compress_and_index_vcf(
     sample_id: str,
     vcf_file: Path,
+    output_dir: Path,
     logger: structlog.BoundLogger
 ) -> Path:
     """Compress and index VCF file."""
-    compressed_vcf_file = vcf_file.with_suffix(".vcf.gz")
+    compressed_vcf_file = output_dir / f"{sample_id}_compressed.vcf.gz"
     
     # Compress VCF
     cmd = ["bgzip", "-c", str(vcf_file), ">", str(compressed_vcf_file)]
@@ -232,4 +257,125 @@ def _compress_and_index_vcf(
     except subprocess.TimeoutExpired:
         raise RuntimeError(f"VCF compression/indexing timed out for sample: {sample_id}")
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"VCF compression/indexing failed for sample {sample_id}: {e.stderr}") 
+        raise RuntimeError(f"VCF compression/indexing failed for sample {sample_id}: {e.stderr}")
+
+
+def _cleanup_intermediate_files(files: list, logger: structlog.BoundLogger):
+    """Clean up intermediate files."""
+    for file_path in files:
+        try:
+            if file_path.exists():
+                file_path.unlink()
+                logger.info("Cleaned up intermediate file", file=str(file_path))
+        except Exception as e:
+            logger.warning("Failed to clean up intermediate file", 
+                          file=str(file_path), error=str(e))
+
+
+def merge_vcf_files(
+    vcf_files: list,
+    output_dir: Path,
+    logger: structlog.BoundLogger
+) -> Path:
+    """
+    Merge multiple VCF files into a single VCF file.
+    
+    Args:
+        vcf_files: List of VCF file paths to merge
+        output_dir: Output directory for merged VCF
+        logger: Logger instance
+        
+    Returns:
+        Path to the merged VCF file
+        
+    Raises:
+        RuntimeError: If merging fails
+    """
+    if not vcf_files:
+        raise ValueError("No VCF files provided for merging")
+    
+    if len(vcf_files) == 1:
+        # If only one VCF file, just copy it to output directory
+        source_vcf = Path(vcf_files[0])
+        merged_vcf = output_dir / f"merged_variants.vcf.gz"
+        merged_vcf.unlink(missing_ok=True)
+        source_vcf.rename(merged_vcf)
+        logger.info("Single VCF file copied", source=str(source_vcf), target=str(merged_vcf))
+        return merged_vcf
+    
+    logger.info("Starting VCF merging", 
+                vcf_count=len(vcf_files),
+                vcf_files=[str(f) for f in vcf_files])
+    
+    # Create file list for bcftools merge
+    vcf_list_file = output_dir / "vcf_files.txt"
+    with open(vcf_list_file, 'w') as f:
+        for vcf_file in vcf_files:
+            f.write(f"{vcf_file}\n")
+    
+    # Merge VCF files
+    merged_vcf = output_dir / "merged_variants.vcf.gz"
+    
+    cmd = [
+        "bcftools", "merge",
+        "--file-list", str(vcf_list_file),
+        "-o", str(merged_vcf),
+        "-O", "z"  # Output compressed VCF
+    ]
+    
+    log_command(logger, " ".join(cmd))
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=3600  # 1 hour timeout for merging
+        )
+        
+        # Index the merged VCF
+        cmd = ["tabix", "-p", "vcf", str(merged_vcf)]
+        log_command(logger, " ".join(cmd))
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=300  # 5 minute timeout
+        )
+        
+        # Clean up file list
+        vcf_list_file.unlink(missing_ok=True)
+        
+        logger.info("VCF merging completed", 
+                    merged_vcf=str(merged_vcf),
+                    variant_count=_count_variants(merged_vcf, logger))
+        
+        return merged_vcf
+        
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("VCF merging timed out")
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"VCF merging failed: {e.stderr}")
+    finally:
+        # Clean up file list
+        vcf_list_file.unlink(missing_ok=True)
+
+
+def _count_variants(vcf_file: Path, logger: structlog.BoundLogger) -> int:
+    """Count the number of variants in a VCF file."""
+    try:
+        cmd = ["bcftools", "view", "-H", str(vcf_file)]
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=60
+        )
+        return len(result.stdout.strip().split('\n')) if result.stdout.strip() else 0
+    except Exception as e:
+        logger.warning("Failed to count variants", file=str(vcf_file), error=str(e))
+        return 0 

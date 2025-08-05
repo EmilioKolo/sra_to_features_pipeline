@@ -6,11 +6,13 @@ This guide explains the output format of the SRA to Features Pipeline, including
 
 The pipeline generates a structured output with the following organization:
 
+#### Single Sample Analysis
 ```
 output_directory/
 ├── sample_id/
 │   ├── features.json      # Main results (JSON format)
 │   ├── summary.txt        # Human-readable summary
+│   ├── sample_id_variants.vcf.gz  # Individual VCF file
 │   └── logs/              # Processing logs
 │       ├── pipeline.log   # Pipeline execution log
 │       ├── download.log   # Download log
@@ -19,6 +21,24 @@ output_directory/
 └── logs/                  # Global pipeline logs
     ├── pipeline.log       # Main pipeline log
     └── performance.log    # Performance metrics
+```
+
+#### Batch Analysis with VCF Merging
+```
+output_directory/
+├── sample_id_1/
+│   ├── features.json
+│   ├── summary.txt
+│   ├── sample_id_1_variants.vcf.gz  # Individual VCF file
+│   └── logs/
+├── sample_id_2/
+│   ├── features.json
+│   ├── summary.txt
+│   ├── sample_id_2_variants.vcf.gz  # Individual VCF file
+│   └── logs/
+├── merged_variants.vcf.gz           # Merged VCF file (all samples)
+├── merged_variants.vcf.gz.tbi       # Index for merged VCF
+└── logs/                            # Global pipeline logs
 ```
 
 ## 📄 Main Output Files
@@ -99,6 +119,44 @@ The primary output file containing all extracted features in structured JSON for
   },
   "processing_time": 3600.5
 }
+```
+
+### VCF Files
+
+The pipeline generates VCF (Variant Call Format) files containing variant information:
+
+#### Individual Sample VCF Files
+- **Location**: `output_directory/sample_id/sample_id_variants.vcf.gz`
+- **Format**: Compressed VCF with index (`.tbi`)
+- **Content**: All variants called for the individual sample
+- **Quality**: Filtered based on quality score and coverage thresholds
+
+#### Merged VCF File (Batch Processing)
+- **Location**: `output_directory/merged_variants.vcf.gz`
+- **Format**: Compressed VCF with index (`.tbi`)
+- **Content**: All variants from all samples, merged and deduplicated
+- **Use Case**: Multi-sample analysis, population genetics, comparative genomics
+
+#### VCF File Format
+```
+#CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  SAMPLE1 SAMPLE2
+chr1    1000    .       A       T       50      PASS    DP=100  GT      0/1     0/0
+chr1    2000    .       C       G       75      PASS    DP=150  GT      1/1     0/1
+```
+
+#### Working with VCF Files
+```bash
+# View VCF file
+zcat sample_id_variants.vcf.gz | head -20
+
+# Count variants
+bcftools view -H sample_id_variants.vcf.gz | wc -l
+
+# Filter variants
+bcftools filter -i 'QUAL>30' sample_id_variants.vcf.gz > high_quality.vcf
+
+# Extract specific regions
+bcftools view -r chr1:1000-2000 merged_variants.vcf.gz
 ```
 
 ### `summary.txt`

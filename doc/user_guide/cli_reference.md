@@ -33,6 +33,26 @@ sra-pipeline run [OPTIONS]
 | `--log-file` | path | None | Log file path |
 | `--dry-run` | flag | False | Perform a dry run without executing |
 
+### `batch` - Batch Processing with VCF Merging
+
+Run the pipeline on multiple SRA IDs with automatic VCF merging.
+
+```bash
+sra-pipeline batch [OPTIONS]
+```
+
+#### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--sra-ids` | string | Required | Comma-separated list of SRA IDs (e.g., SRR123456,SRR123457) |
+| `--output-dir` | path | `./output` | Output directory for results |
+| `--config` | path | None | Configuration file path |
+| `--threads` | integer | 1 | Number of threads to use |
+| `--log-level` | choice | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
+| `--log-file` | path | None | Log file path |
+| `--no-merge-vcfs` | flag | False | Disable VCF merging (keep individual VCF files only) |
+
 #### Examples
 
 **Run with SRA ID:**
@@ -59,6 +79,25 @@ sra-pipeline run \
 **Dry run (test configuration):**
 ```bash
 sra-pipeline run --sra-id SRR123456 --dry-run
+```
+
+**Batch processing with VCF merging:**
+```bash
+sra-pipeline batch --sra-ids SRR123456,SRR123457,SRR123458 --output-dir ./batch_results
+```
+
+**Batch processing without VCF merging:**
+```bash
+sra-pipeline batch --sra-ids SRR123456,SRR123457,SRR123458 --output-dir ./batch_results --no-merge-vcfs
+```
+
+**Batch processing with custom configuration:**
+```bash
+sra-pipeline batch \
+  --sra-ids SRR123456,SRR123457,SRR123458 \
+  --output-dir ./batch_results \
+  --threads 8 \
+  --config batch_config.env
 ```
 
 ### `validate` - Validate Setup
