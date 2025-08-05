@@ -44,6 +44,27 @@ cd sra-to-features-pipeline
 
 # Install the Python package
 pip install -e .
+
+### Method 2: Alternative Installation (if Method 1 fails)
+
+If you encounter the "build_editable" error, try these alternatives:
+
+```bash
+# Option A: Use setup.py directly
+python setup.py develop
+
+# Option B: Install in development mode with pip
+pip install -e . --no-build-isolation
+
+# Option C: Install without editable mode
+pip install .
+
+# Option D: Use conda/mamba (if available)
+conda install -c conda-forge pip
+pip install -e .
+```
+
+### Method 3: Manual Installation
 ```
 
 ### Method 2: Manual Installation
@@ -196,6 +217,29 @@ SRA_PIPELINE_LOG_LEVEL=INFO
 ## 🐛 Troubleshooting
 
 ### Common Installation Issues
+
+**"build_editable" Error:**
+```bash
+# This error occurs when setuptools doesn't support editable installations
+# Try these solutions:
+
+# Solution 1: Use setup.py directly
+python setup.py develop
+
+# Solution 2: Install with no build isolation
+pip install -e . --no-build-isolation
+
+# Solution 3: Install without editable mode
+pip install .
+
+# Solution 4: Upgrade setuptools
+pip install --upgrade setuptools wheel
+pip install -e .
+
+# Solution 5: Use conda/mamba
+conda install -c conda-forge pip setuptools
+pip install -e .
+```
 
 **Permission Errors:**
 ```bash

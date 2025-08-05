@@ -55,6 +55,68 @@ sra-pipeline batch [OPTIONS]
 
 #### Examples
 
+**Batch processing with VCF merging:**
+```bash
+sra-pipeline batch --sra-ids SRR123456,SRR123457,SRR123458 --output-dir ./batch_results
+```
+
+**Batch processing without VCF merging:**
+```bash
+sra-pipeline batch --sra-ids SRR123456,SRR123457,SRR123458 --output-dir ./batch_results --no-merge-vcfs
+```
+
+**Batch processing with custom configuration:**
+```bash
+sra-pipeline batch \
+  --sra-ids SRR123456,SRR123457,SRR123458 \
+  --output-dir ./batch_results \
+  --threads 8 \
+  --config batch_config.env
+```
+
+### `create-ml-table` - Generate ML Feature Table
+
+Create a machine learning-ready feature table from pipeline results.
+
+```bash
+sra-pipeline create-ml-table [OPTIONS]
+```
+
+#### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--input-dir` | path | Required | Input directory containing pipeline results |
+| `--output-file` | path | Required | Output file path for ML feature table |
+| `--format` | choice | `csv` | Output format (csv, tsv, parquet, json) |
+| `--log-level` | choice | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
+
+#### Examples
+
+**Create CSV feature table:**
+```bash
+sra-pipeline create-ml-table \
+  --input-dir ./batch_results \
+  --output-file ml_features.csv \
+  --format csv
+```
+
+**Create Parquet feature table:**
+```bash
+sra-pipeline create-ml-table \
+  --input-dir ./batch_results \
+  --output-file ml_features.parquet \
+  --format parquet
+```
+
+**Create TSV feature table:**
+```bash
+sra-pipeline create-ml-table \
+  --input-dir ./batch_results \
+  --output-file ml_features.tsv \
+  --format tsv
+```
+
 **Run with SRA ID:**
 ```bash
 sra-pipeline run --sra-id SRR123456 --output-dir ./results --threads 8

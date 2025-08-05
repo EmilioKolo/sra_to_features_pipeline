@@ -14,6 +14,7 @@ Welcome to the comprehensive user guide for the SRA to Features Pipeline. This g
 - **[Configuration Options](configuration_options.md)** - Advanced configuration
 - **[Batch Processing](batch_processing.md)** - Processing multiple samples
 - **[Quality Control](quality_control.md)** - Understanding quality metrics
+- **[ML Feature Tables](ml_features.md)** - Creating ML-ready feature datasets
 
 ### 📊 Analysis Types
 - **[SRA Analysis](sra_analysis.md)** - Working with SRA data

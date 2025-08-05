@@ -202,6 +202,30 @@ sra-pipeline batch \
 
 **Note**: The batch command automatically merges VCF files from all samples into a single `merged_variants.vcf.gz` file, while keeping individual sample VCF files and cleaning up intermediate files.
 
+### Workflow 4: ML Feature Table Generation
+
+```bash
+# Create ML-ready feature table from pipeline results
+sra-pipeline create-ml-table \
+  --input-dir ./batch_results \
+  --output-file ml_features.csv \
+  --format csv
+
+# Create feature table in different formats
+sra-pipeline create-ml-table \
+  --input-dir ./batch_results \
+  --output-file ml_features.parquet \
+  --format parquet
+
+# Create feature table with TSV format
+sra-pipeline create-ml-table \
+  --input-dir ./batch_results \
+  --output-file ml_features.tsv \
+  --format tsv
+```
+
+**Note**: The ML feature table combines features from all samples into a single tabular format suitable for machine learning training.
+
 ## ⚙️ Customization Options
 
 ### Performance Tuning

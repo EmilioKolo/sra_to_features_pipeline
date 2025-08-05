@@ -8,8 +8,8 @@ A modern, production-ready bioinformatics pipeline for extracting genomic featur
 # Install bioinformatics tools
 ./scripts/install/install_tools.sh
 
-# Install pipeline
-pip install -e .
+# Install pipeline (handles build_editable errors automatically)
+./install_dev.sh
 
 # Run pipeline
 sra-pipeline run --sra-id SRR123456 --output-dir ./results
@@ -50,8 +50,8 @@ cd sra-to-features-pipeline
 # Install bioinformatics tools
 ./scripts/install/install_tools.sh
 
-# Install pipeline
-pip install -e .
+# Install pipeline (handles build_editable errors automatically)
+./install_dev.sh
 ```
 
 ## 📊 Output

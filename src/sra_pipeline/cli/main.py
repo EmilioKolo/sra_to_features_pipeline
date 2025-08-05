@@ -315,6 +315,89 @@ def validate(config: Optional[Path]):
 
 @cli.command()
 @click.option(
+    "--input-dir",
+    required=True,
+    help="Input directory containing pipeline results",
+    type=click.Path(exists=True, path_type=Path),
+)
+@click.option(
+    "--output-file",
+    required=True,
+    help="Output file path for ML feature table",
+    type=click.Path(path_type=Path),
+)
+@click.option(
+    "--format",
+    default="csv",
+    type=click.Choice(["csv", "tsv", "parquet", "json"]),
+    help="Output format for feature table",
+)
+@click.option(
+    "--log-level",
+    default="INFO",
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"]),
+    help="Logging level",
+)
+def create_ml_table(
+    input_dir: Path,
+    output_file: Path,
+    format: str,
+    log_level: str,
+):
+    """Create ML-ready feature table from pipeline results."""
+    
+    # Setup logging
+    logger = setup_logging(log_level=log_level)
+    
+    try:
+        from ..utils.ml_features import create_ml_feature_table_from_directory
+        
+        # Create ML feature table
+        df = create_ml_feature_table_from_directory(
+            input_directory=input_dir,
+            output_path=output_file,
+            format=format,
+            logger=logger
+        )
+        
+        # Display summary
+        console.print(f"\n[green]✓ ML feature table created successfully![/green]")
+        console.print(f"Output file: {output_file}")
+        console.print(f"Format: {format}")
+        console.print(f"Shape: {df.shape[0]} samples × {df.shape[1]} features")
+        
+        # Show feature summary
+        summary = {
+            "Sample Count": df.shape[0],
+            "Feature Count": df.shape[1],
+            "Numeric Features": len(df.select_dtypes(include=['number']).columns),
+            "Categorical Features": len(df.select_dtypes(include=['object']).columns),
+            "Missing Values": df.isnull().sum().sum(),
+        }
+        
+        table = Table(title="Feature Table Summary")
+        table.add_column("Metric", style="cyan")
+        table.add_column("Value", style="magenta")
+        
+        for metric, value in summary.items():
+            table.add_row(metric, str(value))
+        
+        console.print(table)
+        
+        # Show sample of features
+        console.print(f"\n[bold]Sample Features:[/bold]")
+        feature_sample = df.columns[:10].tolist()
+        console.print(", ".join(feature_sample))
+        if len(df.columns) > 10:
+            console.print(f"... and {len(df.columns) - 10} more features")
+        
+    except Exception as e:
+        console.print(f"[red]Error creating ML feature table: {e}[/red]")
+        sys.exit(1)
+
+
+@cli.command()
+@click.option(
     "--output-dir",
     default="./doc",
     help="Output directory for documentation",
