@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, Any, List
 import structlog
 
-from ...models.features import (
+from ..models.features import (
     FragmentLengthStats, 
     GenomicBin, 
     GeneVariantStats, 
