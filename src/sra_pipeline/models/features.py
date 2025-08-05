@@ -232,7 +232,7 @@ class FeatureSet(BaseModel):
     
     def to_json(self) -> str:
         """Convert feature set to JSON string."""
-        return self.json(indent=2)
+        return self.model_dump_json(indent=2)
     
     def get_summary_stats(self) -> Dict[str, Union[int, float]]:
         """Get summary statistics for the feature set."""

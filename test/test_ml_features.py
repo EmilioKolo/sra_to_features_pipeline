@@ -142,7 +142,7 @@ def test_create_ml_feature_table_from_directory(logger, sample_feature_set, tmp_
     # Save feature set as JSON
     feature_file = sample_dir / "features.json"
     with open(feature_file, 'w') as f:
-        json.dump(sample_feature_set.dict(), f, indent=2)
+        json.dump(sample_feature_set.model_dump(), f, indent=2)
     
     # Create ML feature table
     output_file = tmp_path / "ml_features.csv"
