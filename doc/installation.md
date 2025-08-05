@@ -241,6 +241,22 @@ conda install -c conda-forge pip setuptools
 pip install -e .
 ```
 
+**Pydantic Import Error:**
+```bash
+# This error occurs when using an older version of Pydantic
+# The pipeline requires Pydantic v2 and pydantic-settings
+
+# Solution 1: Upgrade Pydantic
+pip install --upgrade pydantic pydantic-settings
+
+# Solution 2: Install specific versions
+pip install "pydantic>=2.5.0" "pydantic-settings>=2.1.0"
+
+# Solution 3: Clean install
+pip uninstall pydantic pydantic-settings
+pip install "pydantic>=2.5.0" "pydantic-settings>=2.1.0"
+```
+
 **Permission Errors:**
 ```bash
 # Install with user permissions

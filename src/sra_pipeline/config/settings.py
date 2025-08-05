@@ -5,11 +5,11 @@ Configuration settings for the SRA to Features Pipeline.
 import os
 from pathlib import Path
 from typing import Optional, List
-from pydantic import BaseSettings, Field, validator
-from pydantic_settings import BaseSettings as PydanticBaseSettings
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings
 
 
-class PipelineConfig(PydanticBaseSettings):
+class PipelineConfig(BaseSettings):
     """Configuration for the SRA to Features Pipeline."""
     
     # Base paths
@@ -63,39 +63,44 @@ class PipelineConfig(PydanticBaseSettings):
     min_quality_score: int = Field(default=20, description="Minimum quality score for variants")
     min_coverage: int = Field(default=10, description="Minimum coverage for variant calling")
     
-    @validator('base_dir', 'output_dir', 'reference_fasta', 'reference_gff', 
-               'bed_file', 'bed_genes', 'genome_sizes', 'kraken_db', 'snpeff_dir')
+    @field_validator('base_dir', 'output_dir', 'reference_fasta', 'reference_gff', 
+                    'bed_file', 'bed_genes', 'genome_sizes', 'kraken_db', 'snpeff_dir')
+    @classmethod
     def validate_paths(cls, v):
         """Validate that paths are absolute or can be resolved."""
         if isinstance(v, str):
             v = Path(v)
         return v
     
-    @validator('threads')
+    @field_validator('threads')
+    @classmethod
     def validate_threads(cls, v):
         """Validate thread count is positive."""
         if v <= 0:
             raise ValueError("Threads must be positive")
         return v
     
-    @validator('bin_size_gvs', 'bin_size_cnv')
+    @field_validator('bin_size_gvs', 'bin_size_cnv')
+    @classmethod
     def validate_bin_sizes(cls, v):
         """Validate bin sizes are positive."""
         if v <= 0:
             raise ValueError("Bin sizes must be positive")
         return v
     
-    @validator('max_memory_gb')
+    @field_validator('max_memory_gb')
+    @classmethod
     def validate_memory(cls, v):
         """Validate memory usage is reasonable."""
         if v <= 0 or v > 128:
             raise ValueError("Memory usage must be between 1 and 128 GB")
         return v
     
-    class Config:
-        env_prefix = "SRA_PIPELINE_"
-        case_sensitive = False
-        env_file = ".env"
+    model_config = {
+        "env_prefix": "SRA_PIPELINE_",
+        "case_sensitive": False,
+        "env_file": ".env"
+    }
     
     def get_data_dir(self) -> Path:
         """Get the data directory path."""

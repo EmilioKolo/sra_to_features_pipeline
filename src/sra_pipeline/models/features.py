@@ -3,7 +3,7 @@ Data models for features extracted by the SRA to Features Pipeline.
 """
 
 from typing import Dict, List, Optional, Union
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 import numpy as np
 
 
@@ -17,14 +17,16 @@ class FragmentLengthStats(BaseModel):
     max: float = Field(description="Maximum fragment length")
     count: int = Field(description="Number of fragments analyzed")
     
-    @validator('mean', 'median', 'std', 'min', 'max')
+    @field_validator('mean', 'median', 'std', 'min', 'max')
+    @classmethod
     def validate_positive(cls, v):
         """Validate that length statistics are positive."""
         if v < 0:
             raise ValueError("Fragment length statistics must be non-negative")
         return v
     
-    @validator('count')
+    @field_validator('count')
+    @classmethod
     def validate_count(cls, v):
         """Validate that count is positive."""
         if v <= 0:
@@ -40,21 +42,24 @@ class GenomicBin(BaseModel):
     end: int = Field(description="End position (1-based)")
     variant_count: int = Field(description="Number of variants in this bin")
     
-    @validator('start', 'end')
+    @field_validator('start', 'end')
+    @classmethod
     def validate_positions(cls, v):
         """Validate that positions are non-negative."""
         if v < 0:
             raise ValueError("Genomic positions must be non-negative")
         return v
     
-    @validator('end')
-    def validate_end_after_start(cls, v, values):
+    @field_validator('end')
+    @classmethod
+    def validate_end_after_start(cls, v, info):
         """Validate that end position is after start position."""
-        if 'start' in values and v <= values['start']:
+        if hasattr(info.data, 'start') and v <= info.data.start:
             raise ValueError("End position must be after start position")
         return v
     
-    @validator('variant_count')
+    @field_validator('variant_count')
+    @classmethod
     def validate_variant_count(cls, v):
         """Validate that variant count is non-negative."""
         if v < 0:
@@ -77,14 +82,16 @@ class GeneVariantStats(BaseModel):
         description="dN/dS ratio (nonsynonymous/synonymous substitution rate)"
     )
     
-    @validator('total_variants', 'synonymous_variants', 'nonsynonymous_variants')
+    @field_validator('total_variants', 'synonymous_variants', 'nonsynonymous_variants')
+    @classmethod
     def validate_variant_counts(cls, v):
         """Validate that variant counts are non-negative."""
         if v < 0:
             raise ValueError("Variant counts must be non-negative")
         return v
     
-    @validator('dn_ds_ratio')
+    @field_validator('dn_ds_ratio')
+    @classmethod
     def validate_dn_ds_ratio(cls, v):
         """Validate that dN/dS ratio is positive if provided."""
         if v is not None and v < 0:
@@ -102,21 +109,24 @@ class CNVRegion(BaseModel):
     confidence: float = Field(description="Confidence score")
     type: str = Field(description="CNV type (gain/loss)")
     
-    @validator('copy_number')
+    @field_validator('copy_number')
+    @classmethod
     def validate_copy_number(cls, v):
         """Validate that copy number is positive."""
         if v <= 0:
             raise ValueError("Copy number must be positive")
         return v
     
-    @validator('confidence')
+    @field_validator('confidence')
+    @classmethod
     def validate_confidence(cls, v):
         """Validate that confidence is between 0 and 1."""
         if not 0 <= v <= 1:
             raise ValueError("Confidence must be between 0 and 1")
         return v
     
-    @validator('type')
+    @field_validator('type')
+    @classmethod
     def validate_type(cls, v):
         """Validate that CNV type is valid."""
         if v not in ['gain', 'loss']:
@@ -139,21 +149,24 @@ class QualityMetrics(BaseModel):
         description="Quality scores for different metrics"
     )
     
-    @validator('mapping_rate', 'gc_content', 'duplication_rate')
+    @field_validator('mapping_rate', 'gc_content', 'duplication_rate')
+    @classmethod
     def validate_percentages(cls, v):
         """Validate that percentages are between 0 and 100."""
         if not 0 <= v <= 100:
             raise ValueError("Percentage values must be between 0 and 100")
         return v
     
-    @validator('total_reads', 'mapped_reads')
+    @field_validator('total_reads', 'mapped_reads')
+    @classmethod
     def validate_read_counts(cls, v):
         """Validate that read counts are non-negative."""
         if v < 0:
             raise ValueError("Read counts must be non-negative")
         return v
     
-    @validator('mean_coverage', 'coverage_std')
+    @field_validator('mean_coverage', 'coverage_std')
+    @classmethod
     def validate_coverage(cls, v):
         """Validate that coverage values are non-negative."""
         if v < 0:
@@ -205,7 +218,8 @@ class FeatureSet(BaseModel):
     processing_time: float = Field(description="Total processing time in seconds")
     pipeline_version: str = Field(description="Pipeline version used")
     
-    @validator('processing_time')
+    @field_validator('processing_time')
+    @classmethod
     def validate_processing_time(cls, v):
         """Validate that processing time is positive."""
         if v < 0:
@@ -214,7 +228,7 @@ class FeatureSet(BaseModel):
     
     def to_dict(self) -> Dict:
         """Convert feature set to dictionary format."""
-        return self.dict()
+        return self.model_dump()
     
     def to_json(self) -> str:
         """Convert feature set to JSON string."""
