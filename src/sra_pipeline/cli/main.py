@@ -356,8 +356,8 @@ def create_ml_table(
         df = create_ml_feature_table_from_directory(
             input_directory=input_dir,
             output_path=output_file,
-            format=format,
-            logger=logger
+            logger=logger,
+            format=format
         )
         
         # Display summary

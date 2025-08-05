@@ -246,8 +246,8 @@ class MLFeatureTable:
 def create_ml_feature_table_from_directory(
     input_directory: Path,
     output_path: Path,
-    format: str = 'csv',
-    logger: structlog.BoundLogger
+    logger: structlog.BoundLogger,
+    format: str = 'csv'
 ) -> pd.DataFrame:
     """
     Create ML-ready feature table from pipeline output directory.

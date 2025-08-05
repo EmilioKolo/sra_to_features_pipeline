@@ -135,10 +135,10 @@ def _calculate_quality_scores(
 
 def validate_quality_metrics(
     qc_results: Dict[str, Any],
+    logger: structlog.BoundLogger,
     min_mapping_rate: float = 80.0,
     min_coverage: float = 10.0,
     max_duplication_rate: float = 20.0,
-    logger: structlog.BoundLogger
 ) -> bool:
     """
     Validate quality metrics against thresholds.
