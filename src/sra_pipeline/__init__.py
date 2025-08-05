@@ -8,8 +8,20 @@ __version__ = "1.0.0"
 __author__ = "Bioinformatics Team"
 __email__ = "team@example.com"
 
-from .core.pipeline import Pipeline
-from .config.settings import PipelineConfig
-from .models.features import FeatureSet
+# Lazy imports to avoid dependency issues
+def get_pipeline():
+    """Get the Pipeline class."""
+    from .core.pipeline import Pipeline
+    return Pipeline
 
-__all__ = ["Pipeline", "PipelineConfig", "FeatureSet"] 
+def get_pipeline_config():
+    """Get the PipelineConfig class."""
+    from .config.settings import PipelineConfig
+    return PipelineConfig
+
+def get_feature_set():
+    """Get the FeatureSet class."""
+    from .models.features import FeatureSet
+    return FeatureSet
+
+__all__ = ["get_pipeline", "get_pipeline_config", "get_feature_set"] 

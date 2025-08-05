@@ -17,15 +17,15 @@ class PipelineConfig(BaseSettings):
     output_dir: Path = Field(default=Path("/content/data/output"), description="Output directory")
     
     # Reference files
-    reference_fasta: Path = Field(description="Reference genome FASTA file")
-    reference_gff: Path = Field(description="Reference genome GFF file")
+    reference_fasta: Optional[Path] = Field(default=None, description="Reference genome FASTA file")
+    reference_gff: Optional[Path] = Field(default=None, description="Reference genome GFF file")
     bed_file: Path = Field(default=Path("regions.bed"), description="BED file with regions of interest")
-    bed_genes: Path = Field(description="BED file with gene regions")
-    genome_sizes: Path = Field(description="Genome sizes file")
+    bed_genes: Optional[Path] = Field(default=None, description="BED file with gene regions")
+    genome_sizes: Optional[Path] = Field(default=None, description="Genome sizes file")
     
     # External tools
-    kraken_db: Path = Field(description="Kraken2 database directory")
-    snpeff_dir: Path = Field(description="snpEff installation directory")
+    kraken_db: Optional[Path] = Field(default=None, description="Kraken2 database directory")
+    snpeff_dir: Optional[Path] = Field(default=None, description="snpEff installation directory")
     
     # Parameters
     genome_name: str = Field(default="custom_human", description="Genome name for snpEff")
@@ -68,6 +68,8 @@ class PipelineConfig(BaseSettings):
     @classmethod
     def validate_paths(cls, v):
         """Validate that paths are absolute or can be resolved."""
+        if v is None:
+            return v
         if isinstance(v, str):
             v = Path(v)
         return v
@@ -140,27 +142,27 @@ class PipelineConfig(BaseSettings):
         """Validate that the pipeline is properly set up."""
         errors = []
         
-        # Check required files exist
-        required_files = [
-            self.reference_fasta,
-            self.reference_gff,
-            self.bed_genes,
-            self.genome_sizes,
+        # Check optional files exist (if provided)
+        optional_files = [
+            ("reference_fasta", self.reference_fasta),
+            ("reference_gff", self.reference_gff),
+            ("bed_genes", self.bed_genes),
+            ("genome_sizes", self.genome_sizes),
         ]
         
-        for file_path in required_files:
-            if not file_path.exists():
-                errors.append(f"Required file not found: {file_path}")
+        for name, file_path in optional_files:
+            if file_path is not None and not file_path.exists():
+                errors.append(f"File not found: {name} = {file_path}")
         
-        # Check required directories exist
-        required_dirs = [
-            self.kraken_db,
-            self.snpeff_dir,
+        # Check optional directories exist (if provided)
+        optional_dirs = [
+            ("kraken_db", self.kraken_db),
+            ("snpeff_dir", self.snpeff_dir),
         ]
         
-        for dir_path in required_dirs:
-            if not dir_path.exists():
-                errors.append(f"Required directory not found: {dir_path}")
+        for name, dir_path in optional_dirs:
+            if dir_path is not None and not dir_path.exists():
+                errors.append(f"Directory not found: {name} = {dir_path}")
         
         # Check external tools are available
         required_tools = [

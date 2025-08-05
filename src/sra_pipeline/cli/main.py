@@ -136,6 +136,30 @@ def run(
         console.print("[yellow]Dry run mode - no actual processing will occur[/yellow]")
         return
     
+    # Validate required configuration
+    missing_fields = []
+    if pipeline_config.reference_fasta is None:
+        missing_fields.append("reference_fasta")
+    if pipeline_config.reference_gff is None:
+        missing_fields.append("reference_gff")
+    if pipeline_config.bed_genes is None:
+        missing_fields.append("bed_genes")
+    if pipeline_config.genome_sizes is None:
+        missing_fields.append("genome_sizes")
+    
+    if missing_fields:
+        console.print(f"[red]Error: Missing required configuration fields: {', '.join(missing_fields)}[/red]")
+        console.print("[yellow]Please provide these fields via:[/yellow]")
+        console.print("  - Environment variables (SRA_PIPELINE_REFERENCE_FASTA, etc.)")
+        console.print("  - Configuration file (--config option)")
+        console.print("  - .env file in the current directory")
+        console.print("\n[yellow]Example configuration:[/yellow]")
+        console.print("  export SRA_PIPELINE_REFERENCE_FASTA=/path/to/reference.fasta")
+        console.print("  export SRA_PIPELINE_REFERENCE_GFF=/path/to/reference.gff")
+        console.print("  export SRA_PIPELINE_BED_GENES=/path/to/genes.bed")
+        console.print("  export SRA_PIPELINE_GENOME_SIZES=/path/to/genome.sizes")
+        sys.exit(1)
+    
     # Initialize pipeline
     try:
         pipeline = Pipeline(pipeline_config, logger)
@@ -458,8 +482,8 @@ def display_config_summary(config: PipelineConfig):
     
     table.add_row("Base Directory", str(config.base_dir))
     table.add_row("Output Directory", str(config.output_dir))
-    table.add_row("Reference FASTA", str(config.reference_fasta))
-    table.add_row("Reference GFF", str(config.reference_gff))
+    table.add_row("Reference FASTA", str(config.reference_fasta) if config.reference_fasta else "Not set")
+    table.add_row("Reference GFF", str(config.reference_gff) if config.reference_gff else "Not set")
     table.add_row("Threads", str(config.threads))
     table.add_row("Bin Size (GVS)", str(config.bin_size_gvs))
     table.add_row("Bin Size (CNV)", str(config.bin_size_cnv))
