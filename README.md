@@ -1,68 +1,99 @@
-# SRA to features pipeline
+# SRA to Features Pipeline
 
-Pipeline to go from an SRA ID (or fastq files) to features used to train an LLM.
+A modern, production-ready bioinformatics pipeline for extracting genomic features from SRA (Sequence Read Archive) data for LLM training.
 
+## 🚀 Quick Start
 
-# Pipeline schema
+```bash
+# Install bioinformatics tools
+./scripts/install/install_tools.sh
 
-![Simplified pipeline ran in these scripts.](/pipeline_full.png)
+# Install pipeline
+pip install -e .
 
-
-# Instructions (Docker)
-
-The code is optimised to run inside a Docker container, which handles all of the required programs and files. To change specific versions and names of folders, modify config.ini variables.
-In order to run the pipeline, first create the container by running the following script:
-
-`docker build -t features-pipeline .`
-
-Then you can run the SRA IDs one by one with the following command:
-
-`docker run -v {output_directory}:/content/data/output features-pipeline --sra-id {sra_id}`
-
-All of the code is intended to work on cfDNA sequencing using Illumina with either single end or paired end sequencing reads.
-
-Alternatively, the pipeline can be run with fastq files using the following command:
-
-`docker run -v {output_directory}:/content/data/output -v {fastq_folder}:{fastq_folder} features-pipeline --fastq {fastq_file1} [{fastq_file2}]`
-
-The variables `fastq_file1` and `fastq_file2` must be the full name of fastq files (including the directory), and they both must be in the directory `fastq_folder`.
-
-Using only `fastq_file1` assumes single-end Illumina sequencing. Defining `fastq_file2` assumes paired-end Illumina sequencing.
-
-
-# Instructions (no Docker)
-
-To run the code without a Docker container, first it is recommended to define the BASE_DIR value in config.ini to a local folder, then run the following commands from inside this folder to install the required programs:
-
-```
-sudo chmod +x setup.sh
-sudo setup.sh
-python3 install.py
+# Run pipeline
+sra-pipeline run --sra-id SRR123456 --output-dir ./results
 ```
 
-After the setup finishes preparing the needed programs and files, the pipeline can be run with the following command:
+## 📖 Documentation
 
-`python3 main.py --sra-id {sra_id} --output-dir {output_dir} --threads {threads}`
+- **[User Guide](doc/user_guide/)** - Complete usage instructions and examples
+- **[API Reference](doc/api/)** - Detailed API documentation
+- **[Contributing Guidelines](doc/CONTRIBUTING.md)** - How to contribute to the project
+- **[Changelog](doc/CHANGELOG.md)** - Version history and changes
+- **[Restructuring Summary](doc/RESTRUCTURING_SUMMARY.md)** - Detailed overview of the project architecture
 
-Where `sra_id` corresponds to a SRA ID, `output_dir` to a local folder where the output files will be created, and `threads` to the number of threads to be used by some functions with multithreading.
+## 🎯 Features
 
-Alternatively, the pipeline can be run with fastq files using the following command:
+- **Modern Architecture**: Type-safe, modular Python package
+- **Flexible Configuration**: Environment variables or configuration files
+- **Rich CLI**: Progress tracking and comprehensive help
+- **Quality Control**: Built-in quality assessment and validation
+- **Performance Monitoring**: Real-time metrics and resource tracking
+- **Comprehensive Testing**: Unit and integration test coverage
+- **Structured Output**: JSON-based feature extraction results
 
-`python3 main.py --fastq {fastq_file1} [{fastq_file2}] --output-dir {output_dir} --threads {threads}`
+## 🛠️ Installation
 
-The variables `fastq_file1` and `fastq_file2` must be the full name of fastq files, and both of them need to be in the same folder.
+### Prerequisites
 
-Using only `fastq_file1` assumes single-end Illumina sequencing. Defining `fastq_file2` assumes paired-end Illumina sequencing.
+- Python 3.8+
+- Bioinformatics tools (BWA, SAMtools, BCFtools, etc.)
 
+### Quick Installation
 
-# Output
+```bash
+# Clone repository
+git clone https://github.com/your-org/sra-to-features-pipeline.git
+cd sra-to-features-pipeline
 
-The script will generate a file with the following features:
-* Fragment lengths and their mean, median and st. deviation (for paired-end sequencing)
-* Number of variants in genome bins through the entire genome
-* Number of variants per region/gene in selected regions and all genes
-* Synonymous/Nonsynonymous variant proportion per gene for all genes
-* Number of CNVs per chromosome
+# Install bioinformatics tools
+./scripts/install/install_tools.sh
 
-It also outputs vcf files and quality control results.
+# Install pipeline
+pip install -e .
+```
+
+## 📊 Output
+
+The pipeline generates structured JSON output containing:
+
+- **Fragment Statistics**: Read length distributions
+- **Genomic Bins**: Variant counts per genomic regions
+- **Gene Statistics**: Gene-level variant analysis
+- **CNV Regions**: Copy number variation detection
+- **Quality Metrics**: Data quality assessment
+
+## 🔧 Development
+
+```bash
+# Install development dependencies
+pip install -e ".[dev]"
+
+# Run tests
+pytest
+
+# Code quality
+black src/ test/
+flake8 src/ test/
+mypy src/
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see [LICENSE](doc/LICENSE) for details.
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](doc/CONTRIBUTING.md) for details.
+
+## 🆘 Support
+
+- **Documentation**: Check the [documentation](doc/) first
+- **Issues**: Report bugs on [GitHub Issues](https://github.com/your-org/sra-to-features-pipeline/issues)
+- **Discussions**: Join our [GitHub Discussions](https://github.com/your-org/sra-to-features-pipeline/discussions)
+
+---
+
+**For detailed documentation, please visit the [doc/](doc/) directory.**
 

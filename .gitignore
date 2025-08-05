@@ -69,7 +69,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+doc/_build/
 
 # PyBuilder
 .pybuilder/
@@ -154,17 +154,72 @@ cython_debug/
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+#  be added to the global gitignore or merged into this project gitignore.  For a PyCharm
+#  project, it is recommended to include the following files:
+#  .idea/
+#  *.iml
+#  *.ipr
+#  *.iws
 
-# Snpeff intermediary files
-snpEff_genes.txt
-snpEff_summary.html
+# Project-specific
+# Bioinformatics data files
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.bam
+*.bai
+*.sam
+*.vcf
+*.vcf.gz
+*.bcf
+*.bed
+*.gff
+*.gtf
+*.fa
+*.fasta
+*.fa.gz
+*.fasta.gz
 
-# OLD_ files
-OLD_*
+# Reference genomes and databases
+reference/
+genomes/
+databases/
+kraken_db/
+snpeff_db/
 
-# Test files
-*_test*
+# Pipeline outputs
+output/
+results/
+logs/
+tmp/
+temp/
+
+# Configuration files with sensitive data
+config.ini
+.env.local
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation builds
+doc/build/
+doc/_build/
+
+# Test data
+test_data/
+test_output/
