@@ -100,7 +100,7 @@ def _run_bwa_mem(
             capture_output=True,
             text=True,
             check=True,
-            timeout=7200  # 2 hour timeout
+            timeout=9800  # 3 hour timeout
         )
         
         logger.info("BWA mem completed", 

@@ -57,7 +57,7 @@ class PipelineConfig(BaseSettings):
     
     # Performance
     max_memory_gb: int = Field(default=8, description="Maximum memory usage in GB")
-    timeout_seconds: int = Field(default=3600, description="Timeout for operations in seconds")
+    timeout_seconds: int = Field(default=7200, description="Timeout for operations in seconds")
     
     # Quality control
     min_quality_score: int = Field(default=20, description="Minimum quality score for variants")

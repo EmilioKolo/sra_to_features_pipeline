@@ -114,7 +114,7 @@ def _run_mpileup(
             capture_output=True,
             text=True,
             check=True,
-            timeout=3600  # 1 hour timeout
+            timeout=7200  # 2 hour timeout
         )
         
         logger.info("Mpileup completed", 
@@ -154,7 +154,7 @@ def _call_variants(
             capture_output=True,
             text=True,
             check=True,
-            timeout=1800  # 30 minute timeout
+            timeout=3600  # 1 hour timeout
         )
         
         logger.info("Variant calling completed", 
