@@ -69,10 +69,14 @@ def run_variant_calling(
         compressed_vcf_file = _compress_and_index_vcf(sample_id, filtered_vcf_file, tmp_dir, logger)
         intermediate_files.append(compressed_vcf_file)
         
-        # Step 5: Move final VCF to output directory and rename
+        # Step 5: Move final VCF and its index to output directory and rename
         final_vcf_file = output_dir / f"{sample_id}_variants.vcf.gz"
-        final_vcf_file.unlink(missing_ok=True)  # Remove if exists
+        final_vcf_file.unlink(missing_ok=True)        # Remove if exists
         compressed_vcf_file.rename(final_vcf_file)
+        compressed_vcf_file_index = tmp_dir / f"{sample_id}_filtered.vcf.gz.tbi"
+        final_vcf_file_index = output_dir / f"{sample_id}_variants.vcf.gz.tbi"
+        final_vcf_file_index.unlink(missing_ok=True)  # Remove if exists
+        compressed_vcf_file_index.rename(final_vcf_file_index)
         
         # Step 6: Clean up intermediate files
         _cleanup_intermediate_files(intermediate_files, logger)
