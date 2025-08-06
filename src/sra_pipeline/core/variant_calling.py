@@ -73,7 +73,7 @@ def run_variant_calling(
         final_vcf_file = output_dir / f"{sample_id}_variants.vcf.gz"
         final_vcf_file.unlink(missing_ok=True)        # Remove if exists
         compressed_vcf_file.rename(final_vcf_file)
-        compressed_vcf_file_index = tmp_dir / f"{sample_id}_filtered.vcf.gz.tbi"
+        compressed_vcf_file_index = tmp_dir / f"{sample_id}_compressed.vcf.gz.tbi"
         final_vcf_file_index = output_dir / f"{sample_id}_variants.vcf.gz.tbi"
         final_vcf_file_index.unlink(missing_ok=True)  # Remove if exists
         compressed_vcf_file_index.rename(final_vcf_file_index)
