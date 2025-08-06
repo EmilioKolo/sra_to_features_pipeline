@@ -108,14 +108,19 @@ log "Finished snpEff custom genome setup. Starting BWA indexing."
 # Index reference genome with bwa
 bwa index "$DATA_DIR/reference.fasta"
 
-log "Finished BWA indexing. Starting cnvpytor data download."
-# Download cnvpytor data
-cnvpytor -download
+log "Finished BWA indexing."
 
-log "Finished cnvpytor data download. Starting Kraken2 database creation."
+### Temporarily disabled steps. Will be re-enabled in future versions.
+#log "Finished BWA indexing. Starting cnvpytor data download."
+# Download cnvpytor data
+#cnvpytor -download
+
+#log "Finished cnvpytor data download. Starting Kraken2 database creation."
 # Download Kraken2 database
-mkdir -p "$KRAKEN_DB"
-download "$KRAKEN2_DB_URL" "$KRAKEN_DB/k2.tar.gz"
-tar -xzf "$KRAKEN_DB/k2.tar.gz" -C "$KRAKEN_DB"
-rm -f "$KRAKEN_DB/k2.tar.gz"
-log "Finished Kraken2 database creation."
+#mkdir -p "$KRAKEN_DB"
+#download "$KRAKEN2_DB_URL" "$KRAKEN_DB/k2.tar.gz"
+#tar -xzf "$KRAKEN_DB/k2.tar.gz" -C "$KRAKEN_DB"
+#rm -f "$KRAKEN_DB/k2.tar.gz"
+#log "Finished Kraken2 database creation."
+
+log "🎉 Setup complete. All files are in $BASE_DIR."

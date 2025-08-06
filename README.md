@@ -11,6 +11,12 @@ A modern, production-ready bioinformatics pipeline for extracting genomic featur
 # Install pipeline (handles build_editable errors automatically)
 ./install_dev.sh
 
+# Define config.ini variables before running anything else
+cat config.ini
+
+# Run the setup script (may take a while, downloads some databases)
+sra-pipeline-setup
+
 # Run pipeline
 sra-pipeline run --sra-id SRR123456 --output-dir ./results
 ```
