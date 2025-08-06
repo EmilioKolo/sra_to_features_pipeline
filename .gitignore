@@ -197,7 +197,7 @@ temp/
 
 # Configuration files with sensitive data
 config.ini
-config_human.ini
+config_*.ini
 .env.local
 .env.production
 
