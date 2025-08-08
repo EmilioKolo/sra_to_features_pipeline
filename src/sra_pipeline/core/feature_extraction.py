@@ -21,6 +21,7 @@ def extract_features(
     sample_id: str,
     bam_file: Path,
     vcf_file: Path,
+    snpeff_file: Path,
     reference_gff: Path,
     bed_genes: Path,
     genome_sizes: Path,
@@ -61,7 +62,7 @@ def extract_features(
     features["genomic_bins"] = _extract_genomic_bins(vcf_file, genome_sizes, bin_size_gvs, logger)
     
     # Extract gene-level variant statistics
-    features["gene_stats"] = _extract_gene_variants(vcf_file, bed_genes, logger)
+    features["gene_stats"] = _extract_gene_variants(sample_id, snpeff_file, bed_genes, reference_gff, logger)
     
     # Extract copy number variations
     features["cnv_regions"] = _extract_cnv_regions(sample_id, bam_file, bin_size_cnv, logger)
@@ -180,8 +181,10 @@ def _extract_genomic_bins(
 
 
 def _extract_gene_variants(
+    sample_id: str,
     vcf_file: Path,
     bed_genes: Path,
+    reference_gff: Path,
     logger: structlog.BoundLogger
 ) -> List[GeneVariantStats]:
     """Extract gene-level variant statistics."""
@@ -189,27 +192,115 @@ def _extract_gene_variants(
                 vcf_file=str(vcf_file), 
                 bed_genes=str(bed_genes))
     
-    # This is a placeholder implementation
-    # In a real implementation, you would:
-    # 1. Read the BED genes file
-    # 2. Use bedtools to intersect variants with genes
-    # 3. Calculate synonymous/nonsynonymous ratios
-    
-    # For now, return dummy data
+    # Initialize the variable that is returned
     genes = []
-    gene_names = ["GENE1", "GENE2", "GENE3", "GENE4", "GENE5"]
+    # Get gene names and positions from the gff file
+    gene_data = []
+    with open(reference_gff, 'r') as gff_file:
+        for line in gff_file:
+            if line.startswith("#") or not line.strip():
+                continue
+            parts = line.strip().split('\t')
+            if len(parts) > 8 and "gene" in parts[2]:
+                attr = parts[8]
+                gene_name = attr.split("gene_name=")[-1].split(";")[0]
+                gene_data.append({
+                    "gene_name": gene_name,
+                    "chr": parts[0],
+                    "start": int(parts[3]),
+                    "end": int(parts[4])
+                })
     
-    for i, gene_name in enumerate(gene_names):
-        genes.append(GeneVariantStats(
-            gene_name=gene_name,
-            chromosome=f"chr{i+1}",
-            start=i * 10000,
-            end=(i + 1) * 10000,
-            total_variants=50,
-            synonymous_variants=30,
-            nonsynonymous_variants=20,
-            dn_ds_ratio=0.67
-        ))
+    # Create a BED data string in memory
+    bed_data: str = ""
+    for gene in gene_data:
+        bed_data += f"{gene['chr']}\t{gene['start']}\t" + \
+                    f"{gene['end']}\t{gene['gene_name']}\n"
+    
+    # Run bcftools intersect and capture the output
+    cmd = ["bcftools", "view", "-R", "-", str(vcf_file)]
+    
+    log_command(logger, " ".join(cmd), vcf_file=str(vcf_file))
+
+    result = subprocess.run(cmd, input=bed_data,
+                            capture_output=True, text=True)
+
+    # Parse the bcftools output to count variants per gene
+    varcount_all = {gene['gene_name']: 0 for gene in gene_data}
+    varcount_syn = {gene['gene_name']: 0 for gene in gene_data}
+    varcount_nonsyn = {gene['gene_name']: 0 for gene in gene_data}
+    varcount_indel = {gene['gene_name']: 0 for gene in gene_data}
+    if result.returncode == 0:
+        for line in result.stdout.splitlines():
+            if line.startswith('#'):
+                continue
+            parts = line.split('\t')
+            chr = parts[0]
+            start = int(parts[1])
+            # Determine which gene the variant belongs to
+            for gene in gene_data:
+                if gene['chr'] == chr and \
+                    gene['start'] <= start <= gene['end']:
+                    # Count the variant to varcount_all
+                    varcount_all[gene['gene_name']] += 1
+                    # Define if the variant is synonymous or nonsynonymous
+                    info_field = parts[7].split(';')
+                    if "INDEL"==info_field[0].upper():
+                        varcount_indel[gene['gene_name']] += 1
+                    else:
+                        ann_field = _extract_ann(info_field)
+                        l_ann = ann_field.split(',')
+                        nonsynonymous = False
+                        synonymous = False
+                        for ann in l_ann:
+                            if 'missense_variant' in ann.lower() or \
+                               'nonsense_variant' in ann.lower() or \
+                                'stop_gained' in ann.lower() or \
+                                'stop_lost' in ann.lower():
+                                varcount_nonsyn[gene['gene_name']] += 1
+                                nonsynonymous = True
+                            if 'synonymous_variant' in ann.lower():
+                                varcount_syn[gene['gene_name']] += 1
+                                synonymous = True
+                            if (not synonymous and not nonsynonymous) and \
+                                not 'upstream' in ann.lower() and \
+                                not 'downstream' in ann.lower() and \
+                                not 'intron' in ann.lower() and \
+                                not 'intergenic' in ann.lower() and \
+                                not 'non_coding' in ann.lower() and \
+                                not 'intragenic' in ann.lower():
+                                ### DISPLAY
+                                logger.warning(
+                                    f"Unhandled variant effect: {ann}",
+                                    sample_id=sample_id)
+                                ###
+                                pass
+    else:
+        logger.warning(
+            f"Bad returncode: {result.returncode}\n{result.stderr}",
+            sample_id=sample_id
+        )
+        return []
+    # Define values per gene
+    for gene in gene_data:
+        n_var = varcount_all.get(gene['gene_name'], 0)
+        n_syn = varcount_syn.get(gene['gene_name'], 0)
+        n_nonsyn = varcount_nonsyn.get(gene['gene_name'], 0)
+        n_indel = varcount_indel.get(gene['gene_name'], 0)
+        dn_ds_ratio = (n_nonsyn / n_syn) if n_syn > 0 else float('inf')
+        genes.append(
+            GeneVariantStats(
+                gene_name=gene['gene_name'],
+                chromosome=gene['chr'],
+                start=gene['start'],
+                end=gene['end'],
+                total_variants=n_var,
+                synonymous_variants=n_syn,
+                nonsynonymous_variants=n_nonsyn,
+                dn_ds_ratio=dn_ds_ratio,
+                indel_variants=n_indel
+            )
+        )
     
     return genes
 
@@ -246,4 +337,12 @@ def _extract_cnv_regions(
             type="gain"
         ))
     
-    return cnv_regions 
+    return cnv_regions
+
+def _extract_ann(info_field:list[str]) -> str:
+    """Extracts the ANN field from a snpEff vcf into a string."""
+    # Go through info_field
+    for field in info_field:
+        if field.startswith('ANN='):
+            return field.split('ANN=')[1]
+    return ""

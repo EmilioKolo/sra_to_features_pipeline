@@ -77,12 +77,13 @@ class GeneVariantStats(BaseModel):
     total_variants: int = Field(description="Total number of variants")
     synonymous_variants: int = Field(description="Number of synonymous variants")
     nonsynonymous_variants: int = Field(description="Number of nonsynonymous variants")
+    indel_variants: int = Field(description="Number of indel (insertion/deletion) variants")
     dn_ds_ratio: Optional[float] = Field(
         default=None, 
         description="dN/dS ratio (nonsynonymous/synonymous substitution rate)"
     )
     
-    @field_validator('total_variants', 'synonymous_variants', 'nonsynonymous_variants')
+    @field_validator('total_variants', 'synonymous_variants', 'nonsynonymous_variants', 'indel_variants')
     @classmethod
     def validate_variant_counts(cls, v):
         """Validate that variant counts are non-negative."""
