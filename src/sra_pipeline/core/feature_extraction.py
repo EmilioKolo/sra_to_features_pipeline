@@ -4,7 +4,10 @@ Feature extraction functionality for genomic data.
 
 from pathlib import Path
 from typing import Dict, Any, List
+from ..utils import log_command
+import statistics
 import structlog
+import subprocess
 
 from ..models.features import (
     FragmentLengthStats, 
@@ -81,22 +84,65 @@ def extract_features(
 def _extract_fragment_lengths(
     sample_id: str,
     bam_file: Path,
-    logger: structlog.BoundLogger
+    logger: structlog.BoundLogger,
+    min_size: int = 0,
+    max_size: int = 1000
 ) -> FragmentLengthStats:
     """Extract fragment length statistics from BAM file."""
-    logger.info("Extracting fragment length statistics", sample_id=sample_id)
+    logger.info("Extracting fragment length statistics", 
+                sample_id=sample_id)
+
+    # First command: samtools view
+    cmd1 = ["samtools", "view", "-f", "0x2", str(bam_file)]
+
+    log_command(logger, " ".join(cmd1), sample_id=sample_id)
+
+    p1 = subprocess.Popen(cmd1, stdout=subprocess.PIPE)
+
+    # Second command: awk
+    awk_command = f'{{if ($9>{min_size} && $9<{max_size}) print $9}}'
+    cmd2 = ['awk', awk_command]
+
+    log_command(logger, " ".join(cmd2), sample_id=sample_id)
+
+    p2 = subprocess.Popen(cmd2, stdin=p1.stdout, stdout=subprocess.PIPE)
+    p1.stdout.close()
     
-    # This is a placeholder implementation
-    # In a real implementation, you would use samtools or pysam to extract fragment lengths
+    # Get the output of the second command
+    output, _ = p2.communicate()
+
+    if not _ is None:
+        _decoded = _.decode('utf-8')
+        logger.warning(f'_: {_decoded}', sample_id=sample_id)
+
+    # Parse the output to get fragment lengths
+    fragment_lengths = output.decode('utf-8').strip().split('\n')
+    # Convert to integers
+    fragment_lengths = list(map(int, fragment_lengths))
+
+    # Check if there are any fragment lengths
+    if not fragment_lengths:
+        logger.warning("No fragment lengths found", sample_id=sample_id)
+        return FragmentLengthStats(
+            mean=0.0,
+            median=0.0,
+            std=0.0,
+            min=0.0,
+            max=0.0,
+            count=0
+        )
     
-    # For now, return dummy data
+    logger.info("Fragment lengths extracted",
+                sample_id=sample_id,
+                bam_file=str(bam_file))
+    # Calculate and return required stats
     return FragmentLengthStats(
-        mean=150.0,
-        median=150.0,
-        std=25.0,
-        min=50.0,
-        max=300.0,
-        count=1000000
+        mean=statistics.mean(fragment_lengths),
+        median=statistics.median(fragment_lengths),
+        std=statistics.stdev(fragment_lengths),
+        min=min(fragment_lengths),
+        max=max(fragment_lengths),
+        count=len(fragment_lengths)
     )
 
 
