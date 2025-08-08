@@ -14,10 +14,12 @@ def run_variant_calling(
     bam_file: Path,
     reference_fasta: Path,
     output_dir: Path,
+    snpeff_dir: Path,
+    genome_name: str,
     min_quality_score: int,
     min_coverage: int,
     logger: structlog.BoundLogger
-) -> Path:
+) -> tuple[Path, Path]:
     """
     Run variant calling using bcftools.
     
@@ -69,23 +71,41 @@ def run_variant_calling(
         compressed_vcf_file = _compress_and_index_vcf(sample_id, filtered_vcf_file, tmp_dir, logger)
         intermediate_files.append(compressed_vcf_file)
         
-        # Step 5: Move final VCF and its index to output directory and rename
+        # Step 5: Move filtered VCF and its index to output directory and rename
         final_vcf_file = output_dir / f"{sample_id}_variants.vcf.gz"
-        final_vcf_file.unlink(missing_ok=True)        # Remove if exists
+        final_vcf_file.unlink(missing_ok=True)  # Remove if exists
         compressed_vcf_file.rename(final_vcf_file)
+
         compressed_vcf_file_index = tmp_dir / f"{sample_id}_compressed.vcf.gz.tbi"
         final_vcf_file_index = output_dir / f"{sample_id}_variants.vcf.gz.tbi"
         final_vcf_file_index.unlink(missing_ok=True)  # Remove if exists
         compressed_vcf_file_index.rename(final_vcf_file_index)
         
-        # Step 6: Clean up intermediate files
+        # Step 6: Analysis with snpEff
+        snpeff_vcf = _snpeff_analysis(sample_id, final_vcf_file, tmp_dir, snpeff_dir, genome_name, logger)
+        intermediate_files.append(snpeff_vcf)
+
+        # Step 7: Compress and index snpEff vcf
+        compressed_snpeff_file = _compress_and_index_vcf(sample_id, snpeff_vcf, output_dir, logger)
+
+        # Step 8: Move snpeff VCF and its index to output directory and rename
+        final_snpeff = output_dir / f"{sample_id}_snpeff.vcf.gz"
+        final_snpeff.unlink(missing_ok=True)  # Remove if exists
+        compressed_snpeff_file.rename(final_snpeff)
+
+        compressed_snpeff_file_index = output_dir / f"{sample_id}_compressed.vcf.gz.tbi"
+        final_snpeff_index = output_dir / f"{sample_id}_snpeff.vcf.gz.tbi"
+        final_snpeff_index.unlink(missing_ok=True)  # Remove if exists
+        compressed_snpeff_file_index.rename(final_snpeff_index)
+
+        # Step 9: Clean up intermediate files
         _cleanup_intermediate_files(intermediate_files, logger)
         
         logger.info("Variant calling completed", 
                     sample_id=sample_id, 
-                    output_vcf=str(final_vcf_file))
+                    output_vcf=str(final_snpeff))
         
-        return final_vcf_file
+        return final_vcf_file, final_snpeff
         
     except Exception as e:
         # Clean up intermediate files on error
@@ -262,6 +282,42 @@ def _compress_and_index_vcf(
         raise RuntimeError(f"VCF compression/indexing timed out for sample: {sample_id}")
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"VCF compression/indexing failed for sample {sample_id}: {e.stderr}")
+
+
+def _snpeff_analysis(
+    sample_id: str,
+    vcf_file: Path,
+    output_dir: Path,
+    snpeff_dir: Path,
+    genome_name: str,
+    logger: structlog.BoundLogger
+) -> Path:
+    """Filters variants using snpEff."""
+    snpeff_file = output_dir / f"{sample_id}_snpeff.vcf"
+
+    # Run snpEff on the input vcf file
+    cmd = ['java', '-Xmx8g', '-jar', 
+           f'{str(snpeff_dir)}/snpEff/snpEff.jar', str(genome_name),
+           str(vcf_file), '>', str(snpeff_file)]
+
+    log_command(logger, " ".join(cmd), sample_id=sample_id)
+    
+    try:
+        result = subprocess.run(
+            " ".join(cmd),
+            shell=True,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=3600  # 1 hour timeout
+        )
+
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"snpEff analysis timed out for sample: {sample_id}")
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"snpEff analysis failed for sample {sample_id}: {e.stderr}")
+    
+    return snpeff_file
 
 
 def _cleanup_intermediate_files(files: list, logger: structlog.BoundLogger):

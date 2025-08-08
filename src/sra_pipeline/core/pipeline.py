@@ -162,10 +162,10 @@ class Pipeline:
             bam_file = self._run_alignment(sample_id, fastq_files)
             
             # Step 3: Variant Calling
-            vcf_file = self._run_variant_calling(sample_id, bam_file)
+            vcf_file, snpeff_file = self._run_variant_calling(sample_id, bam_file)
             
             # Step 4: Feature Extraction
-            features = self._extract_features(sample_id, bam_file, vcf_file)
+            features = self._extract_features(sample_id, bam_file, vcf_file, snpeff_file)
             
             # Step 5: Create FeatureSet
             feature_set = self._create_feature_set(
@@ -231,24 +231,26 @@ class Pipeline:
             plog.add_context(sample_id=sample_id, bam_file=str(bam_file))
             
             try:
-                vcf_file = variant_calling.run_variant_calling(
+                vcf_file, snpeff_file = variant_calling.run_variant_calling(
                     sample_id=sample_id,
                     bam_file=bam_file,
                     reference_fasta=self.config.reference_fasta,
                     output_dir=self.config.get_data_dir() / "vcf",
+                    snpeff_dir=self.config.snpeff_dir,
+                    genome_name=self.config.genome_name,
                     min_quality_score=self.config.min_quality_score,
                     min_coverage=self.config.min_coverage,
                     logger=self.logger
                 )
                 
                 plog.log_progress(f"Variant calling completed: {vcf_file}")
-                return vcf_file
+                return vcf_file, snpeff_file
                 
             except Exception as e:
                 log_error(self.logger, e, context={"sample_id": sample_id, "operation": "variant_calling"})
                 raise
     
-    def _extract_features(self, sample_id: str, bam_file: Path, vcf_file: Path) -> Dict[str, Any]:
+    def _extract_features(self, sample_id: str, bam_file: Path, vcf_file: Path, snpeff_file: Path) -> Dict[str, Any]:
         """Extract features from aligned and variant-called data."""
         with PipelineLogger(self.logger, f"feature_extraction_{sample_id}") as plog:
             plog.add_context(sample_id=sample_id, bam_file=str(bam_file), vcf_file=str(vcf_file))
@@ -258,6 +260,7 @@ class Pipeline:
                     sample_id=sample_id,
                     bam_file=bam_file,
                     vcf_file=vcf_file,
+                    snpeff_file=snpeff_file,
                     reference_gff=self.config.reference_gff,
                     bed_genes=self.config.bed_genes,
                     genome_sizes=self.config.genome_sizes,
