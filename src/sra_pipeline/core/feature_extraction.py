@@ -302,7 +302,8 @@ def _extract_gene_variants(
     logger: structlog.BoundLogger
 ) -> List[GeneVariantStats]:
     """Extract gene-level variant statistics."""
-    logger.info("Extracting gene-level variant statistics", 
+    logger.info("Extracting gene-level variant statistics",
+                sample_id=sample_id,
                 vcf_file=str(vcf_file), 
                 bed_genes=str(bed_genes))
     
