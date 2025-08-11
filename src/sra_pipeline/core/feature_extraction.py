@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Dict, Any, List
 from ..utils import log_command
 import gzip
-import os
 import pandas as pd
 import statistics
 import structlog
@@ -166,9 +165,9 @@ def _extract_genomic_bins(
     bins = []
     # Create a temporary directory to store intermediate BED files
     with tempfile.TemporaryDirectory() as tmpdir:
-        bins_bed = os.path.join(tmpdir, "genome_bins.bed")
-        variants_bed = os.path.join(tmpdir, "variants.bed")
-        intersected = os.path.join(tmpdir, "intersected.bed")
+        bins_bed = Path(tmpdir) / "genome_bins.bed"
+        variants_bed = Path(tmpdir) / "variants.bed"
+        intersected = Path(tmpdir) / "intersected.bed"
 
         # Generate genome bins using bedtools makewindows
         cmd_makewindows = ['bedtools', 'makewindows', '-g', 
