@@ -122,5 +122,3 @@ log "Finished BWA indexing."
 #tar -xzf "$KRAKEN_DB/k2.tar.gz" -C "$KRAKEN_DB"
 #rm -f "$KRAKEN_DB/k2.tar.gz"
 #log "Finished Kraken2 database creation."
-
-log "🎉 Setup complete. All files are in $BASE_DIR."
