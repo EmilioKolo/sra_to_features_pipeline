@@ -337,8 +337,19 @@ def _extract_gene_variants(
     
     log_command(logger, " ".join(cmd), vcf_file=str(vcf_file))
 
-    result = subprocess.run(cmd, input=bed_data,
-                            capture_output=True, text=True)
+    try:
+        result = subprocess.run(
+            cmd,
+            input=bed_data,
+            capture_output=True,
+            text=True,
+            timeout=600  # 10 minute timeout
+        )
+
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"bcftools view timed out for sample: {sample_id}")
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"bcftools view failed for sample {sample_id}: {e.stderr}")
 
     # Parse the bcftools output to count variants per gene
     varcount_all = {gene['gene_name']: 0 for gene in gene_data}
