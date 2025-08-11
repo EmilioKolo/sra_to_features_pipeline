@@ -5,9 +5,13 @@ Feature extraction functionality for genomic data.
 from pathlib import Path
 from typing import Dict, Any, List
 from ..utils import log_command
+import gzip
+import os
+import pandas as pd
 import statistics
 import structlog
 import subprocess
+import tempfile
 
 from ..models.features import (
     FragmentLengthStats, 
@@ -59,7 +63,7 @@ def extract_features(
     features["fragment_stats"] = _extract_fragment_lengths(sample_id, bam_file, logger)
     
     # Extract genomic variant bins
-    features["genomic_bins"] = _extract_genomic_bins(vcf_file, genome_sizes, bin_size_gvs, logger)
+    features["genomic_bins"] = _extract_genomic_bins(sample_id, vcf_file, genome_sizes, bin_size_gvs, logger)
     
     # Extract gene-level variant statistics
     features["gene_stats"] = _extract_gene_variants(sample_id, snpeff_file, bed_genes, reference_gff, logger)
@@ -148,6 +152,7 @@ def _extract_fragment_lengths(
 
 
 def _extract_genomic_bins(
+    sample_id: str,
     vcf_file: Path,
     genome_sizes: Path,
     bin_size: int,
@@ -157,26 +162,136 @@ def _extract_genomic_bins(
     logger.info("Extracting genomic variant bins", 
                 vcf_file=str(vcf_file), 
                 bin_size=bin_size)
-    
-    # This is a placeholder implementation
-    # In a real implementation, you would:
-    # 1. Read the genome sizes file
-    # 2. Create bins based on bin_size
-    # 3. Count variants in each bin using bedtools
-    
-    # For now, return dummy data
+    # Initialize the output list
     bins = []
-    chromosomes = ["chr1", "chr2", "chr3", "chrX", "chrY"]
-    
-    for chrom in chromosomes:
-        for i in range(0, 1000000, bin_size):
-            bins.append(GenomicBin(
-                chromosome=chrom,
-                start=i,
-                end=i + bin_size,
-                variant_count=10  # Dummy count
-            ))
-    
+    # Create a temporary directory to store intermediate BED files
+    with tempfile.TemporaryDirectory() as tmpdir:
+        bins_bed = os.path.join(tmpdir, "genome_bins.bed")
+        variants_bed = os.path.join(tmpdir, "variants.bed")
+        intersected = os.path.join(tmpdir, "intersected.bed")
+
+        # Generate genome bins using bedtools makewindows
+        cmd_makewindows = ['bedtools', 'makewindows', '-g', 
+                           str(genome_sizes), '-w', str(bin_size)]
+        log_command(logger, " ".join(cmd_makewindows),
+                    sample_id=sample_id)
+        try:
+            with open(bins_bed, "w") as outfile:
+                subprocess.run(
+                    cmd_makewindows,
+                    stdout=outfile,
+                    check=True,
+                    text=True
+                )
+            logger.info(f"Genome bins saved to {bins_bed}", 
+                        sample_id=sample_id)
+        except FileNotFoundError:
+            logger.error("bedtools command not found. Please ensure bedtools is installed and in your PATH.",
+                         sample_id=sample_id)
+            return []
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to generate genome bins using bedtools: {e}",
+                         sample_id=sample_id)
+            logger.error(f"Stderr: {e.stderr}",
+                         sample_id=sample_id)
+            return []
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during bedtools makewindows: {e}",
+                         sample_id=sample_id)
+            return []
+
+        # Convert VCF to BED format
+        logger.info(f"Converting VCF file {vcf_file} to BED format...",
+                    sample_id=sample_id)
+        try:
+            with gzip.open(vcf_file, 'rt') as vcf_in, \
+                 open(variants_bed, "w") as bed_out:
+                for line in vcf_in:
+                    if line.startswith("#"):
+                        continue
+                    fields = line.strip().split("\t")
+                    chrom = fields[0]
+                    start = int(fields[1]) - 1 # BED is 0-based
+                    ref = fields[3]
+                    end = start + max(len(ref), 1) # Minimum 1 base length for variants
+                    bed_out.write(f"{chrom}\t{start}\t{end}\n")
+            logger.info(f"Variants converted to BED and saved to {variants_bed}",
+                        sample_id=sample_id)
+        except FileNotFoundError:
+            logger.error(f"VCF file not found at {vcf_file}.",
+                         sample_id=sample_id)
+            return []
+        except gzip.BadGzipFile:
+            logger.error(f"VCF file {vcf_file} is not a valid gzipped file.",
+                         sample_id=sample_id)
+            return []
+        except Exception as e:
+            logger.error(f"Failed to convert VCF to BED: {e}",
+                         sample_id=sample_id)
+            return []
+
+        # Count variants per bin using bedtools intersect
+        cmd_intersect = ["bedtools", "intersect", "-a", str(bins_bed), 
+                         "-b", str(variants_bed), "-c"]
+        log_command(logger, " ".join(cmd_intersect),
+                    sample_id=sample_id)
+        try:
+            with open(intersected, "w") as outfile:
+                subprocess.run(
+                    cmd_intersect,
+                    stdout=outfile,
+                    check=True,
+                    text=True
+                )
+            logger.info(f"Intersection results saved to {intersected}",
+                        sample_id=sample_id)
+        except FileNotFoundError:
+            logger.error("bedtools command not found. Please ensure bedtools is installed and in your PATH.",
+                         sample_id=sample_id)
+            return []
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to intersect variants with genome bins: {e}",
+                         sample_id=sample_id)
+            logger.error(f"Stderr: {e.stderr}",
+                         sample_id=sample_id)
+            return []
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during bedtools intersect: {e}",
+                         sample_id=sample_id)
+            return []
+
+        # Parse intersection output into a list of dictionaries
+        logger.info("Parsing intersection output...", sample_id=sample_id)
+        try:
+            df = pd.read_csv(
+                intersected,
+                sep="\t",
+                header=None,
+                names=["chrom", "start", "end", "variant_count"]
+            )
+        except pd.errors.EmptyDataError:
+            logger.warning("Intersection result file is empty. No variants found in bins.",
+                           sample_id=sample_id)
+            return []
+        except Exception as e:
+            logger.error(f"Failed to read intersection result: {e}",
+                         sample_id=sample_id)
+            return []
+
+        if df.empty:
+            logger.warning("No intersected variants found after parsing.",
+                           sample_id=sample_id)
+        else:
+            # Load the output to the bins list
+            for _, row in df.iterrows():
+                bins.append(GenomicBin(
+                    chromosome=row['chrom'],
+                    start=row['start'],
+                    end=row['end'],
+                    variant_count=row["variant_count"]
+                ))
+            logger.info(f"Successfully processed {len(bins)} genomic bins.",
+                        sample_id=sample_id)
     return bins
 
 
