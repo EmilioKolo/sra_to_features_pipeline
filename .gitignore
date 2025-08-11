@@ -187,6 +187,8 @@ genomes/
 databases/
 kraken_db/
 snpeff_db/
+snpEff_genes.txt
+snpEff_summary.html
 
 # Pipeline outputs
 output/
