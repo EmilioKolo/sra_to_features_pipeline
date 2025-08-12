@@ -397,7 +397,8 @@ def _extract_gene_variants(
                                 not 'intron' in ann.lower() and \
                                 not 'intergenic' in ann.lower() and \
                                 not 'non_coding' in ann.lower() and \
-                                not 'intragenic' in ann.lower():
+                                not 'intragenic' in ann.lower() and \
+                                not 'utr_variant' in ann.lower():
                                 curr_eff = ann.split('|')[1] if '|' in ann else ann
                                 unhandled_effects.add(curr_eff)
                                 n_unhandled += 1
