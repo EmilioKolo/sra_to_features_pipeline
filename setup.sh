@@ -108,8 +108,6 @@ log "Finished snpEff custom genome setup. Starting BWA indexing."
 # Index reference genome with bwa
 bwa index "$DATA_DIR/reference.fasta"
 
-#log "Finished BWA indexing."
-
 ### Temporarily disabled steps. Will be re-enabled in future versions.
 log "Finished BWA indexing. Starting cnvpytor data download."
 # Download cnvpytor data
