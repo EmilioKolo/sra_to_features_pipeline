@@ -45,6 +45,9 @@ def setup_logging(
         cache_logger_on_first_use=True,
     )
     
+    # Make sure the log_file exists if it is not None
+    if log_file is not None:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
     # Configure standard library logging
     import logging
     logging.basicConfig(
