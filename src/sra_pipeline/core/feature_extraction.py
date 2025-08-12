@@ -10,6 +10,7 @@ import pandas as pd
 import statistics
 import structlog
 import subprocess
+import sys
 import tempfile
 
 from ..models.features import (
@@ -448,26 +449,45 @@ def _extract_cnv_regions(
                 sample_id=sample_id, 
                 bam_file=str(bam_file),
                 bin_size=bin_size)
-    
-    # This is a placeholder implementation
-    # In a real implementation, you would:
-    # 1. Use CNVpytor or similar tool
-    # 2. Analyze read depth patterns
-    # 3. Identify copy number variations
-    
-    # For now, return dummy data
+    # Initialize the output list
     cnv_regions = []
-    chromosomes = ["chr1", "chr2", "chr3"]
-    
-    for i, chrom in enumerate(chromosomes):
-        cnv_regions.append(CNVRegion(
-            chromosome=chrom,
-            start=i * 50000,
-            end=(i + 1) * 50000,
-            copy_number=3.0,  # Amplification
-            confidence=0.95,
-            type="gain"
-        ))
+
+    # Create a temporary directory to store intermediate cnvpytor files
+    #with tempfile.TemporaryDirectory() as tmpdir:
+    with Path('./results') as tmpdir:
+        logger.info("Defining CNVpytor root file",
+                    sample_id=sample_id)
+        # Define the root file for CNVpytor
+        ROOT_FILE = Path(tmpdir) / f"{sample_id}.pytor"
+        
+        # Remove existing root file if it exists
+        if ROOT_FILE.exists():
+            ROOT_FILE.unlink()
+        
+        logger.info(f"CNVpytor root file will be: {ROOT_FILE}", 
+                    sample_id=sample_id)
+        # Check that bam file exists
+        if not bam_file.exists():
+            logger.error(f"BAM file not found at {bam_file}",
+                         sample_id=sample_id)
+            sys.exit(1)
+        
+        # Run CNVpytor scripts in order
+        cnv_call_file = _run_cnvpytor(
+            sample_id,
+            bam_file,
+            ROOT_FILE,
+            bin_size,
+            Path(tmpdir),
+            logger
+        )
+
+        # Read CNVpytor output and extract CNV features
+        cnv_regions = _read_cnvpytor_out(
+            sample_id,
+            cnv_call_file,
+            logger
+        )
     
     return cnv_regions
 
@@ -478,3 +498,146 @@ def _extract_ann(info_field:list[str]) -> str:
         if field.startswith('ANN='):
             return field.split('ANN=')[1]
     return ""
+
+def _run_cnvpytor(
+    sample_id: str,
+    bam_file: Path,
+    root_file: Path,
+    bin_size: int,
+    output_dir: Path,
+    logger: structlog.BoundLogger
+) -> Path:
+    """Runs several cnvpytor scripts in order.
+    Returns the path to the cnv call file."""
+
+    # Define output file
+    cnv_call_file = output_dir / f"cnv_calls_{sample_id}.txt"
+
+    logger.info("Processing Read Depth data...",
+                sample_id=sample_id)
+
+    # Start by processing read depth data
+    cmd1 = ['cnvpytor', '-root', str(root_file), '-rd', str(bam_file)]
+
+    log_command(logger, " ".join(cmd1), sample_id=sample_id)
+
+    try:
+        result = subprocess.run(cmd1, capture_output=True, check=True,
+                                timeout=600) # 10 minute timeout
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"cnvpytor read depth timed out for sample: {sample_id}")
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"cnvpytor read depth failed for sample {sample_id}: {e.stderr}")
+
+    logger.info("Read Depth processing complete.",
+                sample_id=sample_id)
+
+    logger.info("Generating histograms and partitioning data...",
+                sample_id=sample_id)
+
+    # Create histograms for RD
+    cmd2 = ['cnvpytor', '-root', str(root_file), '-his', str(bin_size)]
+
+    log_command(logger, " ".join(cmd2), sample_id=sample_id)
+
+    try:
+        result = subprocess.run(cmd2, capture_output=True, check=True,
+                                timeout=600) # 10 minute timeout
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"cnvpytor histograms timed out for sample: {sample_id}")
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"cnvpytor histograms failed for sample {sample_id}: {e.stderr}")
+
+    logger.info("Histograms created.",
+                sample_id=sample_id)
+    
+    logger.info("Starting with partitioning...",
+                sample_id=sample_id)
+    # Partition data for CNV calling
+    cmd3 = ['cnvpytor', '-root', str(root_file),
+            '-partition', str(bin_size)]
+    
+    log_command(logger, " ".join(cmd3), sample_id=sample_id)
+
+    try:
+        result = subprocess.run(cmd3, capture_output=True, check=True,
+                                timeout=600) # 10 minute timeout
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"cnvpytor partitioning timed out for sample: {sample_id}")
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"cnvpytor partitioning failed for sample {sample_id}: {e.stderr}")
+
+    logger.info("Partitioning complete.",
+                sample_id=sample_id)
+
+    # Call CNVs
+    cmd4 = ['cnvpytor', '-root', str(root_file),
+            '-call', str(bin_size), '>', str(cnv_call_file)]
+    
+    log_command(logger, " ".join(cmd4), sample_id=sample_id)
+
+    try:
+        result = subprocess.run(
+            " ".join(cmd4),
+            shell=True,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=1800 # 30 minute timeout
+        )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"cnvpytor CNV calling timed out for sample: {sample_id}")
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"cnvpytor partitioning failed for sample {sample_id}: {e.stderr}")
+    
+    logger.info("CNV calling complete.",
+                sample_id=sample_id)
+    
+    return cnv_call_file
+
+def _read_cnvpytor_out(
+    sample_id: str,
+    cnv_call_file: Path,
+    logger: structlog.BoundLogger
+) -> list[CNVRegion]:
+    """Extracts CNV features from a cnvpytor call output file."""
+    # Define output list
+    cnv_regions = []
+    # Extract calls from cnv_call_file
+    calls = []
+    with open(cnv_call_file, 'r') as f:
+        for line in f.readlines():
+            calls.append(line.rstrip('\n').split('\t'))
+    # Check CNV calls
+    for call in calls:
+        # Define type from call[0]
+        if call[0] == 'deletion':
+            cnv_type = 'loss'
+        elif call[0] == 'duplication':
+            cnv_type = 'gain'
+        else:
+            logger.error(f"Unknown CNV type: {call[0]} in sample {sample_id}. Skipping this call.",
+                         sample_id=sample_id)
+            continue
+        # Define chromosome, start and end from call[1]
+        chrom: str = call[1].split(':')[0]
+        start_end: list = call[1].split(':')[1].split('-')
+        start: int = int(start_end[0])
+        end: int = int(start_end[1])
+        # Define copy number and confidence
+        copy_number: float = float(call[3]) # read depth normalized to average depth
+        if float(call[6]) <= 1.0:
+            confidence: float = 1.0 - float(call[6]) # 1 - p-value (e-val3)
+        else:
+            logger.warning(f"P-value {call[6]} is greater than 1.0 for {call}. Setting confidence to 0.0.",
+                           sample_id=sample_id)
+            confidence: float = 0.0
+        cnv_regions.append(CNVRegion(
+            chromosome=chrom,
+            start=start,
+            end=end,
+            copy_number=copy_number,
+            confidence=confidence,
+            type=cnv_type
+        ))
+    return cnv_regions
