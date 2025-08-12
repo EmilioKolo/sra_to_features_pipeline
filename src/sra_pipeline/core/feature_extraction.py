@@ -356,6 +356,9 @@ def _extract_gene_variants(
     varcount_syn = {gene['gene_name']: 0 for gene in gene_data}
     varcount_nonsyn = {gene['gene_name']: 0 for gene in gene_data}
     varcount_indel = {gene['gene_name']: 0 for gene in gene_data}
+    # Start a set of unhandled genetic effects
+    unhandled_effects = set()
+    n_unhandled = 0
     if result.returncode == 0:
         for line in result.stdout.splitlines():
             if line.startswith('#'):
@@ -363,9 +366,6 @@ def _extract_gene_variants(
             parts = line.split('\t')
             chr = parts[0]
             start = int(parts[1])
-            # Start a set of unhandled genetic effects
-            unhandled_effects = set()
-            n_unhandled = 0
             # Determine which gene the variant belongs to
             for gene in gene_data:
                 if gene['chr'] == chr and \
@@ -401,12 +401,11 @@ def _extract_gene_variants(
                                 curr_eff = ann.split('|')[1] if '|' in ann else ann
                                 unhandled_effects.add(curr_eff)
                                 n_unhandled += 1
-            # Check if there were unhandled effects
-            if unhandled_effects:
-                logger.warning(
-                    f"There were {n_unhandled} unhandled effects of the following types: {unhandled_effects}",
-                    sample_id=sample_id)
-            pass
+    # Check if there were unhandled effects
+    if unhandled_effects:
+        logger.warning(
+            f"There were {n_unhandled} unhandled effects of the following types: {unhandled_effects}",
+            sample_id=sample_id)
     else:
         logger.warning(
             f"Bad returncode: {result.returncode}\n{result.stderr}",
