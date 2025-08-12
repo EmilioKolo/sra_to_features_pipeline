@@ -196,6 +196,7 @@ results/
 logs/
 tmp/
 temp/
+content/
 
 # Configuration files with sensitive data
 config.ini
