@@ -113,9 +113,9 @@ class CNVRegion(BaseModel):
     @field_validator('copy_number')
     @classmethod
     def validate_copy_number(cls, v):
-        """Validate that copy number is positive."""
-        if v <= 0:
-            raise ValueError("Copy number must be positive")
+        """Validate that copy number is positive or zero."""
+        if v < 0:
+            raise ValueError("Copy number must be positive or zero")
         return v
     
     @field_validator('confidence')
