@@ -11,11 +11,6 @@ if [ -z "$BASE_DIR" ]; then
     echo "Error: BASE_DIR not found in config.ini"
     exit 1
 fi
-KRAKEN_DB=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Paths" "KRAKEN_DB")
-if [ -z "$KRAKEN_DB" ]; then
-    echo "Error: KRAKEN_DB not found in config.ini"
-    exit 1
-fi
 SNPEFF_DIR=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Paths" "SNPEFF_DIR")
 if [ -z "$SNPEFF_DIR" ]; then
     echo "Error: SNPEFF_DIR not found in config.ini"
@@ -44,11 +39,6 @@ fi
 SNPEFF_URL=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Links" "SNPEFF_URL")
 if [ -z "$SNPEFF_URL" ]; then
     echo "Error: SNPEFF_URL not found in config.ini"
-    exit 1
-fi
-KRAKEN2_DB_URL=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Links" "KRAKEN2_DB_URL")
-if [ -z "$KRAKEN2_DB_URL" ]; then
-    echo "Error: KRAKEN2_DB_URL not found in config.ini"
     exit 1
 fi
 
@@ -114,11 +104,3 @@ log "Finished BWA indexing. Starting cnvpytor data download."
 cnvpytor -download
 
 log "Finished cnvpytor data download."
-
-#log "Finished cnvpytor data download. Starting Kraken2 database creation."
-# Download Kraken2 database
-#mkdir -p "$KRAKEN_DB"
-#download "$KRAKEN2_DB_URL" "$KRAKEN_DB/k2.tar.gz"
-#tar -xzf "$KRAKEN_DB/k2.tar.gz" -C "$KRAKEN_DB"
-#rm -f "$KRAKEN_DB/k2.tar.gz"
-#log "Finished Kraken2 database creation."
