@@ -168,13 +168,27 @@ def _calculate_quality_scores(
     # 2. Calculate scores based on various metrics
     # 3. Provide overall quality assessment
     
-    # For now, return dummy data
-    return {
+    # Populate a dummy data output
+    example_out = {
         "overall_quality_score": 85.0,
         "passes_quality_thresholds": True,
         "quality_warnings": [],
-        "quality_failures": []
+        "quality_failures": [],
+        "quality_scores": {
+            "per_base_quality": 30,
+            "per_sequence_quality": 30,
+            "per_base_gc_content": 48,
+            "per_sequence_gc_content": 48,
+            "per_base_n_content": 0.01,
+            "sequence_length_distribution": 120,
+            "duplicate_sequences": 0.01,
+            "duplicate_sequences_unique": 0.01,
+            "number_of_overrepresented_sequences": 5,
+            "percent_of_overrepresented_sequences": 0.01,
+            "adapter_content": 0.01
+        }
     }
+    return example_out
 
 
 def _extract_fastqc_metrics(
