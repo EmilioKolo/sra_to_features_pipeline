@@ -620,8 +620,8 @@ def _read_cnvpytor_out(
         elif call[0] == 'duplication':
             cnv_type = 'gain'
         else:
-            logger.error(f"Unknown CNV type: {call[0]} in sample {sample_id}. Skipping this call.",
-                         sample_id=sample_id)
+            logger.warning(f"Unknown CNV type: {call[0]} in sample {sample_id}. Skipping call.",
+                           sample_id=sample_id)
             continue
         # Define chromosome, start and end from call[1]
         chrom: str = call[1].split(':')[0]
@@ -633,8 +633,6 @@ def _read_cnvpytor_out(
         if float(call[6]) <= 1.0:
             confidence: float = 1.0 - float(call[6]) # 1 - p-value (e-val3)
         else:
-            logger.warning(f"P-value {call[6]} is greater than 1.0 for {call}. Setting confidence to 0.0.",
-                           sample_id=sample_id)
             confidence: float = 0.0
         cnv_regions.append(CNVRegion(
             chromosome=chrom,
