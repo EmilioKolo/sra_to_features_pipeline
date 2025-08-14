@@ -826,7 +826,7 @@ def avg_values(
     """Averages the values from key inside a list of dictionaries.
     Uses avg_key as the value to divide by total for a weighted average."""
     # Initialise return value
-    out_val = None
+    out_val = 0
     try:
         for dict_val in l_dict_val:
             weight: float = float(dict_val[avg_key]) / total
@@ -843,7 +843,7 @@ def sum_values(
 ) -> int|float:
     """Sums the values from key inside a list of dictionaries."""
     # Initialise return value
-    out_val = None
+    out_val = 0
     try:
         for dict_val in l_dict_val:
             out_val += dict_val[key]
