@@ -453,8 +453,7 @@ def _extract_cnv_regions(
     cnv_regions = []
 
     # Create a temporary directory to store intermediate cnvpytor files
-    #with tempfile.TemporaryDirectory() as tmpdir:
-    with Path('./results') as tmpdir:
+    with tempfile.TemporaryDirectory() as tmpdir:
         logger.info("Defining CNVpytor root file",
                     sample_id=sample_id)
         # Define the root file for CNVpytor
@@ -472,23 +471,28 @@ def _extract_cnv_regions(
                          sample_id=sample_id)
             sys.exit(1)
         
-        # Run CNVpytor scripts in order
-        cnv_call_file = _run_cnvpytor(
-            sample_id,
-            bam_file,
-            ROOT_FILE,
-            bin_size,
-            Path(tmpdir),
-            logger
-        )
+        # Wrap CNVpytor scripts in try/except
+        try:
+            # Run CNVpytor scripts in order
+            cnv_call_file = _run_cnvpytor(
+                sample_id,
+                bam_file,
+                ROOT_FILE,
+                bin_size,
+                Path(tmpdir),
+                logger
+            )
 
-        # Read CNVpytor output and extract CNV features
-        cnv_regions = _read_cnvpytor_out(
-            sample_id,
-            cnv_call_file,
-            logger
-        )
-    
+            # Read CNVpytor output and extract CNV features
+            cnv_regions = _read_cnvpytor_out(
+                sample_id,
+                cnv_call_file,
+                logger
+            )
+        except Exception as e:
+            logger.warning(f'CNVpytor failed for sample with error: {e}',
+                           sample_id=sample_id)
+            cnv_regions = []
     return cnv_regions
 
 def _extract_ann(info_field:list[str]) -> str:
@@ -565,7 +569,7 @@ def _run_cnvpytor(
     except subprocess.TimeoutExpired:
         raise RuntimeError(f"cnvpytor partitioning timed out for sample: {sample_id}")
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"cnvpytor partitioning failed for sample {sample_id}: {e.stderr}")
+        raise RuntimeError(f"cnvpytor partitioning failed for sample {sample_id}: {e}")
 
     logger.info("Partitioning complete.",
                 sample_id=sample_id)
@@ -588,7 +592,7 @@ def _run_cnvpytor(
     except subprocess.TimeoutExpired:
         raise RuntimeError(f"cnvpytor CNV calling timed out for sample: {sample_id}")
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"cnvpytor partitioning failed for sample {sample_id}: {e.stderr}")
+        raise RuntimeError(f"cnvpytor partitioning failed for sample {sample_id}: {e}")
     
     logger.info("CNV calling complete.",
                 sample_id=sample_id)
