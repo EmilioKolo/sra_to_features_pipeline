@@ -155,14 +155,14 @@ class Pipeline:
         start_time = time.time()
         
         try:
-            # Step 1: Quality Control
-            qc_results = self._run_quality_control(fastq_files)
-            
-            # Step 2: Alignment
+            # Step 1: Alignment
             bam_file = self._run_alignment(sample_id, fastq_files)
             
-            # Step 3: Variant Calling
+            # Step 2: Variant Calling
             vcf_file, snpeff_file = self._run_variant_calling(sample_id, bam_file)
+
+            # Step 3: Quality Control
+            qc_results = self._run_quality_control(fastq_files, bam_file)
             
             # Step 4: Feature Extraction
             features = self._extract_features(sample_id, bam_file, vcf_file, snpeff_file)
@@ -184,7 +184,7 @@ class Pipeline:
             log_error(self.logger, e, context={"sample_id": sample_id, "operation": "pipeline"})
             raise
     
-    def _run_quality_control(self, fastq_files: List[Path]) -> Dict[str, Any]:
+    def _run_quality_control(self, fastq_files: List[Path], bam_file: Path) -> Dict[str, Any]:
         """Run quality control on FASTQ files."""
         with PipelineLogger(self.logger, "quality_control") as plog:
             plog.add_context(fastq_files=[str(f) for f in fastq_files])
@@ -192,6 +192,7 @@ class Pipeline:
             try:
                 qc_results = quality_control.run_quality_control(
                     fastq_files=fastq_files,
+                    bam_file=bam_file,
                     output_dir=self.config.get_tmp_dir(),
                     logger=self.logger
                 )
