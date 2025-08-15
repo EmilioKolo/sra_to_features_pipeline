@@ -17,20 +17,13 @@ class FragmentLengthStats(BaseModel):
     max: float = Field(description="Maximum fragment length")
     count: int = Field(description="Number of fragments analyzed")
     
-    @field_validator('mean', 'median', 'std', 'min', 'max')
+    @field_validator('mean', 'median', 'std', 'min', 'max', 'count')
     @classmethod
     def validate_positive(cls, v):
-        """Validate that length statistics are positive."""
+        """Validate that length statistics are positive.
+        Count can be positive for cases with no fragment length data."""
         if v < 0:
             raise ValueError("Fragment length statistics must be non-negative")
-        return v
-    
-    @field_validator('count')
-    @classmethod
-    def validate_count(cls, v):
-        """Validate that count is positive."""
-        if v <= 0:
-            raise ValueError("Fragment count must be positive")
         return v
 
 
