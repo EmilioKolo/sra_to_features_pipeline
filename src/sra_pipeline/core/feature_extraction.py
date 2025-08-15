@@ -403,11 +403,11 @@ def _extract_gene_variants(
                                 curr_eff = ann.split('|')[1] if '|' in ann else ann
                                 unhandled_effects.add(curr_eff)
                                 n_unhandled += 1
-    # Check if there were unhandled effects
-    if unhandled_effects:
-        logger.warning(
-            f"There were {n_unhandled} unhandled effects of the following types: {unhandled_effects}",
-            sample_id=sample_id)
+        # Check if there were unhandled effects
+        if unhandled_effects:
+            logger.warning(
+                f"There were {n_unhandled} unhandled effects of the following types: {unhandled_effects}",
+                sample_id=sample_id)
     else:
         logger.warning(
             f"Bad returncode: {result.returncode}\n{result.stderr}",
