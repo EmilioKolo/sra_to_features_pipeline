@@ -123,7 +123,7 @@ def _extract_fragment_lengths(
     # Parse the output to get fragment lengths
     fragment_lengths = output.decode('utf-8').strip().split('\n')
     # Convert to integers
-    fragment_lengths = list(map(int, fragment_lengths))
+    fragment_lengths = [int(s) for s in fragment_lengths if s!='']
 
     # Check if there are any fragment lengths
     if not fragment_lengths:
