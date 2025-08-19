@@ -368,9 +368,10 @@ def _process_module_data(
                     a_p = float(parts[2])
                     t_p = float(parts[3])
                     c_p = float(parts[4])
+                    total = g_p+a_p+t_p+c_p
                     dict_out["quality_scores"]["per_base_gc_content"].append({
                         "base": parts[0],
-                        "gc_percent": g_p+c_p
+                        "gc_percent": (g_p+c_p)/total*100.0
                     })
                 except ValueError:
                     logger.warning(
@@ -385,7 +386,7 @@ def _process_module_data(
                 try:
                     dict_out["quality_scores"]["per_sequence_gc_content"].append({
                         "gc_content": int(parts[0]),
-                        "count": float(parts[1])
+                        "count": int(parts[1])
                     })
                 except ValueError:
                     logger.warning(
