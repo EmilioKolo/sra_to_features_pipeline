@@ -726,17 +726,20 @@ def get_bam_statistics(
                 (float(mapped_reads) / float(total_reads)) * 100.0
         else:
             mapping_percentage = 0
-        # Calculate coverage statistics
-        coverage_values = []
-        # Iterate over all reference sequences (chromosomes)
+        # Calculate coverage statistics without processing the entire file
+        sum_coverage = 0
+        sum_of_squares = 0
+        n_values = 0
         for pileupcolumn in bam_file.pileup():
-            coverage_values.append(pileupcolumn.nsegments)
-        # Convert to a numpy array for efficient calculation
-        coverage_array = np.array(coverage_values)
-        # Calculate mean and standard deviation
-        if coverage_array.size > 0:
-            mean_coverage = coverage_array.mean()
-            coverage_stdev = coverage_array.std()
+            coverage = pileupcolumn.nsegments
+            sum_coverage += coverage
+            sum_of_squares += coverage ** 2
+            n_values += 1
+        if n_values > 0:
+            mean_coverage = sum_coverage / n_values
+            # Single-pass variance formula
+            variance = (sum_of_squares / n_values) - (mean_coverage ** 2)
+            coverage_stdev = np.sqrt(variance)
         else:
             mean_coverage = 0
             coverage_stdev = 0
@@ -755,6 +758,9 @@ def get_bam_statistics(
         dict_out = {}
     except pysam.utils.SamtoolsError as e:
         logger.error(f"Pysam error: {e}", bam_file=bam_file_path)
+        dict_out = {}
+    except Exception as e:
+        logger.error(f"Unhandled error: {e}", bam_file=bam_file_path)
         dict_out = {}
     return dict_out
 
