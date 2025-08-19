@@ -162,33 +162,153 @@ def _calculate_quality_scores(
     """Calculate overall quality scores."""
     logger.info("Calculating quality scores")
     
-    # This is a placeholder implementation
-    # In a real implementation, you would:
-    # 1. Define quality thresholds
-    # 2. Calculate scores based on various metrics
-    # 3. Provide overall quality assessment
-    
-    # Populate a dummy data output
-    example_out = {
-        "overall_quality_score": 85.0,
-        "passes_quality_thresholds": True,
-        "quality_warnings": [],
-        "quality_failures": [],
+    # Define thresholds
+    # Overall cutoff for final score (fraction of maximum)
+    OVERALL_CUTOFF = 0.6
+    # Expected GC percentage
+    EXPECTED_GC = 51.0 # 51 for human exome, 41 for human genome
+    # Expected quality before raising a warning
+    EXPECTED_QUAL = 30
+    # Minimum accepted quality before raising an error
+    MIN_QUAL = 20
+    # Minimum expected read length before raising a warning
+    EXPECTED_LEN = 90
+    # Minimum percentage of non-duplicated nucleotides before raising a warning
+    EXPECTED_DUP = 50
+    # Expected BAM file coverage before raising a warning
+    EXPECTED_COVER = 50
+    # Minimum BAM file coverage before raising an error
+    MIN_COVER = 10
+
+    # Initialize warning and error lists
+    l_warn = []
+    l_error = []
+
+    # Define base fastq variables
+    gc_content = float(qc_results['gc_content'])
+    dup_rate = qc_results['duplication_rate']
+    # Define fastqc variables
+    qual_score_dict = qc_results['quality_scores']
+    l_per_base_qual = qual_score_dict['per_base_quality']
+    l_per_seq_qual = qual_score_dict['per_sequence_quality']
+    l_per_base_gc = qual_score_dict['per_base_gc_content']
+    l_per_seq_gc = qual_score_dict['per_sequence_gc_content']
+    l_per_base_n = qual_score_dict['per_base_n_content']
+    l_seq_len = qual_score_dict['sequence_length_distribution']
+    l_dup_seq = qual_score_dict['duplicate_sequences']
+    l_dup_seq_uniq = qual_score_dict['duplicate_sequences_unique']
+    l_num_over = qual_score_dict['number_of_overrepresented_sequences']
+    l_rate_over = qual_score_dict['percent_of_overrepresented_sequences']
+    l_adap_cont = qual_score_dict['adapter_content']
+    # Define bam variables
+    mapped_reads = qc_results['mapped_reads']
+    mapping_rate = qc_results['mapping_rate']
+    mean_cover = qc_results['mean_coverage']
+    stdev_cover = qc_results['coverage_std']
+
+    # Perform quality checks
+    try:
+        gc_warn, gc_error, gc_dict, gc_score = _gc_eval(
+            gc_content, l_per_base_gc, l_per_seq_gc, EXPECTED_GC
+        )
+    except Exception as e:
+        logger.warning(f'GC evaluation failed with error: {e}')
+        gc_warn = ['GC evaluation failed']
+        gc_error = []
+        gc_dict = {'per_base_gc_content':0, 'per_seq_gc_content':0}
+        gc_score = 100
+    try:
+        qual_warn, qual_error, qual_dict, qual_score = _qual_eval(
+            l_per_base_qual, l_per_seq_qual, EXPECTED_QUAL, MIN_QUAL
+        )
+    except Exception as e:
+        logger.warning(f'Quality evaluation failed with error: {e}')
+        qual_warn = ['Quality evaluation failed']
+        qual_error = []
+        qual_dict = {'per_base_qual':0, 'per_seq_qual':0}
+        qual_score = 100
+    try:
+        dup_warn, dup_error, dup_dict, dup_score = _dup_eval(
+            dup_rate, l_dup_seq, l_dup_seq_uniq, EXPECTED_DUP
+        )
+    except Exception as e:
+        logger.warning(f'Duplication evaluation failed with error: {e}')
+        dup_warn = ['Duplication evaluation failed']
+        dup_error = []
+        dup_dict = {'dup_seq':0, 'dup_seq_uniq':0}
+        dup_score = 100
+    try:
+        n_warn, n_error, n_dict, n_score = _n_eval(
+            l_per_base_n
+        )
+    except Exception as e:
+        logger.warning(f'N evaluation failed with error: {e}')
+        n_warn = ['N evaluation failed']
+        n_error = []
+        n_dict = {'per_base_n':0}
+        n_score = 100
+    try:
+        len_warn, len_error, len_dict, len_score = _len_eval(
+            l_seq_len, EXPECTED_LEN
+        )
+    except Exception as e:
+        logger.warning(f'Read length evaluation failed with error: {e}')
+        len_warn = ['Read length evaluation failed']
+        len_error = []
+        len_dict = {'seq_len':0}
+        len_score = 100
+    try:
+        rep_warn, rep_error, rep_dict, rep_score = _rep_eval(
+            l_num_over, l_rate_over, l_adap_cont
+        )
+    except Exception as e:
+        logger.warning(f'Repeated nucleotide evaluation failed with error: {e}')
+        rep_warn = ['Repeated nucleotide evaluation failed']
+        rep_error = []
+        rep_dict = {'num_overrep':0, 'rate_overrep':0, 'adap_cont':0}
+        rep_score = 100
+    try:
+        bam_warn, bam_error, bam_score = _bam_eval(
+            mapped_reads, mapping_rate, mean_cover, stdev_cover, 
+            EXPECTED_COVER, MIN_COVER
+        )
+    except Exception as e:
+        logger.warning(f'BAM evaluation failed with error: {e}')
+        bam_warn = ['BAM evaluation failed']
+        bam_error = []
+        bam_score = 100
+    # Join warning lists
+    l_warn = l_warn + gc_warn + qual_warn + dup_warn + \
+        n_warn + len_warn + rep_warn + bam_warn
+    l_error = l_error + gc_error + qual_error + dup_error + \
+        n_error + len_error + rep_error + bam_error
+    # Calculate overall quality
+    overall_quality = (gc_score + qual_score + dup_score + \
+        n_score + len_score + rep_score + bam_score) / 700
+    passes_quality = overall_quality > OVERALL_CUTOFF
+    if not passes_quality:
+        l_error.append(f'Overall quality is lower than {OVERALL_CUTOFF}')
+    # Populate the output dict
+    out_dict = {
+        "overall_quality_score": overall_quality,
+        "passes_quality_thresholds": passes_quality,
+        "quality_warnings": l_warn,
+        "quality_failures": l_error,
         "quality_scores": {
-            "per_base_quality": 30,
-            "per_sequence_quality": 30,
-            "per_base_gc_content": 48,
-            "per_sequence_gc_content": 48,
-            "per_base_n_content": 0.01,
-            "sequence_length_distribution": 120,
-            "duplicate_sequences": 0.01,
-            "duplicate_sequences_unique": 0.01,
-            "number_of_overrepresented_sequences": 5,
-            "percent_of_overrepresented_sequences": 0.01,
-            "adapter_content": 0.01
+            "per_base_quality": qual_dict['per_base_qual'],
+            "per_sequence_quality": qual_dict['per_seq_qual'],
+            "per_base_gc_content": gc_dict['per_base_gc_content'],
+            "per_sequence_gc_content": gc_dict['per_seq_gc_content'],
+            "per_base_n_content": n_dict['per_base_n'],
+            "sequence_length_distribution": len_dict['seq_len'],
+            "duplicate_sequences": dup_dict['dup_seq'],
+            "duplicate_sequences_unique": dup_dict['dup_seq_uniq'],
+            "number_of_overrepresented_sequences": rep_dict['num_overrep'],
+            "percent_of_overrepresented_sequences": rep_dict['rate_overrep'],
+            "adapter_content": rep_dict['adap_cont']
         }
     }
-    return example_out
+    return out_dict
 
 
 def _extract_fastqc_metrics(
@@ -933,4 +1053,358 @@ def validate_quality_metrics(
         return False
     
     logger.info("Quality metrics validation passed")
-    return True 
+    return True
+
+
+def _gc_eval(
+    gc_content: float|int,
+    l_per_base_gc: List,
+    l_per_seq_gc: List,
+    expected_gc: float|int
+) -> tuple[List, List, Dict, float|int]:
+    """Evaluates GC percent values.
+    Returns a list of warnings, a list of errors, a dict of quality
+    values and a score with a max of 100."""
+    l_warn = []
+    l_error = []
+    error_val = 0
+    # Check the difference between gc_content and expected_gc
+    gc_dif = abs(gc_content - expected_gc)
+    # Define warning or error
+    if gc_dif > 10:
+        l_error.append(f'GC content error: {gc_content}')
+        error_val += 25
+    elif gc_dif > 5:
+        l_warn.append(f'GC content warning: {gc_content}')
+        error_val += 10
+    # Check per base gc content
+    cont_ok = 0
+    for i in range(len(l_per_base_gc)):
+        curr_dict = l_per_base_gc[i]
+        curr_base = curr_dict['base']
+        curr_perc = curr_dict['gc_percent']
+        perc_dif = abs(curr_perc - expected_gc)
+        if perc_dif > 20:
+            l_error.append(f'Per base GC content error in base {curr_base}: {curr_perc}')
+        elif perc_dif > 10:
+            l_warn.append(f'Per base GC content warning in base {curr_base}: {curr_perc}')
+        else:
+            cont_ok += 1
+    fraction_ok = cont_ok / float(cont_ok + len(l_error) + len(l_warn))
+    # Check per sequence gc content
+    count_max = 0
+    max_count_base = -1
+    for i in range(len(l_per_seq_gc)):
+        curr_dict = l_per_seq_gc[i]
+        curr_gc_str = curr_dict['gc_content']
+        # Check for range string
+        if '-' in curr_gc_str:
+            curr_gc = str_to_range(curr_gc_str)
+        else:
+            curr_gc = int(curr_gc_str)
+        curr_count = curr_dict['count']
+        # Update count_max
+        if curr_count > count_max:
+            count_max = float(curr_count)
+            max_count_base = int(curr_gc)
+    # Check base with max count
+    gc_dif_max = abs(max_count_base - expected_gc)
+    # Define warning or error
+    if gc_dif_max > 5:
+        l_error.append(f'GC content with most counts error: {max_count_base}')
+        error_val += 25
+    elif gc_dif_max > 2:
+        l_warn.append(f'GC content with most counts warning: {max_count_base}')
+        error_val += 10
+    # Define return dictionary
+    ret_dict = {
+        'per_base_gc_content': fraction_ok * 100,
+        'per_seq_gc_content': max_count_base
+    }
+    # Define score value
+    score_val = 50 * fraction_ok + 50 - error_val
+    return l_warn, l_error, ret_dict, score_val
+
+
+def _qual_eval(
+    l_per_base_qual: List,
+    l_per_seq_qual: List,
+    expected_qual: int,
+    min_qual: int
+) -> tuple[List, List, Dict, float|int]:
+    """Evaluates quality values.
+    Returns a list of warnings, a list of errors, a dict of quality
+    values and a score with a max of 100."""
+    l_warn = []
+    l_error = []
+    # Check quality per base position
+    cont_ok = 0
+    for i in range(len(l_per_base_qual)):
+        curr_dict = l_per_base_qual[i]
+        curr_base = curr_dict['base']
+        curr_qual = curr_dict['mean']
+        if curr_qual < min_qual:
+            l_error.append(f'Quality error in base {curr_base}: {curr_qual}')
+        elif curr_qual < expected_qual:
+            l_warn.append(f'Quality warning in base {curr_base}: {curr_qual}')
+        else:
+            cont_ok += 1
+    fract_ok = cont_ok / float(cont_ok + len(l_error) + len(l_warn))
+    # Check counts of quality values per read
+    count_total = 0
+    count_low = 0
+    for i in range(len(l_per_seq_qual)):
+        curr_dict = l_per_seq_qual[i]
+        curr_qual = curr_dict['quality_score']
+        curr_count = curr_dict['count']
+        if curr_qual < min_qual:
+            count_low += curr_count
+        count_total += curr_count
+    fraction_low = float(count_low) / count_total
+    # Check if the fraction of low quality reads is too high
+    if fraction_low > 0.5:
+        l_error.append(f'{fraction_low*100}% of reads have quality lower than: {min_qual}')
+    elif fraction_low > 0.25:
+        l_warn.append(f'{fraction_low*100}% of reads have quality lower than: {min_qual}')
+    # Define return dictionary
+    ret_dict = {
+        'per_base_qual': fract_ok * 100,
+        'per_seq_qual': (1 - fraction_low) * 100
+    }
+    # Define score value
+    score_val = 100 * fract_ok * (1 - fraction_low)
+    return l_warn, l_error, ret_dict, score_val
+
+
+def _dup_eval(
+    dup_rate: int|float,
+    l_dup_seq: List,
+    l_dup_seq_uniq: List,
+    expected_dup: float
+) -> tuple[List, List, Dict, float|int]:
+    """Evaluates duplication values.
+    Returns a list of warnings, a list of errors, a dict of quality
+    values and a score with a max of 100."""
+    l_warn = []
+    l_error = []
+    # Go through l_dup_seq
+    dup_lvl_1 = 0
+    for i in range(len(l_dup_seq)):
+        curr_dict = l_dup_seq[i]
+        curr_dup_lvl = curr_dict['duplication_level']
+        curr_percent = curr_dict['percentage_of_reads']
+        # Record duplication_level = 1
+        if str(curr_dup_lvl)=='1':
+            dup_lvl_1 = curr_percent
+    # Go through l_dup_seq_uniq
+    dup_lvl_1_uniq = 0
+    for i in range(len(l_dup_seq_uniq)):
+        curr_dict = l_dup_seq_uniq[i]
+        curr_dup_lvl = curr_dict['duplication_level']
+        curr_percent = curr_dict['percentage_of_reads']
+        # Record duplication_level = 1
+        if str(curr_dup_lvl)=='1':
+            dup_lvl_1_uniq = curr_percent
+    ### DEBUG: Check duplication variable values
+    if (dup_rate != dup_lvl_1) and (dup_rate != dup_lvl_1_uniq):
+        print(f'WARNING: Duplication rate', dup_rate, 
+              'not consistent with dup_lvl_1 values:', dup_lvl_1,
+              '/', dup_lvl_1_uniq)
+    ###
+    # Check that duplication level 1 values are high
+    if dup_lvl_1 < expected_dup:
+        l_warn.append(f'Duplication rate very high: {100-dup_lvl_1}')
+    if dup_lvl_1_uniq < expected_dup:
+        l_warn.append(f'Unique sequence duplication rate very high: {100-dup_lvl_1_uniq}')
+    # Define return dictionary
+    ret_dict = {
+        'dup_seq': 100-dup_lvl_1,
+        'dup_seq_uniq': 100-dup_lvl_1_uniq
+    }
+    # Define score value
+    score_val = 100 * dup_lvl_1
+    return l_warn, l_error, ret_dict, score_val
+
+
+def _n_eval(
+    l_per_base_n: List
+) -> tuple[List, List, Dict, float|int]:
+    """Evaluates the number of N sequences.
+    Returns a list of warnings, a list of errors, a dict of quality
+    values and a score with a max of 100."""
+    l_warn = []
+    l_error = []
+    # Go through l_per_base_n
+    total_n_percent = 0.0
+    for i in range(len(l_per_base_n)):
+        curr_dict = l_per_base_n[i]
+        curr_base = curr_dict['base']
+        curr_percent = curr_dict['n_percent']
+        # Add percent to total
+        total_n_percent += float(curr_percent)
+    # Check if total_n_percent is too high
+    if total_n_percent > 1.0:
+        l_error.append(f'N percent too high: {total_n_percent}%')
+    elif total_n_percent > 0.1:
+        l_warn.append(f'N percent too high: {total_n_percent}%')
+    # Define return dictionary
+    ret_dict = {
+        'per_base_n': total_n_percent
+    }
+    # Define score value
+    score_val = 100 * (1 - (total_n_percent/100))
+    return l_warn, l_error, ret_dict, score_val
+
+
+def _len_eval(
+    l_seq_len: List,
+    expected_len: int
+) -> tuple[List, List, Dict, float|int]:
+    """Evaluates read length values.
+    Returns a list of warnings, a list of errors, a dict of quality
+    values and a score with a max of 100."""
+    l_warn = []
+    l_error = []
+
+    # Go through l_seq_len
+    total_count = 0.0
+    total_len = 0
+    short_count = 0
+    n_len = len(l_seq_len)
+    for i in range(n_len):
+        curr_dict = l_seq_len[i]
+        curr_count = float(curr_dict['count'])
+        curr_str = curr_dict['length_range']
+        # Get length from length range string
+        if '-' in curr_str:
+            curr_len_range = str_to_range(curr_str)
+            curr_len = (curr_len_range[0] + curr_len_range[1])/2
+        else:
+            curr_len = float(curr_str)
+        # Check if curr_len is shorter than expected_len
+        if curr_len < expected_len:
+            short_count += curr_count
+        # Add current count to total
+        total_count += curr_count
+        # Add total length count to total
+        total_len += curr_count*curr_len
+    # Calculate short read fraction
+    short_count_fraction = short_count / total_count
+    short_count_percent = short_count_fraction * 100
+    # Define average seq length
+    avg_seq_len = total_len/total_count
+    # Check for warnings/errors
+    if avg_seq_len < expected_len:
+        l_warn.append(f'Average sequence length below expected: {avg_seq_len}')
+    if short_count_percent > 50:
+        l_warn.append(f'More than half of sequences below expected: {short_count_percent}%')
+    # Define return dictionary
+    ret_dict = {
+        'seq_len': avg_seq_len
+    }
+    # Define score value
+    score_val = 100 - short_count_percent
+    return l_warn, l_error, ret_dict, score_val
+
+
+def _rep_eval(
+    l_num_over: List,
+    l_rate_over: List,
+    l_adap_cont: List
+) -> tuple[List, List, Dict, float|int]:
+    """Evaluates the number of repeats and adapters.
+    Returns a list of warnings, a list of errors, a dict of quality
+    values and a score with a max of 100."""
+    l_warn = []
+    l_error = []
+    # Go through l_num_over
+    overrep_count = 0.0
+    for i in range(len(l_num_over)):
+        curr_dict = l_num_over[i]
+        curr_seq = curr_dict['sequence']
+        curr_count = curr_dict['count']
+        # Add overrepresented count to total
+        overrep_count += curr_count
+    # Go through l_rate_over
+    total_overrep = 0.0
+    for i in range(len(l_rate_over)):
+        curr_dict = l_rate_over[i]
+        curr_seq = curr_dict['sequence']
+        curr_percent = curr_dict['percentage']
+        # Add overrepresented percent to total
+        total_overrep += curr_percent
+        # Check if curr_percent is too high
+        if curr_percent > 1.0:
+            l_warn.append(f'Following sequence found on {curr_percent}% of reads: {curr_seq}')
+    # Go through l_adap_cont
+    adap_total_percent = 0.0
+    for i in range(len(l_adap_cont)):
+        curr_dict = l_adap_cont[i]
+        curr_pos = curr_dict['position']
+        curr_percent = curr_dict['adapter_percentage']
+        # Add adapter percent to total
+        adap_total_percent += curr_percent
+    # Check for warnings and errors
+    if total_overrep > 5.0:
+        l_error.append(f'Overrepresented sequences in {total_overrep}% of sequences.')
+    elif total_overrep > 1.0:
+        l_warn.append(f'Overrepresented sequences in {total_overrep}% of sequences.')
+    if adap_total_percent > 5.0:
+        l_error.append(f'Adapter content is too high: {total_overrep}%')
+    elif adap_total_percent > 1.0:
+        l_warn.append(f'Adapter content is slightly high: {total_overrep}%')
+    # Define return dictionary
+    ret_dict = {
+        'num_overrep': overrep_count,
+        'rate_overrep': total_overrep,
+        'adap_cont': adap_total_percent
+    }
+    # Define score value
+    score_val = 100 - adap_total_percent - total_overrep
+    return l_warn, l_error, ret_dict, score_val
+
+
+def _bam_eval(
+    mapped_reads: int,
+    mapping_rate: float,
+    mean_cover: float,
+    stdev_cover: float,
+    expected_cover: int|float,
+    min_cover: int|float
+) -> tuple[List, List, float|int]:
+    """Evaluates the quality of the bam file.
+    Returns a list of warnings, a list of errors and a score 
+    with a max of 100."""
+    l_warn = []
+    l_error = []
+    error_val = 0
+    # Check mapping percentage
+    if mapping_rate < 10:
+        l_warn.append(f'Mapping percentage very low: {mapping_rate}%')
+        error_val += 20
+    # Check mean coverage
+    if mean_cover < min_cover:
+        l_error.append(f'Mean coverage too low: {mean_cover}')
+        error_val += 60
+    elif mean_cover < expected_cover:
+        l_warn.append(f'Mean coverage is low: {mean_cover}')
+        error_val += 20
+    # Check standard deviation
+    if (mean_cover - stdev_cover) < min_cover:
+        l_warn.append(f'Standard deviation is very high ({stdev_cover}) considering mean coverage ({mean_cover})')
+        error_val += 20
+    # Define score value
+    score_val = 100 - error_val
+    return l_warn, l_error, score_val
+
+
+def str_to_range(range_str: str) -> List[int|float]:
+    """Transforms a string with a range into a tuple with 
+    an initial and end value.
+    Splits by middle dash ('-')."""
+    # Initialize the output tuple
+    out_l = [-1, -1]
+    l_split = range_str.split('-')
+    out_l[0] = float(l_split[0])
+    out_l[1] = float(l_split[-1])
+    return out_l
