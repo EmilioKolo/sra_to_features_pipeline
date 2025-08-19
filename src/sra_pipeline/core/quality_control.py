@@ -382,10 +382,10 @@ def _process_module_data(
         # Data format: GC_content\tCount
         for line in data_lines:
             parts = line.split('\t')
-            if len(parts) == 2:
+            if (line[0] != '#') and (len(parts) == 2):
                 try:
                     dict_out["quality_scores"]["per_sequence_gc_content"].append({
-                        "gc_content": int(parts[0]),
+                        "gc_content": str(parts[0]),
                         "count": int(parts[1])
                     })
                 except ValueError:
