@@ -729,23 +729,33 @@ def get_bam_statistics(
             mapping_percentage = 0
         # Calculate coverage statistics without processing the entire file
         sum_coverage = 0
-        sum_of_squares = 0
         n_values = 0
+        # Calculate the mean first
         for pileupcolumn in bam_file.pileup():
-            coverage = pileupcolumn.nsegments
-            sum_coverage += coverage
-            sum_of_squares += coverage ** 2
+            sum_coverage += pileupcolumn.nsegments
             n_values += 1
         if n_values > 0:
             mean_coverage = sum_coverage / n_values
-            # Single-pass variance formula
-            variance = (sum_of_squares / n_values) - (mean_coverage ** 2)
-            coverage_stdev = np.sqrt(variance)
         else:
             mean_coverage = 0
-            coverage_stdev = 0
-        # Close the BAM file
+        # Close the file
         bam_file.close()
+        # Calculate standard deviation
+        if n_values > 0:
+            # Reopen the file
+            bam_file = pysam.AlignmentFile(bam_file_path, "rb")
+            sum_of_squared_diff = 0
+            
+            for pileupcolumn in bam_file.pileup():
+                coverage = pileupcolumn.nsegments
+                sum_of_squared_diff += (coverage - mean_coverage) ** 2
+            # Calculate the variance and standard deviation
+            variance = sum_of_squared_diff / n_values
+            coverage_stdev = np.sqrt(variance)
+            # Close the file
+            bam_file.close()
+        else:
+            coverage_stdev = 0
         # Return results into a dictionary
         dict_out = {
             "mapped_reads": mapped_reads,
