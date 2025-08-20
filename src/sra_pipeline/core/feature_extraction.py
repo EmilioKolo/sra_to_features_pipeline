@@ -344,7 +344,7 @@ def _extract_gene_variants(
             input=bed_data,
             capture_output=True,
             text=True,
-            timeout=600  # 10 minute timeout
+            timeout=1800  # 30 minute timeout
         )
 
     except subprocess.TimeoutExpired:
@@ -527,7 +527,7 @@ def _run_cnvpytor(
 
     try:
         result = subprocess.run(cmd1, capture_output=True, check=True,
-                                timeout=600) # 10 minute timeout
+                                timeout=1800) # 30 minute timeout
     except subprocess.TimeoutExpired:
         raise RuntimeError(f"cnvpytor read depth timed out for sample: {sample_id}")
     except subprocess.CalledProcessError as e:
@@ -546,7 +546,7 @@ def _run_cnvpytor(
 
     try:
         result = subprocess.run(cmd2, capture_output=True, check=True,
-                                timeout=600) # 10 minute timeout
+                                timeout=1800) # 30 minute timeout
     except subprocess.TimeoutExpired:
         raise RuntimeError(f"cnvpytor histograms timed out for sample: {sample_id}")
     except subprocess.CalledProcessError as e:
@@ -565,7 +565,7 @@ def _run_cnvpytor(
 
     try:
         result = subprocess.run(cmd3, capture_output=True, check=True,
-                                timeout=600) # 10 minute timeout
+                                timeout=1800) # 30 minute timeout
     except subprocess.TimeoutExpired:
         raise RuntimeError(f"cnvpytor partitioning timed out for sample: {sample_id}")
     except subprocess.CalledProcessError as e:

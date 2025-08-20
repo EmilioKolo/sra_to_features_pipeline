@@ -176,7 +176,7 @@ def _download_fastq_file(
             capture_output=True,
             text=True,
             check=True,
-            timeout=3600  # 1 hour timeout
+            #timeout=3600  # 1 hour timeout
         )
         
         logger.info("FASTQ download completed", 

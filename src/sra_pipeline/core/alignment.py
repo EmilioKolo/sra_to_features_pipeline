@@ -100,7 +100,7 @@ def _run_bwa_mem(
             capture_output=True,
             text=True,
             check=True,
-            timeout=9800  # 3 hour timeout
+            #timeout=9800  # 3 hour timeout
         )
         
         logger.info("BWA mem completed", 
@@ -213,7 +213,7 @@ def _index_bam(
             capture_output=True,
             text=True,
             check=True,
-            timeout=600  # 10 minute timeout
+            timeout=1800  # 30 minute timeout
         )
         
         logger.info("BAM indexing completed", 

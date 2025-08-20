@@ -138,7 +138,7 @@ def _run_mpileup(
             capture_output=True,
             text=True,
             check=True,
-            timeout=7200  # 2 hour timeout
+            #timeout=7200  # 2 hour timeout
         )
         
         logger.info("Mpileup completed", 
@@ -178,7 +178,7 @@ def _call_variants(
             capture_output=True,
             text=True,
             check=True,
-            timeout=3600  # 1 hour timeout
+            #timeout=3600  # 1 hour timeout
         )
         
         logger.info("Variant calling completed", 
@@ -222,7 +222,7 @@ def _filter_variants(
             capture_output=True,
             text=True,
             check=True,
-            timeout=600  # 10 minute timeout
+            timeout=1800  # 30 minute timeout
         )
         
         logger.info("Variant filtering completed", 
@@ -257,7 +257,7 @@ def _compress_and_index_vcf(
             capture_output=True,
             text=True,
             check=True,
-            timeout=300  # 5 minute timeout
+            timeout=900  # 15 minute timeout
         )
         
         # Index VCF
@@ -269,7 +269,7 @@ def _compress_and_index_vcf(
             capture_output=True,
             text=True,
             check=True,
-            timeout=300  # 5 minute timeout
+            timeout=900  # 15 minute timeout
         )
         
         logger.info("VCF compression and indexing completed", 
@@ -309,7 +309,7 @@ def _snpeff_analysis(
             capture_output=True,
             text=True,
             check=True,
-            timeout=3600  # 1 hour timeout
+            #timeout=3600  # 1 hour timeout
         )
 
     except subprocess.TimeoutExpired:
@@ -391,7 +391,7 @@ def merge_vcf_files(
             capture_output=True,
             text=True,
             check=True,
-            timeout=3600  # 1 hour timeout for merging
+            #timeout=3600  # 1 hour timeout for merging
         )
         
         # Index the merged VCF
@@ -403,7 +403,7 @@ def merge_vcf_files(
             capture_output=True,
             text=True,
             check=True,
-            timeout=300  # 5 minute timeout
+            timeout=900  # 15 minute timeout
         )
         
         # Clean up file list
@@ -433,7 +433,7 @@ def _count_variants(vcf_file: Path, logger: structlog.BoundLogger) -> int:
             capture_output=True,
             text=True,
             check=True,
-            timeout=60
+            timeout=1200 # 20 minute timeout
         )
         return len(result.stdout.strip().split('\n')) if result.stdout.strip() else 0
     except Exception as e:
