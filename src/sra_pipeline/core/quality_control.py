@@ -212,7 +212,9 @@ def _calculate_quality_scores(
             gc_content, l_per_base_gc, l_per_seq_gc, EXPECTED_GC
         )
     except Exception as e:
-        logger.warning(f'GC evaluation failed with error: {e}')
+        logger.warning(f'GC evaluation failed with error: {e}', 
+                       gc_content=gc_content, l_per_base_gc=l_per_base_gc,
+                       l_per_seq_gc=l_per_seq_gc)
         gc_warn = ['GC evaluation failed']
         gc_error = []
         gc_dict = {'per_base_gc_content':0, 'per_seq_gc_content':0}
@@ -222,7 +224,9 @@ def _calculate_quality_scores(
             l_per_base_qual, l_per_seq_qual, EXPECTED_QUAL, MIN_QUAL
         )
     except Exception as e:
-        logger.warning(f'Quality evaluation failed with error: {e}')
+        logger.warning(f'Quality evaluation failed with error: {e}',
+                       l_per_base_qual=l_per_base_qual,
+                       l_per_seq_qual=l_per_seq_qual)
         qual_warn = ['Quality evaluation failed']
         qual_error = []
         qual_dict = {'per_base_qual':0, 'per_seq_qual':0}
@@ -232,7 +236,9 @@ def _calculate_quality_scores(
             dup_rate, l_dup_seq, l_dup_seq_uniq, EXPECTED_DUP
         )
     except Exception as e:
-        logger.warning(f'Duplication evaluation failed with error: {e}')
+        logger.warning(f'Duplication evaluation failed with error: {e}',
+                       dup_rate=dup_rate, l_dup_seq=l_dup_seq,
+                       l_dup_seq_uniq=l_dup_seq_uniq)
         dup_warn = ['Duplication evaluation failed']
         dup_error = []
         dup_dict = {'dup_seq':0, 'dup_seq_uniq':0}
@@ -242,7 +248,8 @@ def _calculate_quality_scores(
             l_per_base_n
         )
     except Exception as e:
-        logger.warning(f'N evaluation failed with error: {e}')
+        logger.warning(f'N evaluation failed with error: {e}',
+                       l_per_base_n=l_per_base_n)
         n_warn = ['N evaluation failed']
         n_error = []
         n_dict = {'per_base_n':0}
@@ -252,7 +259,8 @@ def _calculate_quality_scores(
             l_seq_len, EXPECTED_LEN
         )
     except Exception as e:
-        logger.warning(f'Read length evaluation failed with error: {e}')
+        logger.warning(f'Read length evaluation failed with error: {e}',
+                       l_seq_len=l_seq_len)
         len_warn = ['Read length evaluation failed']
         len_error = []
         len_dict = {'seq_len':0}
@@ -262,7 +270,9 @@ def _calculate_quality_scores(
             l_num_over, l_rate_over, l_adap_cont
         )
     except Exception as e:
-        logger.warning(f'Repeated nucleotide evaluation failed with error: {e}')
+        logger.warning(f'Repeated nucleotide evaluation failed with error: {e}',
+                       l_num_over=l_num_over, l_rate_over=l_rate_over,
+                       l_adap_cont=l_adap_cont)
         rep_warn = ['Repeated nucleotide evaluation failed']
         rep_error = []
         rep_dict = {'num_overrep':0, 'rate_overrep':0, 'adap_cont':0}
@@ -273,7 +283,9 @@ def _calculate_quality_scores(
             EXPECTED_COVER, MIN_COVER
         )
     except Exception as e:
-        logger.warning(f'BAM evaluation failed with error: {e}')
+        logger.warning(f'BAM evaluation failed with error: {e}',
+                       mapped_reads=mapped_reads, mapping_rate=mapping_rate,
+                       mean_cover=mean_cover, stdev_cover=stdev_cover)
         bam_warn = ['BAM evaluation failed']
         bam_error = []
         bam_score = 100
