@@ -1110,7 +1110,7 @@ def _gc_eval(
         curr_dict = l_per_seq_gc[i]
         curr_gc_str = curr_dict['gc_content']
         # Check for range string
-        if '-' in curr_gc_str:
+        if '-' in str(curr_gc_str):
             curr_gc = str_to_range(curr_gc_str)
         else:
             curr_gc = int(curr_gc_str)
@@ -1213,15 +1213,15 @@ def _dup_eval(
     for i in range(len(l_dup_seq_uniq)):
         curr_dict = l_dup_seq_uniq[i]
         curr_dup_lvl = curr_dict['duplication_level']
-        curr_percent = curr_dict['percentage_of_reads']
+        curr_percent = curr_dict['percentage_of_unique']
         # Record duplication_level = 1
         if str(curr_dup_lvl)=='1':
             dup_lvl_1_uniq = curr_percent
     ### DEBUG: Check duplication variable values
-    if (dup_rate != dup_lvl_1) and (dup_rate != dup_lvl_1_uniq):
+    dif_dup_rate = 100 - dup_lvl_1 - dup_rate
+    if dif_dup_rate > 0.5:
         print(f'WARNING: Duplication rate', dup_rate, 
-              'not consistent with dup_lvl_1 values:', dup_lvl_1,
-              '/', dup_lvl_1_uniq)
+              'not consistent with dup_lvl_1 values:', 100 - dup_lvl_1)
     ###
     # Check that duplication level 1 values are high
     if dup_lvl_1 < expected_dup:
