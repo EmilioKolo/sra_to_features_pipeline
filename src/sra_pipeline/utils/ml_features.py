@@ -125,11 +125,10 @@ class FeatureTable:
             chr_n = curr_data['chromosome']
             start = curr_data['start']
             end = curr_data['end']
-            len_bin = abs(int(end) - int(start))
             # Define key and value
             key = f'bin_gvs_{chr_n}:{start}-{end}'
             val = curr_data['variant_count']
-            feature_dict[key] = float(val)/len_bin if len_bin>0 else 0.0
+            feature_dict[key] = int(val)
         
         # Go through gene_stats
         for i in range(len(gene_stats)):
@@ -137,16 +136,15 @@ class FeatureTable:
             gene_name = curr_data['gene_name'].split(':')[-1]
             start = curr_data['start']
             end = curr_data['end']
-            len_gene = abs(int(end) - int(start))
             total_gv = int(curr_data['total_variants'])
             dn_ds = curr_data['dn_ds_ratio']
             # Define key and value for GVs
             key_gv = f'gene_gvs_{gene_name}'
-            feature_dict[key_gv] = float(total_gv) / len_gene if len_gene>0 else 0.0
+            feature_dict[key_gv] = int(total_gv)
             # Check if there are GVs to calculate dn/ds
             if total_gv!=0 and dn_ds is not None:
                 key_dn_ds = f'gene_dn_ds_{gene_name}'
-                feature_dict[key_dn_ds] = min(float(dn_ds) / 1000, 1)
+                feature_dict[key_dn_ds] = float(dn_ds)
         
         # Go through cnv_regions
         l_cnv_keys = []
@@ -176,16 +174,13 @@ class FeatureTable:
                     raise ValueError(f'Unrecognised cnv_type: {cnv_type}')
                 # Add value to feature_dict[key]
                 feature_dict[key] += val
-        # Normalize cnv lengths
-        for cnv_key in l_cnv_keys:
-            feature_dict[cnv_key] = min(float(feature_dict[cnv_key]) / (100*1000*1000), 1)
         
         # Go through fragment_stats
         for key, val in fragment_stats.items():
             if key in ['max', 'min', 'mean', 'median', 'std']:
-                feature_dict[f'fragment_length_{key}'] = float(val) / 1000
+                feature_dict[f'fragment_length_{key}'] = float(val)
             else:
-                feature_dict[f'fragment_{key}'] = min(float(val) / (100*1000*1000), 1)
+                feature_dict[f'fragment_{key}'] = float(val)
         
         return feature_dict
 
