@@ -1,301 +1,301 @@
-run	run_accession	disease	disease_stage	age	sex	ethnicity	metastasis	n_of_tumors	tumor_diameter	subtype
-X	SRR17006154	Breast	IV	58	female	ASIAN				
-NB	SRR15505510	Colorectal	II	83	female	WHITE				
-NB	SRR16994271	Control		46	female					
-NB	SRR23280068	Breast	I	59	female		Yes	1	12x14mm	Luminal A
-NB	SRR17004030	Colorectal	I	66	female	WHITE				
-NB	SRR17005888	Control		57	female	OTHER				
-NB	SRR23280194	Breast	II	50	female		No	1	22x17mm	TNBC
-NB	SRR16994300	Colorectal	I	69	female	WHITE				
-NB	SRR17004588	Control		70	male	WHITE				
-NB	SRR17006096	Breast	III	62	female	WHITE				
-NB	SRR16993890	Colorectal	IV	63	female	WHITE				
-NB	SRR23280153	Control		45	female					
-NB	SRR23280243	Breast	II	60	female		No	1	23x13mm	HER2
-NB	SRR16994872	Colorectal	IV	59	female					
-NB	SRR16994151	Control		54	male	WHITE				
-NB	SRR23280065	Breast	I	52	female		No	1	14x8mm	Luminal B
-NB	SRR16995123	Colorectal	I	75	male	WHITE				
-NB	SRR17004380	Control		50	female	WHITE				
-NB	SRR23279923	Breast	II	63	female		No	1	28x18mm	Luminal B
-NB	SRR16994412	Colorectal	II	68	female	WHITE				
-NB	SRR17004408	Control		79	female	WHITE				
-NB	SRR23279981	Breast	II	40	female		Yes	1	15x25mm	Luminal B
-NB	SRR16995139	Colorectal	III	68	male	WHITE				
-NB	SRR16994159	Control		78	female	WHITE				
-NB	SRR17004543	Breast	II	65	female	WHITE				
-NB	SRR17004535	Colorectal	IV	57	female	OTHER				
-NB	SRR23279758	Control		56	female					
-NB	SRR23279777	Breast	II	51	female		No	1	12x11mm	Luminal B
-X	SRR17006178	Colorectal	II	58	male	WHITE				
-NB	SRR16993950	Control		58	female	WHITE				
-NB	SRR23280253	Breast	II	58	female		Yes	1	40mm	HER2
-NB	SRR17004729	Colorectal	II	66	male	WHITE				
-NB	SRR17004863	Control		61	male	WHITE				
-NB	SRR17004217	Breast	IV	76	female	WHITE				
-NB	SRR16994888	Colorectal	II	50	male					
-NB	SRR16994938	Control		61	female	WHITE				
-	SRR23279868	Breast	IIA	47	female			1	22x15mm	Luminal A
-	SRR17004022	Colorectal	IV	59	male	WHITE				
-NB	SRR17004802	Control		67	male	OTHER				
-NB	SRR23280062	Breast	II	68	female		No	1	24x14mm	Luminal A
-NB	SRR17004011	Colorectal	I	57	female	WHITE				
-NB	SRR23280114	Control		43	female					
-NB	SRR23280056	Breast	III	38	female		No	1	50x30mm	Luminal A
-NB	SRR16993588	Colorectal	III	62	female	ASIAN				
-NB	SRR16994832	Control		53	female	WHITE				
-NB	SRR23280179	Breast	IIA	61	female		Yes	1	22x11mm	Luminal B - HER2
-	SRR17004307	Colorectal	II	63	female	NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER				
-	SRR16994031	Control		57	female	WHITE				
-	SRR23280055	Breast	II	67	female		Yes	1	19x27mm	Luminal B - HER2
-	SRR17005934	Colorectal	III	60	female	OTHER				
-	SRR16994428	Control		58	male	BLACK OR AFRICAN AMERICAN				
-	SRR23279906	Breast	I	48	female		No	1	27mm	Luminal B
-	SRR17004208	Colorectal	III	79	male	WHITE				
-	SRR16994282	Control		73	male	WHITE				
-	SRR17004755	Breast	III	65	female	WHITE				
-	SRR17005868	Colorectal	IV	73	female	WHITE				
-	SRR17004313	Control		72	female	ASIAN				
-	SRR23279832	Breast	II	46	female		No	1	25mm	Luminal A
-	SRR16994805	Colorectal	II	61	female					
-	SRR17006224	Control		56	female	WHITE				
-	SRR23279985	Breast	II	28	female		No	1	7x10cm	Luminal B
-	SRR16993931	Colorectal	III	62	female	ASIAN				
-	SRR17005860	Control		70	female	WHITE				
-	SRR17004800	Breast	II	55	female	WHITE				
-	SRR16994072	Colorectal	III	53	female					
-	SRR16995084	Control		64	male	WHITE				
-	SRR23279824	Breast	III	39	female		Yes	1	36mm	Luminal B
-	SRR17004272	Colorectal	I	79	female	WHITE				
-	SRR16993912	Control		50	female	WHITE				
-	SRR17004241	Breast	II	67	female	WHITE				
-	SRR16994093	Colorectal	III	74	male	WHITE				
-	SRR16993706	Control		60	male	WHITE				
-	SRR23280119	Breast	II	48	female		No	1	2,6x4mm	HER2
-	SRR16993649	Colorectal	IV	60	female					
-	SRR17004786	Control		52	female	ASIAN				
-	SRR23280196	Breast	II	54	female		No	1	26x13mm	Luminal B - HER2
-	SRR16994145	Colorectal	I	51	male	ASIAN				
-	SRR16994323	Control		60	female	WHITE				
-	SRR17005865	Breast	IV	67	female	ASIAN				
-	SRR16993788	Colorectal	II	71	female	WHITE				
-	SRR23280108	Control		49	female					
-	SRR23279782	Breast	I	48	female			1	15x18mm	Luminal B - HER2
-	SRR16993803	Colorectal	II	66	male	NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER				
-	SRR17005999	Control		74	male	WHITE				
-	SRR23280185	Breast	IIB	42	female			1	36x24x51mm	Luminal B
-	SRR17006177	Colorectal	II	58	male	WHITE				
-	SRR16994112	Control		78	female	WHITE				
-	SRR17004105	Breast	I	68	female	WHITE				
-	SRR16993678	Colorectal	IV	71	female	WHITE				
-	SRR17004634	Control		78	female	OTHER				
-	SRR17004179	Breast	III	59	female	WHITE				
-	SRR16994277	Colorectal	II	61	female	WHITE				
-	SRR17005965	Control		65	female	WHITE				
-	SRR23279909	Breast	II	44	female					TNBC
-	SRR16995099	Colorectal	III	76	male	WHITE				
-	SRR16993558	Control		52	male					
-	SRR23279788	Breast	I	63	female		Yes	1	20x26mm	Luminal B
-	SRR17004910	Colorectal	III	50	male	OTHER				
-	SRR16994915	Control		83	female					
-	SRR17006155	Breast	IV	58	female	ASIAN				
-	SRR17004362	Colorectal	II	46	female	NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER				
-	SRR16993764	Control		62	female	WHITE				
-	SRR17004230	Breast	II	67	female	WHITE				
-	SRR16995105	Colorectal	III	74	female	WHITE				
-	SRR23280078	Control		36	female					
-	SRR23280233	Breast	III	48	female		Yes	1	53mm	Luminal B - HER2
-	SRR17006197	Colorectal	I	67	male	WHITE				
-	SRR16994449	Control		52	male	ASIAN				
-	SRR17006217	Breast	III	58	female	WHITE				
-	SRR16993670	Colorectal	II	49	male	NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER				
-	SRR16994132	Control		70	male	WHITE				
-	SRR17005980	Breast	II	66	female	ASIAN				
-	SRR17004206	Colorectal	III	83	female	WHITE				
-	SRR16995044	Control		63	male	WHITE				
-	SRR23280202	Breast	II	40	female		No	1	40x23mm	Luminal A
-	SRR17004844	Colorectal	III	75	male	WHITE				
-	SRR23279884	Control		52	female					
-	SRR23280183	Breast	IIIA	37	female		Yes	1	47x35x35mm	Luminal A
-	SRR16994269	Colorectal	II	54	female					
-	SRR17004486	Control		51	female	OTHER				
-	SRR23280246	Breast	II	69	female		No	1	20x22mm	Luminal A
-	SRR16994826	Colorectal	IV	67	male	WHITE				
-	SRR17004771	Control		54	female	WHITE				
-	SRR23279933	Breast	II	68	female		No	1	24x18mm	TNBC
-	SRR16994820	Colorectal	III	50	male					
-	SRR16994435	Control		60	male	WHITE				
-	SRR23280204	Breast	II	57	female		No	1	24x14mm	Luminal B
-	SRR17004284	Colorectal	I	74	male	WHITE				
-	SRR23280254	Control		70	female					
-	SRR23280249	Breast	II	55	female		No	1	28x12mm	HER2
-	SRR16994398	Colorectal	I	55	female	WHITE				
-	SRR16993957	Control		66	female					
-	SRR23280178	Breast	II	58	female			1	23x24x27mm	
-	SRR17004787	Colorectal	II	72	female	WHITE				
-	SRR23280038	Control		75	female					
-	SRR23280203	Breast	II	47	female		No	1	36x17mm	Luminal B - HER2
-	SRR17006162	Colorectal	III	69	male	WHITE				
-	SRR17004513	Control		75	male	OTHER				
-	SRR17004968	Breast	II	74	female	WHITE				
-	SRR17004519	Colorectal	IV	78	female	WHITE				
-	SRR23279998	Control		50	female					
-	SRR23280193	Breast	II	55	female		No	1	26x17mm	HER2
-	SRR16994166	Colorectal	III	71	female	WHITE				
-	SRR16993929	Control		58	female	WHITE				
-	SRR23279978	Breast	I	41	female		No	1	15x7mm	Luminal A
-	SRR17004442	Colorectal	II	67	female	WHITE				
-	SRR16994452	Control		61	male	WHITE				
-	SRR23280074	Breast	II	41	female		Yes	1	32x19mm	HER2
-	SRR16994201	Colorectal	III	62	female					
-	SRR17004472	Control		74	female	WHITE				
-	SRR17005975	Breast	II	58	female	ASIAN				
-	SRR17004678	Colorectal	III	77	female	WHITE				
-	SRR17006133	Control		50	female	WHITE				
-	SRR17006218	Breast	III	58	female	WHITE				
-	SRR16993695	Colorectal	III	62	female	ASIAN				
-	SRR16994828	Control		61	male	WHITE				
-	SRR23280187	Breast	IIA	43	female			1	3cm	Luminal B - HER2
-	SRR16994176	Colorectal	IV	67	female	WHITE				
-	SRR17004646	Control		75	female	WHITE				
-	SRR23280060	Breast	I	60	female		No	1	10x14mm	TNBC
-	SRR16994092	Colorectal	I	58	female	WHITE				
-	SRR17006167	Control		66	male	WHITE				
-	SRR23280198	Breast	I	36	female		No	1	8x9mm	Luminal B - HER2
-	SRR16994771	Colorectal	II	52	female					
-	SRR23280225	Control		62	female					
-	SRR23279785	Breast	II	62	female		Yes	1	22x21x20mm	Luminal B - HER2
-	SRR16994927	Colorectal	II	60	female					
-	SRR16993832	Control		67	female					
-	SRR23279980	Breast	I	45	female		No	1	12x25mm	Luminal B
-	SRR16993838	Colorectal	III	60	female					
-	SRR16994203	Control		51	male	WHITE				
-	SRR23279992	Breast	I	61	female		No	1	11x12mm	
-	SRR16993550	Colorectal	II	62	female	WHITE				
-	SRR17004426	Control		51	female	WHITE				
-	SRR23279995	Breast	IIA	59	female		No	1	18x14mm	Luminal A
-	SRR17004453	Colorectal	II	58	female	WHITE				
-	SRR17004459	Control		59	female	WHITE				
-	SRR23280053	Breast	I	37	female		No	1	16mm	Luminal B
-	SRR16993861	Colorectal	I	56	male	WHITE				
-	SRR16994253	Control		63	male	WHITE				
-	SRR17004845	Breast	III	68	female	WHITE				
-	SRR16993544	Colorectal	I	69	female	ASIAN				
-	SRR23280081	Control		34	female					
-	SRR17006095	Breast	III	62	female	WHITE				
-	SRR16993835	Colorectal	II	72	male	ASIAN				
-	SRR17004013	Control		67	female	WHITE				
-	SRR23280182	Breast	IA	67	female			1	1,5cm	Luminal B
-	SRR17006199	Colorectal	III	78	female	WHITE				
-	SRR23279945	Control		31	female					
-	SRR23280048	Breast	I	43	female		No	1	13x9mm	Luminal A
-	SRR17004951	Colorectal	III	57	female	WHITE				
-	SRR17004291	Control		71	female	OTHER				
-	SRR17004315	Breast	II	58	female	WHITE				
-	SRR16994100	Colorectal	II	65	male	ASIAN				
-	SRR23280256	Control		56	female					
-	SRR23280051	Breast	II	50	female		No	1	23x21mm	HER2
-	SRR16994498	Colorectal	III	55	female	WHITE				
-	SRR16994249	Control		50	female					
-PC	SRR23280059	Breast	I	33	female		No	2	15x8 mm, 8x6 mm	Luminal B
-PC	SRR16993937	Colorectal	IV	73	male	WHITE				
-PC	SRR17004010	Control		67	female	OTHER				
-PC	SRR23280058	Breast	I	71	female		No	1	10,5x10mm	Luminal A
-	SRR16994146	Colorectal	I	51	male	ASIAN				
-	SRR16993844	Control		52	female					
-	SRR23280163	Breast	IIA	58	female					Luminal A
-	SRR16993705	Colorectal	I	66	female	WHITE				
-	SRR23280133	Control		53	female					
-	SRR23279770	Breast	IIA	59	female		Yes	1	17x21x22mm	Luminal B
-	SRR16995056	Colorectal	II	64	male	WHITE				
-	SRR16994849	Control		69	male	WHITE				
-	SRR23279783	Breast	IIIA	47	female		Yes	1	13x29mm	TNBC
-	SRR16994377	Colorectal	I	72	male	NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER				
-	SRR23279848	Control		62	female					
-	SRR23279830	Breast	III	56	female		Yes	1	47x38mm	HER2
-	SRR17004159	Colorectal	II	75	male	WHITE				
-	SRR16994110	Control		64	female	WHITE				
-	SRR23280098	Breast	I	50	female		No	1	8x11mm	Luminal B - HER2
-	SRR16994336	Colorectal	III	46	female					
-	SRR23279847	Control		32	female					
-	SRR23280197	Breast	II	39	female		No	1	28mm	Luminal B
-	SRR17003998	Colorectal	II	70	female	WHITE				
-	SRR17004867	Control		71	female	WHITE				
-	SRR23279976	Breast	III	57	female		Yes	1	40x30x30mm	HER2
-	SRR16993625	Colorectal	I	59	female	WHITE				
-	SRR23280224	Control		40	female					
-	SRR23280069	Breast	III	60	female		Yes	1	25mm	Luminal B - HER2
-	SRR16993561	Colorectal	I	73	male	WHITE				
-	SRR16995020	Control		69	female	WHITE				
-	SRR23280054	Breast	I	39	female		No	1	19x18mm	TNBC
-	SRR17004348	Colorectal	I	59	female	WHITE				
-	SRR17004882	Control		64	male	WHITE				
-	SRR17004644	Breast	I	66	female	WHITE				
-	SRR16993883	Colorectal	IV	78	male	WHITE				
-	SRR23280265	Control		55	female					
-	SRR23280174	Breast	I	48	female			1	12x6mm	
-	SRR16993793	Colorectal	I	56	male	WHITE				
-	SRR23280105	Control		52	female					
-	SRR23280138	Breast	II	51	female		No	1	15x22mm	Luminal B
-	SRR17006086	Colorectal	II	77	female	ASIAN				
-	SRR16994841	Control		70	female	WHITE				
-	SRR23279779	Breast	IIA	34	female		Yes	1	3cm	HER2
-	SRR16993565	Colorectal	II	66	female	ASIAN				
-	SRR16995160	Control		50	male	WHITE				
-	SRR23280177	Breast	I	37	female			1	9x11mm	
-	SRR16993616	Colorectal	IV	73	male	WHITE				
-	SRR17004965	Control		51	male	WHITE				
-	SRR23279986	Breast	II	52	female		No	1	14x47mm	HER2
-	SRR16993665	Colorectal	IV	56	male	WHITE				
-	SRR17005920	Control		59	female	WHITE				
-	SRR17005864	Breast	IV	67	female	ASIAN				
-	SRR16994165	Colorectal	IV	60	male	WHITE				
-	SRR16993829	Control		63	male	WHITE				
-	SRR23280064	Breast	II	59	female		No	1	24x18mm	Luminal A
-	SRR16993520	Colorectal	III	57	male	WHITE				
-	SRR16994407	Control		60	female	WHITE				
-	SRR17004575	Breast	III	80	female	ASIAN				
-	SRR17006195	Colorectal	III	56	male	WHITE				
-	SRR16994441	Control		71	female	WHITE				
-	SRR17004475	Breast	II	55	female	ASIAN				
-	SRR16994373	Colorectal	IV	57	male					
-	SRR23280164	Control		53	female					
-	SRR17005958	Breast	IV	60	female	WHITE				
-	SRR16993631	Colorectal	II	75	female	WHITE				
-	SRR16995029	Control		65	female	WHITE				
-	SRR23280247	Breast	I	52	female		No	1	12x6mm	Luminal B
-	SRR16994789	Colorectal	III	70	male	WHITE				
-	SRR23280106	Control		46	female					
-	SRR23279908	Breast	II	45	female		No	1	22x17mm	TNBC
-	SRR16993641	Colorectal	II	70	female	ASIAN				
-	SRR17004839	Control		50	male	WHITE				
-	SRR23279897	Breast	IIA	61	female		No	2	14x20mm, 12x24mm	HER2
-	SRR16994121	Colorectal	III	62	female	ASIAN				
-	SRR23280018	Control		54	female					
-	SRR23280240	Breast	II	57	female		Yes	1	18x15mm	Luminal B - HER2
-	SRR15505494	Colorectal	II	83	female	WHITE				
-	SRR16993915	Control		67	male					
-	SRR17006230	Breast	II	68	female	WHITE				
-	SRR16993767	Colorectal	IV	53	male	ASIAN				
-	SRR17006181	Control		63	male	WHITE				
-	SRR23280192	Breast	I	55	female		No	1	19x13,2mm	Luminal A
-	SRR17004969	Colorectal	II	65	female	WHITE				
-	SRR16994134	Control		64	female	WHITE				
-	SRR17004948	Breast	II	61	female	ASIAN				
-	SRR16995129	Colorectal	III	56	female					
-	SRR16994236	Control		61	female					
-	SRR23279932	Breast	III	38	female		Yes	1	13x16mm	Luminal B
-PC	SRR16995118	Colorectal	II	68	male					
-PC	SRR16994768	Control		63	female	WHITE				
-PC	SRR23279912	Breast	I	64	female		No	1	5mm	Luminal A
-PC	SRR16994932	Colorectal	II	64	female	WHITE				
-PC	SRR17004779	Control		64	male	WHITE				
-PC	SRR23279913	Breast	III	41	female		Yes	1	24x10x13mm	Luminal B - HER2
-PC	SRR16993812	Colorectal	III	73	female	WHITE				
-PC	SRR16994381	Control		52	female					
-PC	SRR23279778	Breast	II	56	female		Yes	1	2cm	Luminal B - HER2
-PC	SRR16995134	Colorectal	II	62	female	WHITE				
-PC	SRR23280092	Control		60	female					
-PC	SRR23279841	Breast	II	57	female		No			Luminal A
-PC	SRR17004933	Colorectal	II	59	male	WHITE				
-PC	SRR23280013	Control		44	female					
+run_accession,disease,disease_stage,age,sex,ethnicity,metastasis,n_of_tumors,tumor_diameter,subtype,run_accession,Age,Gender,Diagnosis,Location,Diagnosis,Differentiation,Histologic Grade,Invasive Stage,Lymph Nodes,Metastases,Comorbidity,Treatment,MMR
+SRR17006154,Breast,IV,58,female,ASIAN,,,,,SRR17006154,58,female,BRC IV,,,,,,,,,,
+SRR15505510,Colorectal,II,83,female,WHITE,,,,,SRR15505510,83,female,CRC II,,,,,,,,,,
+SRR16994271,Control,,46,female,,,,,,SRR16994271,46,female,Healthy,,,,,,,,,,
+SRR23280068,Breast,I,59,female,,Yes,1,12x14mm,Luminal A,SRR23280068,59,female,BRC I,,,,,,,,,,
+SRR17004030,Colorectal,I,66,female,WHITE,,,,,SRR17004030,66,female,CRC I,,,,,,,,,,
+SRR17005888,Control,,57,female,OTHER,,,,,SRR17005888,57,female,Healthy,,,,,,,,,,
+SRR23280194,Breast,II,50,female,,No,1,22x17mm,TNBC,SRR23280194,50,female,BRC II,,,,,,,,,,
+SRR16994300,Colorectal,I,69,female,WHITE,,,,,SRR16994300,69,female,CRC I,,,,,,,,,,
+SRR17004588,Control,,70,male,WHITE,,,,,SRR17004588,70,male,Healthy,,,,,,,,,,
+SRR17006096,Breast,III,62,female,WHITE,,,,,SRR17006096,62,female,BRC III,,,,,,,,,,
+SRR16993890,Colorectal,IV,63,female,WHITE,,,,,SRR16993890,63,female,CRC IV,,,,,,,,,,
+SRR23280153,Control,,45,female,,,,,,SRR23280153,45,female,Healthy,,,,,,,,,,
+SRR23280243,Breast,II,60,female,,No,1,23x13mm,HER2,SRR23280243,60,female,BRC II,,,,,,,,,,
+SRR16994872,Colorectal,IV,59,female,,,,,,SRR16994872,59,female,CRC IV,,,,,,,,,,
+SRR16994151,Control,,54,male,WHITE,,,,,SRR16994151,54,male,Healthy,,,,,,,,,,
+SRR23280065,Breast,I,52,female,,No,1,14x8mm,Luminal B,SRR23280065,52,female,BRC I,,,,,,,,,,
+SRR16995123,Colorectal,I,75,male,WHITE,,,,,SRR16995123,75,male,CRC I,,,,,,,,,,
+SRR17004380,Control,,50,female,WHITE,,,,,SRR17004380,50,female,Healthy,,,,,,,,,,
+SRR23279923,Breast,II,63,female,,No,1,28x18mm,Luminal B,SRR23279923,63,female,BRC II,,,,,,,,,,
+SRR16994412,Colorectal,II,68,female,WHITE,,,,,SRR16994412,68,female,CRC II,,,,,,,,,,
+SRR17004408,Control,,79,female,WHITE,,,,,SRR17004408,79,female,Healthy,,,,,,,,,,
+SRR23279981,Breast,II,40,female,,Yes,1,15x25mm,Luminal B,SRR23279981,40,female,BRC II,,,,,,,,,,
+SRR16995139,Colorectal,III,68,male,WHITE,,,,,SRR16995139,68,male,CRC III,,,,,,,,,,
+SRR16994159,Control,,78,female,WHITE,,,,,SRR16994159,78,female,Healthy,,,,,,,,,,
+SRR17004543,Breast,II,65,female,WHITE,,,,,SRR17004543,65,female,BRC II,,,,,,,,,,
+SRR17004535,Colorectal,IV,57,female,OTHER,,,,,SRR17004535,57,female,CRC IV,,,,,,,,,,
+SRR23279758,Control,,56,female,,,,,,SRR23279758,56,female,Healthy,,,,,,,,,,
+SRR23279777,Breast,II,51,female,,No,1,12x11mm,Luminal B,SRR23279777,51,female,BRC II,,,,,,,,,,
+SRR17006178,Colorectal,II,58,male,WHITE,,,,,SRR17006178,58,male,CRC II,,,,,,,,,,
+SRR16993950,Control,,58,female,WHITE,,,,,SRR16993950,58,female,Healthy,,,,,,,,,,
+SRR23280253,Breast,II,58,female,,Yes,1,40mm,HER2,SRR23280253,58,female,BRC II,,,,,,,,,,
+SRR17004729,Colorectal,II,66,male,WHITE,,,,,SRR17004729,66,male,CRC II,,,,,,,,,,
+SRR17004863,Control,,61,male,WHITE,,,,,SRR17004863,61,male,Healthy,,,,,,,,,,
+SRR17004217,Breast,IV,76,female,WHITE,,,,,SRR17004217,76,female,BRC IV,,,,,,,,,,
+SRR16994888,Colorectal,II,50,male,,,,,,SRR16994888,50,male,CRC II,,,,,,,,,,
+SRR16994938,Control,,61,female,WHITE,,,,,SRR16994938,61,female,Healthy,,,,,,,,,,
+SRR23279868,Breast,IIA,47,female,,,1,22x15mm,Luminal A,SRR23279868,47,female,BRC IIA,,,,,,,,,,
+SRR17004022,Colorectal,IV,59,male,WHITE,,,,,SRR17004022,59,male,CRC IV,,,,,,,,,,
+SRR17004802,Control,,67,male,OTHER,,,,,SRR17004802,67,male,Healthy,,,,,,,,,,
+SRR23280062,Breast,II,68,female,,No,1,24x14mm,Luminal A,SRR23280062,68,female,BRC II,,,,,,,,,,
+SRR17004011,Colorectal,I,57,female,WHITE,,,,,SRR17004011,57,female,CRC I,,,,,,,,,,
+SRR23280114,Control,,43,female,,,,,,SRR23280114,43,female,Healthy,,,,,,,,,,
+SRR23280056,Breast,III,38,female,,No,1,50x30mm,Luminal A,SRR23280056,38,female,BRC III,,,,,,,,,,
+SRR16993588,Colorectal,III,62,female,ASIAN,,,,,SRR16993588,62,female,CRC III,,,,,,,,,,
+SRR16994832,Control,,53,female,WHITE,,,,,SRR16994832,53,female,Healthy,,,,,,,,,,
+SRR23280179,Breast,IIA,61,female,,Yes,1,22x11mm,Luminal B - HER2,SRR23280179,61,female,BRC IIA,,,,,,,,,,
+SRR17004307,Colorectal,II,63,female,NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER,,,,,SRR17004307,63,female,CRC II,,,,,,,,,,
+SRR16994031,Control,,57,female,WHITE,,,,,SRR16994031,57,female,Healthy,,,,,,,,,,
+SRR23280055,Breast,II,67,female,,Yes,1,19x27mm,Luminal B - HER2,SRR23280055,67,female,BRC II,,,,,,,,,,
+SRR17005934,Colorectal,III,60,female,OTHER,,,,,SRR17005934,60,female,CRC III,,,,,,,,,,
+SRR16994428,Control,,58,male,BLACK OR AFRICAN AMERICAN,,,,,SRR16994428,58,male,Healthy,,,,,,,,,,
+SRR23279906,Breast,I,48,female,,No,1,27mm,Luminal B,SRR23279906,48,female,BRC I,,,,,,,,,,
+SRR17004208,Colorectal,III,79,male,WHITE,,,,,SRR17004208,79,male,CRC III,,,,,,,,,,
+SRR16994282,Control,,73,male,WHITE,,,,,SRR16994282,73,male,Healthy,,,,,,,,,,
+SRR17004755,Breast,III,65,female,WHITE,,,,,SRR17004755,65,female,BRC III,,,,,,,,,,
+SRR17005868,Colorectal,IV,73,female,WHITE,,,,,SRR17005868,73,female,CRC IV,,,,,,,,,,
+SRR17004313,Control,,72,female,ASIAN,,,,,SRR17004313,72,female,Healthy,,,,,,,,,,
+SRR23279832,Breast,II,46,female,,No,1,25mm,Luminal A,SRR23279832,46,female,BRC II,,,,,,,,,,
+SRR16994805,Colorectal,II,61,female,,,,,,SRR16994805,61,female,CRC II,,,,,,,,,,
+SRR17006224,Control,,56,female,WHITE,,,,,SRR17006224,56,female,Healthy,,,,,,,,,,
+SRR23279985,Breast,II,28,female,,No,1,7x10cm,Luminal B,SRR23279985,28,female,BRC II,,,,,,,,,,
+SRR16993931,Colorectal,III,62,female,ASIAN,,,,,SRR16993931,62,female,CRC III,,,,,,,,,,
+SRR17005860,Control,,70,female,WHITE,,,,,SRR17005860,70,female,Healthy,,,,,,,,,,
+SRR17004800,Breast,II,55,female,WHITE,,,,,SRR17004800,55,female,BRC II,,,,,,,,,,
+SRR16994072,Colorectal,III,53,female,,,,,,SRR16994072,53,female,CRC III,,,,,,,,,,
+SRR16995084,Control,,64,male,WHITE,,,,,SRR16995084,64,male,Healthy,,,,,,,,,,
+SRR23279824,Breast,III,39,female,,Yes,1,36mm,Luminal B,SRR23279824,39,female,BRC III,,,,,,,,,,
+SRR17004272,Colorectal,I,79,female,WHITE,,,,,SRR17004272,79,female,CRC I,,,,,,,,,,
+SRR16993912,Control,,50,female,WHITE,,,,,SRR16993912,50,female,Healthy,,,,,,,,,,
+SRR17004241,Breast,II,67,female,WHITE,,,,,SRR17004241,67,female,BRC II,,,,,,,,,,
+SRR16994093,Colorectal,III,74,male,WHITE,,,,,SRR16994093,74,male,CRC III,,,,,,,,,,
+SRR16993706,Control,,60,male,WHITE,,,,,SRR16993706,60,male,Healthy,,,,,,,,,,
+SRR23280119,Breast,II,48,female,,No,1,2,6x4mm,HER2,SRR23280119,48,female,BRC II,,,,,,,,,
+SRR16993649,Colorectal,IV,60,female,,,,,,SRR16993649,60,female,CRC IV,,,,,,,,,,
+SRR17004786,Control,,52,female,ASIAN,,,,,SRR17004786,52,female,Healthy,,,,,,,,,,
+SRR23280196,Breast,II,54,female,,No,1,26x13mm,Luminal B - HER2,SRR23280196,54,female,BRC II,,,,,,,,,,
+SRR16994145,Colorectal,I,51,male,ASIAN,,,,,SRR16994145,51,male,CRC I,,,,,,,,,,
+SRR16994323,Control,,60,female,WHITE,,,,,SRR16994323,60,female,Healthy,,,,,,,,,,
+SRR17005865,Breast,IV,67,female,ASIAN,,,,,SRR17005865,67,female,BRC IV,,,,,,,,,,
+SRR16993788,Colorectal,II,71,female,WHITE,,,,,SRR16993788,71,female,CRC II,,,,,,,,,,
+SRR23280108,Control,,49,female,,,,,,SRR23280108,49,female,Healthy,,,,,,,,,,
+SRR23279782,Breast,I,48,female,,,1,15x18mm,Luminal B - HER2,SRR23279782,48,female,BRC I,,,,,,,,,,
+SRR16993803,Colorectal,II,66,male,NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER,,,,,SRR16993803,66,male,CRC II,,,,,,,,,,
+SRR17005999,Control,,74,male,WHITE,,,,,SRR17005999,74,male,Healthy,,,,,,,,,,
+SRR23280185,Breast,IIB,42,female,,,1,36x24x51mm,Luminal B,SRR23280185,42,female,BRC IIB,,,,,,,,,,
+SRR17006177,Colorectal,II,58,male,WHITE,,,,,SRR17006177,58,male,CRC II,,,,,,,,,,
+SRR16994112,Control,,78,female,WHITE,,,,,SRR16994112,78,female,Healthy,,,,,,,,,,
+SRR17004105,Breast,I,68,female,WHITE,,,,,SRR17004105,68,female,BRC I,,,,,,,,,,
+SRR16993678,Colorectal,IV,71,female,WHITE,,,,,SRR16993678,71,female,CRC IV,,,,,,,,,,
+SRR17004634,Control,,78,female,OTHER,,,,,SRR17004634,78,female,Healthy,,,,,,,,,,
+SRR17004179,Breast,III,59,female,WHITE,,,,,SRR17004179,59,female,BRC III,,,,,,,,,,
+SRR16994277,Colorectal,II,61,female,WHITE,,,,,SRR16994277,61,female,CRC II,,,,,,,,,,
+SRR17005965,Control,,65,female,WHITE,,,,,SRR17005965,65,female,Healthy,,,,,,,,,,
+SRR23279909,Breast,II,44,female,,,,,TNBC,SRR23279909,44,female,BRC II,,,,,,,,,,
+SRR16995099,Colorectal,III,76,male,WHITE,,,,,SRR16995099,76,male,CRC III,,,,,,,,,,
+SRR16993558,Control,,52,male,,,,,,SRR16993558,52,male,Healthy,,,,,,,,,,
+SRR23279788,Breast,I,63,female,,Yes,1,20x26mm,Luminal B,SRR23279788,63,female,BRC I,,,,,,,,,,
+SRR17004910,Colorectal,III,50,male,OTHER,,,,,SRR17004910,50,male,CRC III,,,,,,,,,,
+SRR16994915,Control,,83,female,,,,,,SRR16994915,83,female,Healthy,,,,,,,,,,
+SRR17006155,Breast,IV,58,female,ASIAN,,,,,SRR17006155,58,female,BRC IV,,,,,,,,,,
+SRR17004362,Colorectal,II,46,female,NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER,,,,,SRR17004362,46,female,CRC II,,,,,,,,,,
+SRR16993764,Control,,62,female,WHITE,,,,,SRR16993764,62,female,Healthy,,,,,,,,,,
+SRR17004230,Breast,II,67,female,WHITE,,,,,SRR17004230,67,female,BRC II,,,,,,,,,,
+SRR16995105,Colorectal,III,74,female,WHITE,,,,,SRR16995105,74,female,CRC III,,,,,,,,,,
+SRR23280078,Control,,36,female,,,,,,SRR23280078,36,female,Healthy,,,,,,,,,,
+SRR23280233,Breast,III,48,female,,Yes,1,53mm,Luminal B - HER2,SRR23280233,48,female,BRC III,,,,,,,,,,
+SRR17006197,Colorectal,I,67,male,WHITE,,,,,SRR17006197,67,male,CRC I,,,,,,,,,,
+SRR16994449,Control,,52,male,ASIAN,,,,,SRR16994449,52,male,Healthy,,,,,,,,,,
+SRR17006217,Breast,III,58,female,WHITE,,,,,SRR17006217,58,female,BRC III,,,,,,,,,,
+SRR16993670,Colorectal,II,49,male,NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER,,,,,SRR16993670,49,male,CRC II,,,,,,,,,,
+SRR16994132,Control,,70,male,WHITE,,,,,SRR16994132,70,male,Healthy,,,,,,,,,,
+SRR17005980,Breast,II,66,female,ASIAN,,,,,SRR17005980,66,female,BRC II,,,,,,,,,,
+SRR17004206,Colorectal,III,83,female,WHITE,,,,,SRR17004206,83,female,CRC III,,,,,,,,,,
+SRR16995044,Control,,63,male,WHITE,,,,,SRR16995044,63,male,Healthy,,,,,,,,,,
+SRR23280202,Breast,II,40,female,,No,1,40x23mm,Luminal A,SRR23280202,40,female,BRC II,,,,,,,,,,
+SRR17004844,Colorectal,III,75,male,WHITE,,,,,SRR17004844,75,male,CRC III,,,,,,,,,,
+SRR23279884,Control,,52,female,,,,,,SRR23279884,52,female,Healthy,,,,,,,,,,
+SRR23280183,Breast,IIIA,37,female,,Yes,1,47x35x35mm,Luminal A,SRR23280183,37,female,BRC IIIA,,,,,,,,,,
+SRR16994269,Colorectal,II,54,female,,,,,,SRR16994269,54,female,CRC II,,,,,,,,,,
+SRR17004486,Control,,51,female,OTHER,,,,,SRR17004486,51,female,Healthy,,,,,,,,,,
+SRR23280246,Breast,II,69,female,,No,1,20x22mm,Luminal A,SRR23280246,69,female,BRC II,,,,,,,,,,
+SRR16994826,Colorectal,IV,67,male,WHITE,,,,,SRR16994826,67,male,CRC IV,,,,,,,,,,
+SRR17004771,Control,,54,female,WHITE,,,,,SRR17004771,54,female,Healthy,,,,,,,,,,
+SRR23279933,Breast,II,68,female,,No,1,24x18mm,TNBC,SRR23279933,68,female,BRC II,,,,,,,,,,
+SRR16994820,Colorectal,III,50,male,,,,,,SRR16994820,50,male,CRC III,,,,,,,,,,
+SRR16994435,Control,,60,male,WHITE,,,,,SRR16994435,60,male,Healthy,,,,,,,,,,
+SRR23280204,Breast,II,57,female,,No,1,24x14mm,Luminal B,SRR23280204,57,female,BRC II,,,,,,,,,,
+SRR17004284,Colorectal,I,74,male,WHITE,,,,,SRR17004284,74,male,CRC I,,,,,,,,,,
+SRR23280254,Control,,70,female,,,,,,SRR23280254,70,female,Healthy,,,,,,,,,,
+SRR23280249,Breast,II,55,female,,No,1,28x12mm,HER2,SRR23280249,55,female,BRC II,,,,,,,,,,
+SRR16994398,Colorectal,I,55,female,WHITE,,,,,SRR16994398,55,female,CRC I,,,,,,,,,,
+SRR16993957,Control,,66,female,,,,,,SRR16993957,66,female,Healthy,,,,,,,,,,
+SRR23280178,Breast,II,58,female,,,1,23x24x27mm,,SRR23280178,58,female,BRC II,,,,,,,,,,
+SRR17004787,Colorectal,II,72,female,WHITE,,,,,SRR17004787,72,female,CRC II,,,,,,,,,,
+SRR23280038,Control,,75,female,,,,,,SRR23280038,75,female,Healthy,,,,,,,,,,
+SRR23280203,Breast,II,47,female,,No,1,36x17mm,Luminal B - HER2,SRR23280203,47,female,BRC II,,,,,,,,,,
+SRR17006162,Colorectal,III,69,male,WHITE,,,,,SRR17006162,69,male,CRC III,,,,,,,,,,
+SRR17004513,Control,,75,male,OTHER,,,,,SRR17004513,75,male,Healthy,,,,,,,,,,
+SRR17004968,Breast,II,74,female,WHITE,,,,,SRR17004968,74,female,BRC II,,,,,,,,,,
+SRR17004519,Colorectal,IV,78,female,WHITE,,,,,SRR17004519,78,female,CRC IV,,,,,,,,,,
+SRR23279998,Control,,50,female,,,,,,SRR23279998,50,female,Healthy,,,,,,,,,,
+SRR23280193,Breast,II,55,female,,No,1,26x17mm,HER2,SRR23280193,55,female,BRC II,,,,,,,,,,
+SRR16994166,Colorectal,III,71,female,WHITE,,,,,SRR16994166,71,female,CRC III,,,,,,,,,,
+SRR16993929,Control,,58,female,WHITE,,,,,SRR16993929,58,female,Healthy,,,,,,,,,,
+SRR23279978,Breast,I,41,female,,No,1,15x7mm,Luminal A,SRR23279978,41,female,BRC I,,,,,,,,,,
+SRR17004442,Colorectal,II,67,female,WHITE,,,,,SRR17004442,67,female,CRC II,,,,,,,,,,
+SRR16994452,Control,,61,male,WHITE,,,,,SRR16994452,61,male,Healthy,,,,,,,,,,
+SRR23280074,Breast,II,41,female,,Yes,1,32x19mm,HER2,SRR23280074,41,female,BRC II,,,,,,,,,,
+SRR16994201,Colorectal,III,62,female,,,,,,SRR16994201,62,female,CRC III,,,,,,,,,,
+SRR17004472,Control,,74,female,WHITE,,,,,SRR17004472,74,female,Healthy,,,,,,,,,,
+SRR17005975,Breast,II,58,female,ASIAN,,,,,SRR17005975,58,female,BRC II,,,,,,,,,,
+SRR17004678,Colorectal,III,77,female,WHITE,,,,,SRR17004678,77,female,CRC III,,,,,,,,,,
+SRR17006133,Control,,50,female,WHITE,,,,,SRR17006133,50,female,Healthy,,,,,,,,,,
+SRR17006218,Breast,III,58,female,WHITE,,,,,SRR17006218,58,female,BRC III,,,,,,,,,,
+SRR16993695,Colorectal,III,62,female,ASIAN,,,,,SRR16993695,62,female,CRC III,,,,,,,,,,
+SRR16994828,Control,,61,male,WHITE,,,,,SRR16994828,61,male,Healthy,,,,,,,,,,
+SRR23280187,Breast,IIA,43,female,,,1,3cm,Luminal B - HER2,SRR23280187,43,female,BRC IIA,,,,,,,,,,
+SRR16994176,Colorectal,IV,67,female,WHITE,,,,,SRR16994176,67,female,CRC IV,,,,,,,,,,
+SRR17004646,Control,,75,female,WHITE,,,,,SRR17004646,75,female,Healthy,,,,,,,,,,
+SRR23280060,Breast,I,60,female,,No,1,10x14mm,TNBC,SRR23280060,60,female,BRC I,,,,,,,,,,
+SRR16994092,Colorectal,I,58,female,WHITE,,,,,SRR16994092,58,female,CRC I,,,,,,,,,,
+SRR17006167,Control,,66,male,WHITE,,,,,SRR17006167,66,male,Healthy,,,,,,,,,,
+SRR23280198,Breast,I,36,female,,No,1,8x9mm,Luminal B - HER2,SRR23280198,36,female,BRC I,,,,,,,,,,
+SRR16994771,Colorectal,II,52,female,,,,,,SRR16994771,52,female,CRC II,,,,,,,,,,
+SRR23280225,Control,,62,female,,,,,,SRR23280225,62,female,Healthy,,,,,,,,,,
+SRR23279785,Breast,II,62,female,,Yes,1,22x21x20mm,Luminal B - HER2,SRR23279785,62,female,BRC II,,,,,,,,,,
+SRR16994927,Colorectal,II,60,female,,,,,,SRR16994927,60,female,CRC II,,,,,,,,,,
+SRR16993832,Control,,67,female,,,,,,SRR16993832,67,female,Healthy,,,,,,,,,,
+SRR23279980,Breast,I,45,female,,No,1,12x25mm,Luminal B,SRR23279980,45,female,BRC I,,,,,,,,,,
+SRR16993838,Colorectal,III,60,female,,,,,,SRR16993838,60,female,CRC III,,,,,,,,,,
+SRR16994203,Control,,51,male,WHITE,,,,,SRR16994203,51,male,Healthy,,,,,,,,,,
+SRR23279992,Breast,I,61,female,,No,1,11x12mm,,SRR23279992,61,female,BRC I,,,,,,,,,,
+SRR16993550,Colorectal,II,62,female,WHITE,,,,,SRR16993550,62,female,CRC II,,,,,,,,,,
+SRR17004426,Control,,51,female,WHITE,,,,,SRR17004426,51,female,Healthy,,,,,,,,,,
+SRR23279995,Breast,IIA,59,female,,No,1,18x14mm,Luminal A,SRR23279995,59,female,BRC IIA,,,,,,,,,,
+SRR17004453,Colorectal,II,58,female,WHITE,,,,,SRR17004453,58,female,CRC II,,,,,,,,,,
+SRR17004459,Control,,59,female,WHITE,,,,,SRR17004459,59,female,Healthy,,,,,,,,,,
+SRR23280053,Breast,I,37,female,,No,1,16mm,Luminal B,SRR23280053,37,female,BRC I,,,,,,,,,,
+SRR16993861,Colorectal,I,56,male,WHITE,,,,,SRR16993861,56,male,CRC I,,,,,,,,,,
+SRR16994253,Control,,63,male,WHITE,,,,,SRR16994253,63,male,Healthy,,,,,,,,,,
+SRR17004845,Breast,III,68,female,WHITE,,,,,SRR17004845,68,female,BRC III,,,,,,,,,,
+SRR16993544,Colorectal,I,69,female,ASIAN,,,,,SRR16993544,69,female,CRC I,,,,,,,,,,
+SRR23280081,Control,,34,female,,,,,,SRR23280081,34,female,Healthy,,,,,,,,,,
+SRR17006095,Breast,III,62,female,WHITE,,,,,SRR17006095,62,female,BRC III,,,,,,,,,,
+SRR16993835,Colorectal,II,72,male,ASIAN,,,,,SRR16993835,72,male,CRC II,,,,,,,,,,
+SRR17004013,Control,,67,female,WHITE,,,,,SRR17004013,67,female,Healthy,,,,,,,,,,
+SRR23280182,Breast,IA,67,female,,,1,1,5cm,Luminal B,SRR23280182,67,female,BRC IA,,,,,,,,,
+SRR17006199,Colorectal,III,78,female,WHITE,,,,,SRR17006199,78,female,CRC III,,,,,,,,,,
+SRR23279945,Control,,31,female,,,,,,SRR23279945,31,female,Healthy,,,,,,,,,,
+SRR23280048,Breast,I,43,female,,No,1,13x9mm,Luminal A,SRR23280048,43,female,BRC I,,,,,,,,,,
+SRR17004951,Colorectal,III,57,female,WHITE,,,,,SRR17004951,57,female,CRC III,,,,,,,,,,
+SRR17004291,Control,,71,female,OTHER,,,,,SRR17004291,71,female,Healthy,,,,,,,,,,
+SRR17004315,Breast,II,58,female,WHITE,,,,,SRR17004315,58,female,BRC II,,,,,,,,,,
+SRR16994100,Colorectal,II,65,male,ASIAN,,,,,SRR16994100,65,male,CRC II,,,,,,,,,,
+SRR23280256,Control,,56,female,,,,,,SRR23280256,56,female,Healthy,,,,,,,,,,
+SRR23280051,Breast,II,50,female,,No,1,23x21mm,HER2,SRR23280051,50,female,BRC II,,,,,,,,,,
+SRR16994498,Colorectal,III,55,female,WHITE,,,,,SRR16994498,55,female,CRC III,,,,,,,,,,
+SRR16994249,Control,,50,female,,,,,,SRR16994249,50,female,Healthy,,,,,,,,,,
+SRR23280059,Breast,I,33,female,,No,2,15x8 mm, 8x6 mm,Luminal B,SRR23280059,33,female,BRC I,,,,,,,,,
+SRR16993937,Colorectal,IV,73,male,WHITE,,,,,SRR16993937,73,male,CRC IV,,,,,,,,,,
+SRR17004010,Control,,67,female,OTHER,,,,,SRR17004010,67,female,Healthy,,,,,,,,,,
+SRR23280058,Breast,I,71,female,,No,1,10,5x10mm,Luminal A,SRR23280058,71,female,BRC I,,,,,,,,,
+SRR16994146,Colorectal,I,51,male,ASIAN,,,,,SRR16994146,51,male,CRC I,,,,,,,,,,
+SRR16993844,Control,,52,female,,,,,,SRR16993844,52,female,Healthy,,,,,,,,,,
+SRR23280163,Breast,IIA,58,female,,,,,Luminal A,SRR23280163,58,female,BRC IIA,,,,,,,,,,
+SRR16993705,Colorectal,I,66,female,WHITE,,,,,SRR16993705,66,female,CRC I,,,,,,,,,,
+SRR23280133,Control,,53,female,,,,,,SRR23280133,53,female,Healthy,,,,,,,,,,
+SRR23279770,Breast,IIA,59,female,,Yes,1,17x21x22mm,Luminal B,SRR23279770,59,female,BRC IIA,,,,,,,,,,
+SRR16995056,Colorectal,II,64,male,WHITE,,,,,SRR16995056,64,male,CRC II,,,,,,,,,,
+SRR16994849,Control,,69,male,WHITE,,,,,SRR16994849,69,male,Healthy,,,,,,,,,,
+SRR23279783,Breast,IIIA,47,female,,Yes,1,13x29mm,TNBC,SRR23279783,47,female,BRC IIIA,,,,,,,,,,
+SRR16994377,Colorectal,I,72,male,NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER,,,,,SRR16994377,72,male,CRC I,,,,,,,,,,
+SRR23279848,Control,,62,female,,,,,,SRR23279848,62,female,Healthy,,,,,,,,,,
+SRR23279830,Breast,III,56,female,,Yes,1,47x38mm,HER2,SRR23279830,56,female,BRC III,,,,,,,,,,
+SRR17004159,Colorectal,II,75,male,WHITE,,,,,SRR17004159,75,male,CRC II,,,,,,,,,,
+SRR16994110,Control,,64,female,WHITE,,,,,SRR16994110,64,female,Healthy,,,,,,,,,,
+SRR23280098,Breast,I,50,female,,No,1,8x11mm,Luminal B - HER2,SRR23280098,50,female,BRC I,,,,,,,,,,
+SRR16994336,Colorectal,III,46,female,,,,,,SRR16994336,46,female,CRC III,,,,,,,,,,
+SRR23279847,Control,,32,female,,,,,,SRR23279847,32,female,Healthy,,,,,,,,,,
+SRR23280197,Breast,II,39,female,,No,1,28mm,Luminal B,SRR23280197,39,female,BRC II,,,,,,,,,,
+SRR17003998,Colorectal,II,70,female,WHITE,,,,,SRR17003998,70,female,CRC II,,,,,,,,,,
+SRR17004867,Control,,71,female,WHITE,,,,,SRR17004867,71,female,Healthy,,,,,,,,,,
+SRR23279976,Breast,III,57,female,,Yes,1,40x30x30mm,HER2,SRR23279976,57,female,BRC III,,,,,,,,,,
+SRR16993625,Colorectal,I,59,female,WHITE,,,,,SRR16993625,59,female,CRC I,,,,,,,,,,
+SRR23280224,Control,,40,female,,,,,,SRR23280224,40,female,Healthy,,,,,,,,,,
+SRR23280069,Breast,III,60,female,,Yes,1,25mm,Luminal B - HER2,SRR23280069,60,female,BRC III,,,,,,,,,,
+SRR16993561,Colorectal,I,73,male,WHITE,,,,,SRR16993561,73,male,CRC I,,,,,,,,,,
+SRR16995020,Control,,69,female,WHITE,,,,,SRR16995020,69,female,Healthy,,,,,,,,,,
+SRR23280054,Breast,I,39,female,,No,1,19x18mm,TNBC,SRR23280054,39,female,BRC I,,,,,,,,,,
+SRR17004348,Colorectal,I,59,female,WHITE,,,,,SRR17004348,59,female,CRC I,,,,,,,,,,
+SRR17004882,Control,,64,male,WHITE,,,,,SRR17004882,64,male,Healthy,,,,,,,,,,
+SRR17004644,Breast,I,66,female,WHITE,,,,,SRR17004644,66,female,BRC I,,,,,,,,,,
+SRR16993883,Colorectal,IV,78,male,WHITE,,,,,SRR16993883,78,male,CRC IV,,,,,,,,,,
+SRR23280265,Control,,55,female,,,,,,SRR23280265,55,female,Healthy,,,,,,,,,,
+SRR23280174,Breast,I,48,female,,,1,12x6mm,,SRR23280174,48,female,BRC I,,,,,,,,,,
+SRR16993793,Colorectal,I,56,male,WHITE,,,,,SRR16993793,56,male,CRC I,,,,,,,,,,
+SRR23280105,Control,,52,female,,,,,,SRR23280105,52,female,Healthy,,,,,,,,,,
+SRR23280138,Breast,II,51,female,,No,1,15x22mm,Luminal B,SRR23280138,51,female,BRC II,,,,,,,,,,
+SRR17006086,Colorectal,II,77,female,ASIAN,,,,,SRR17006086,77,female,CRC II,,,,,,,,,,
+SRR16994841,Control,,70,female,WHITE,,,,,SRR16994841,70,female,Healthy,,,,,,,,,,
+SRR23279779,Breast,IIA,34,female,,Yes,1,3cm,HER2,SRR23279779,34,female,BRC IIA,,,,,,,,,,
+SRR16993565,Colorectal,II,66,female,ASIAN,,,,,SRR16993565,66,female,CRC II,,,,,,,,,,
+SRR16995160,Control,,50,male,WHITE,,,,,SRR16995160,50,male,Healthy,,,,,,,,,,
+SRR23280177,Breast,I,37,female,,,1,9x11mm,,SRR23280177,37,female,BRC I,,,,,,,,,,
+SRR16993616,Colorectal,IV,73,male,WHITE,,,,,SRR16993616,73,male,CRC IV,,,,,,,,,,
+SRR17004965,Control,,51,male,WHITE,,,,,SRR17004965,51,male,Healthy,,,,,,,,,,
+SRR23279986,Breast,II,52,female,,No,1,14x47mm,HER2,SRR23279986,52,female,BRC II,,,,,,,,,,
+SRR16993665,Colorectal,IV,56,male,WHITE,,,,,SRR16993665,56,male,CRC IV,,,,,,,,,,
+SRR17005920,Control,,59,female,WHITE,,,,,SRR17005920,59,female,Healthy,,,,,,,,,,
+SRR17005864,Breast,IV,67,female,ASIAN,,,,,SRR17005864,67,female,BRC IV,,,,,,,,,,
+SRR16994165,Colorectal,IV,60,male,WHITE,,,,,SRR16994165,60,male,CRC IV,,,,,,,,,,
+SRR16993829,Control,,63,male,WHITE,,,,,SRR16993829,63,male,Healthy,,,,,,,,,,
+SRR23280064,Breast,II,59,female,,No,1,24x18mm,Luminal A,SRR23280064,59,female,BRC II,,,,,,,,,,
+SRR16993520,Colorectal,III,57,male,WHITE,,,,,SRR16993520,57,male,CRC III,,,,,,,,,,
+SRR16994407,Control,,60,female,WHITE,,,,,SRR16994407,60,female,Healthy,,,,,,,,,,
+SRR17004575,Breast,III,80,female,ASIAN,,,,,SRR17004575,80,female,BRC III,,,,,,,,,,
+SRR17006195,Colorectal,III,56,male,WHITE,,,,,SRR17006195,56,male,CRC III,,,,,,,,,,
+SRR16994441,Control,,71,female,WHITE,,,,,SRR16994441,71,female,Healthy,,,,,,,,,,
+SRR17004475,Breast,II,55,female,ASIAN,,,,,SRR17004475,55,female,BRC II,,,,,,,,,,
+SRR16994373,Colorectal,IV,57,male,,,,,,SRR16994373,57,male,CRC IV,,,,,,,,,,
+SRR23280164,Control,,53,female,,,,,,SRR23280164,53,female,Healthy,,,,,,,,,,
+SRR17005958,Breast,IV,60,female,WHITE,,,,,SRR17005958,60,female,BRC IV,,,,,,,,,,
+SRR16993631,Colorectal,II,75,female,WHITE,,,,,SRR16993631,75,female,CRC II,,,,,,,,,,
+SRR16995029,Control,,65,female,WHITE,,,,,SRR16995029,65,female,Healthy,,,,,,,,,,
+SRR23280247,Breast,I,52,female,,No,1,12x6mm,Luminal B,SRR23280247,52,female,BRC I,,,,,,,,,,
+SRR16994789,Colorectal,III,70,male,WHITE,,,,,SRR16994789,70,male,CRC III,,,,,,,,,,
+SRR23280106,Control,,46,female,,,,,,SRR23280106,46,female,Healthy,,,,,,,,,,
+SRR23279908,Breast,II,45,female,,No,1,22x17mm,TNBC,SRR23279908,45,female,BRC II,,,,,,,,,,
+SRR16993641,Colorectal,II,70,female,ASIAN,,,,,SRR16993641,70,female,CRC II,,,,,,,,,,
+SRR17004839,Control,,50,male,WHITE,,,,,SRR17004839,50,male,Healthy,,,,,,,,,,
+SRR23279897,Breast,IIA,61,female,,No,2,14x20mm, 12x24mm,HER2,SRR23279897,61,female,BRC IIA,,,,,,,,,
+SRR16994121,Colorectal,III,62,female,ASIAN,,,,,SRR16994121,62,female,CRC III,,,,,,,,,,
+SRR23280018,Control,,54,female,,,,,,SRR23280018,54,female,Healthy,,,,,,,,,,
+SRR23280240,Breast,II,57,female,,Yes,1,18x15mm,Luminal B - HER2,SRR23280240,57,female,BRC II,,,,,,,,,,
+SRR15505494,Colorectal,II,83,female,WHITE,,,,,SRR15505494,83,female,CRC II,,,,,,,,,,
+SRR16993915,Control,,67,male,,,,,,SRR16993915,67,male,Healthy,,,,,,,,,,
+SRR17006230,Breast,II,68,female,WHITE,,,,,SRR17006230,68,female,BRC II,,,,,,,,,,
+SRR16993767,Colorectal,IV,53,male,ASIAN,,,,,SRR16993767,53,male,CRC IV,,,,,,,,,,
+SRR17006181,Control,,63,male,WHITE,,,,,SRR17006181,63,male,Healthy,,,,,,,,,,
+SRR23280192,Breast,I,55,female,,No,1,19x13,2mm,Luminal A,SRR23280192,55,female,BRC I,,,,,,,,,
+SRR17004969,Colorectal,II,65,female,WHITE,,,,,SRR17004969,65,female,CRC II,,,,,,,,,,
+SRR16994134,Control,,64,female,WHITE,,,,,SRR16994134,64,female,Healthy,,,,,,,,,,
+SRR17004948,Breast,II,61,female,ASIAN,,,,,SRR17004948,61,female,BRC II,,,,,,,,,,
+SRR16995129,Colorectal,III,56,female,,,,,,SRR16995129,56,female,CRC III,,,,,,,,,,
+SRR16994236,Control,,61,female,,,,,,SRR16994236,61,female,Healthy,,,,,,,,,,
+SRR23279932,Breast,III,38,female,,Yes,1,13x16mm,Luminal B,SRR23279932,38,female,BRC III,,,,,,,,,,
+SRR16995118,Colorectal,II,68,male,,,,,,SRR16995118,68,male,CRC II,,,,,,,,,,
+SRR16994768,Control,,63,female,WHITE,,,,,SRR16994768,63,female,Healthy,,,,,,,,,,
+SRR23279912,Breast,I,64,female,,No,1,5mm,Luminal A,SRR23279912,64,female,BRC I,,,,,,,,,,
+SRR16994932,Colorectal,II,64,female,WHITE,,,,,SRR16994932,64,female,CRC II,,,,,,,,,,
+SRR17004779,Control,,64,male,WHITE,,,,,SRR17004779,64,male,Healthy,,,,,,,,,,
+SRR23279913,Breast,III,41,female,,Yes,1,24x10x13mm,Luminal B - HER2,SRR23279913,41,female,BRC III,,,,,,,,,,
+SRR16993812,Colorectal,III,73,female,WHITE,,,,,SRR16993812,73,female,CRC III,,,,,,,,,,
+SRR16994381,Control,,52,female,,,,,,SRR16994381,52,female,Healthy,,,,,,,,,,
+SRR23279778,Breast,II,56,female,,Yes,1,2cm,Luminal B - HER2,SRR23279778,56,female,BRC II,,,,,,,,,,
+SRR16995134,Colorectal,II,62,female,WHITE,,,,,SRR16995134,62,female,CRC II,,,,,,,,,,
+SRR23280092,Control,,60,female,,,,,,SRR23280092,60,female,Healthy,,,,,,,,,,
+SRR23279841,Breast,II,57,female,,No,,,Luminal A,SRR23279841,57,female,BRC II,,,,,,,,,,
+SRR17004933,Colorectal,II,59,male,WHITE,,,,,SRR17004933,59,male,CRC II,,,,,,,,,,
+SRR23280013,Control,,44,female,,,,,,SRR23280013,44,female,Healthy,,,,,,,,,,
