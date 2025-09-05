@@ -197,9 +197,9 @@ logs/
 tmp/
 temp/
 content/
+fasterq.tmp*
 
 # Configuration files with sensitive data
-config.ini
 config_*.ini
 .env.local
 .env.production
