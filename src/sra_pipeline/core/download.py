@@ -225,7 +225,7 @@ def _download_fastq_files(
             logger.warning("No FASTQ files found to gzip", sra_id=sra_id)
         
         for fastq_file in fastq_files:
-            gzip_cmd = ["gzip", str(fastq_file)]
+            gzip_cmd = ["gzip", "--force", str(fastq_file)]
             subprocess.run(gzip_cmd, check=True)
             logger.info(f"Gzipped file: {fastq_file.name}")
     except subprocess.CalledProcessError as e:
