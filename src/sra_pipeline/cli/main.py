@@ -13,6 +13,9 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from ..config.settings import PipelineConfig
 from ..core.pipeline import Pipeline
 from ..utils import setup_logging, PipelineLogger, PerformanceMonitor
+from ..utils.ml_features import (
+    normalize_feature_table, merge_with_metadata
+)
 from .. import __version__
 
 
@@ -345,9 +348,9 @@ def validate(config: Optional[Path]):
     type=click.Path(exists=True, path_type=Path),
 )
 @click.option(
-    "--output-file",
+    "--output-folder",
     required=True,
-    help="Output file path for ML feature table",
+    help="Output folder path for feature table",
     type=click.Path(path_type=Path),
 )
 @click.option(
@@ -364,7 +367,7 @@ def validate(config: Optional[Path]):
 )
 def create_feature_table(
     input_dir: Path,
-    output_file: Path,
+    output_folder: Path,
     format: str,
     log_level: str,
 ):
@@ -378,14 +381,14 @@ def create_feature_table(
         # Create ML feature table
         df = create_feature_table_from_directory(
             input_directory=input_dir,
-            output_path=output_file,
+            output_path=output_folder,
             logger=logger,
             format=format
         )
         
         # Display summary
         console.print(f"\n[green]✓ Feature table created successfully![/green]")
-        console.print(f"Output file: {output_file}")
+        console.print(f"Output folder: {output_folder}")
         console.print(f"Format: {format}")
         console.print(f"Shape: {df.shape[0]} samples × {df.shape[1]} features")
         
@@ -417,6 +420,103 @@ def create_feature_table(
     except Exception as e:
         console.print(f"[red]Error creating feature table: {e}[/red]")
         sys.exit(1)
+
+
+@cli.command()
+@click.option(
+    "--input-file",
+    required=True,
+    help="Input feature file path",
+    type=click.Path(exists=True, path_type=Path),
+)
+@click.option(
+    "--metadata-file",
+    required=False,
+    help="Input feature file path",
+    type=click.Path(exists=True, path_type=Path),
+)
+@click.option(
+    "--output-folder",
+    required=True,
+    help="Output folder path",
+    type=click.Path(path_type=Path),
+)
+@click.option(
+    "--log-level",
+    default="INFO",
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"]),
+    help="Logging level",
+)
+def create_normalized_table(
+    input_file: Path,
+    metadata_file: Optional[Path],
+    output_folder: Path,
+    log_level: str,
+):
+    """Create a normalized feature table."""
+    # Setup logging
+    logger = setup_logging(log_level=log_level)
+    
+    try:
+        # Normalize feature table
+        df_raw, df_normalized = normalize_feature_table(
+            input_file=input_file,
+            output_folder=output_folder,
+            logger=logger
+        )
+
+        # Check if metadata file is provided
+        if metadata_file:
+            metadata_df = merge_with_metadata(
+                feature_table=df_normalized,
+                metadata_file=metadata_file,
+                output_folder=output_folder,
+                table_name='normalized_features_with_metadata',
+                logger=logger
+            )
+            _ = merge_with_metadata(
+                feature_table=df_raw,
+                metadata_file=metadata_file,
+                output_folder=output_folder,
+                table_name='raw_features_with_metadata',
+                logger=logger
+            )
+        
+        # Display summary
+        console.print(f"\n[green]✓ Normalized feature table created successfully![/green]")
+        console.print(f"Output folder: {output_folder}")
+        console.print(f"Raw shape: {df_raw.shape[0]} samples × {df_raw.shape[1]} features")
+        console.print(f"Normalized shape: {df_normalized.shape[0]} samples × {df_normalized.shape[1]} features")
+        
+        # Show feature summary
+        summary = {
+            "Sample Count": df_normalized.shape[0],
+            "Feature Count": df_normalized.shape[1],
+            "Numeric Features": len(df_normalized.select_dtypes(include=['number']).columns),
+            "Categorical Features": len(df_normalized.select_dtypes(include=['object']).columns),
+            "Missing Values": df_normalized.isnull().sum().sum(),
+        }
+        
+        table = Table(title="Normalized Feature Table Summary")
+        table.add_column("Metric", style="cyan")
+        table.add_column("Value", style="magenta")
+        
+        for metric, value in summary.items():
+            table.add_row(metric, str(value))
+        
+        console.print(table)
+        
+        # Show sample of features
+        console.print(f"\n[bold]Sample Features:[/bold]")
+        feature_sample = df_normalized.columns[:10].tolist()
+        console.print(", ".join(feature_sample))
+        if len(df_normalized.columns) > 10:
+            console.print(f"... and {len(df_normalized.columns) - 10} more features")
+        
+    except Exception as e:
+        console.print(f"[red]Error creating normalized feature table: {e}[/red]")
+        sys.exit(1)
+
 
 @cli.command()
 @click.option(

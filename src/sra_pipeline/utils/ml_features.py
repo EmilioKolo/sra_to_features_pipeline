@@ -2,12 +2,17 @@
 ML-ready feature table utilities for the SRA to Features Pipeline.
 """
 
-import pandas as pd
-import numpy as np
+
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Union
-import structlog
+from sklearn.preprocessing import RobustScaler
+from typing import List, Dict, Any
 import json
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import pandas as pd
+import seaborn as sns
+import structlog
 
 from ..models.features import FeatureSet
 
@@ -474,7 +479,7 @@ def create_feature_table_from_directory(
     
     Args:
         input_directory: Directory containing pipeline results
-        output_path: Output file path for feature table
+        output_path: Output folder path for feature table
         format: Output format ('csv', 'tsv', 'parquet', 'json')
         logger: Logger instance
         
@@ -487,14 +492,53 @@ def create_feature_table_from_directory(
     if not ml_table.feature_dicts:
         raise ValueError(f"No feature sets found in {input_directory}")
     
+    # Make sure output path is a directory
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Define output file path
+    output_file = output_path / f'features_table.{format}'
+
     # Save feature table
-    ml_table.save_feature_table(output_path, format)
-    
+    ml_table.save_feature_table(output_file, format)
+
     # Log summary
     summary = ml_table.get_feature_summary()
     logger.info("ML feature table created successfully", **summary)
     
     return ml_table.create_sample_features_table()
+
+
+def create_heatmap(
+    df:pd.DataFrame,
+    title:str,
+    save_fig:bool,
+    out_path:str
+):
+    """Creates a heatmap using Seaborn and Matplotlib"""
+    # Check that df is not empty
+    if df.empty:
+        print(f'# WARNING: Heatmap with title "{title}" could not be created.')
+        return None
+    print(f'# Creating heatmap with title "{title}"...')
+    # Define the figure size
+    fig_width = 9
+    fig_height = 9
+    # Set the font scale to make labels readable
+    sns.set_theme(font_scale=0.8)
+    # Create the figure and axes objects
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+    # Load the dataframe
+    sns.heatmap(df, cmap="viridis", ax=ax, vmin=0) # vmin=-20, vmax=20
+    # Add titles and formatting
+    plt.title(f"Features Heatmap for {title}")
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    # Show or save the plot
+    if save_fig:
+        path_out = os.path.join(out_path, f'heatmap_{title}.png')
+        plt.savefig(path_out)
+    plt.show()
+    return None
 
 
 def create_ml_feature_table_from_directory(
@@ -529,3 +573,304 @@ def create_ml_feature_table_from_directory(
     logger.info("ML feature table created successfully", **summary)
     
     return ml_table.create_sample_features_table()
+
+
+def merge_with_metadata(
+    feature_table: pd.DataFrame,
+    metadata_file: Path,
+    output_folder: Path,
+    table_name: str,
+    logger: structlog.BoundLogger
+) -> pd.DataFrame:
+    """
+    Add metadata from a file to the feature table and save it.
+    """
+    # Make sure output folder exists
+    output_folder.mkdir(parents=True, exist_ok=True)
+
+    # Define output file name
+    out_csv_transposed = os.path.join(output_folder, 
+                                      f'{table_name}_transposed.csv')
+    out_csv = os.path.join(output_folder, f'{table_name}.csv')
+
+    # Open metadata file
+    metadata_df = pd.read_csv(metadata_file, sep=',',
+                              index_col='run_accession')
+    
+    metadata_df = metadata_df.T
+    print(metadata_df)
+
+    # Modify gender to 1-0
+    metadata_df.loc['Gender'] = \
+        metadata_df.loc['Gender'].replace({'male': 0, 'female': 1})
+
+    # Transpose tables
+    feature_table = feature_table.T
+    metadata_df = metadata_df.T
+
+    # Ensure both dataframes have the same index and are aligned
+    if not feature_table.index.equals(metadata_df.index):
+        print("Warning: DataFrames indices do not match. Merging...")
+        # This is a robust way to merge if indices don't match
+        merged_df = pd.merge(feature_table, metadata_df, 
+                             left_index=True, right_index=True, 
+                             how='inner')
+    else:
+        merged_df = pd.concat([feature_table, metadata_df], axis=1)
+    
+    # Save df as csv
+    merged_df.to_csv(out_csv, sep=',')
+    merged_df.T.to_csv(out_csv_transposed, sep=',')
+    return merged_df
+
+
+def normalize_feature_table(
+    input_file: Path,
+    output_folder: Path,
+    logger: structlog.BoundLogger,
+    log_transform: bool = False,
+    robust_normalization: bool = False
+) -> List[pd.DataFrame]:
+    """
+    Normalize a feature table and create heatmaps.
+    
+    Args:
+        input_file: Path to the feature table CSV file.
+        output_folder: Output directory for heatmaps and normalized 
+                       tables.
+        logger: Logger instance.
+    """
+    # Make sure output folder exists
+    output_folder.mkdir(parents=True, exist_ok=True)
+
+    # Define table name from input_file
+    table_name = input_file.name.rsplit('.')[0]
+
+    logger.info('Reading feature table.', table_path=input_file)
+
+    # Read feature table
+    df = pd.read_csv(input_file, sep=',')
+    df.set_index(df.columns[0], inplace=True)
+
+    # Define output file names
+    out_raw = os.path.join(output_folder, f'{table_name}_RAW.csv')
+    out_csv = os.path.join(output_folder, 
+                           f'{table_name}_NORMALIZED.csv')
+
+    # Remove rows that sum 0
+    df = df[df.sum(axis=1)!=0]
+    # Remove columns that sum 0
+    df = df.loc[:, (df.sum(axis=0)!=0)]
+
+    # Copy raw df before numerical modifications
+    raw_df = df.copy()
+
+    logger.info('Separating the different kinds of feature.', 
+                table_path=input_file)
+
+    # Get df for the different kinds of feature
+    bins_df = df.loc[df.index.to_series().str.startswith('bin_gvs')]
+    genes_df = df.loc[df.index.to_series().str.startswith('gene_gvs')]
+    dn_ds_df = df.loc[df.index.to_series().str.startswith('dn_ds')]
+    fl_df = df.loc[df.index.to_series().str.startswith('fragment')]
+    cnv_df = df.loc[df.index.to_series().str.startswith('cnv_length')]
+
+    logger.info('Dividing by number of GVs.', table_path=input_file)
+
+    # Get the sum of gvs per column (from bins_df)
+    gv_col_sum = (bins_df.sum())
+    # Divide by total GVs
+    bins_df = bins_df / gv_col_sum
+    genes_df = genes_df / gv_col_sum
+
+    if log_transform:
+        logger.info('Perform log transformation.', 
+                    table_path=input_file)
+        # Perform log transformation
+        dn_ds_df = dn_ds_df.apply(np.log1p)
+        fl_df = fl_df.apply(np.log1p)
+        cnv_df = cnv_df.apply(np.log1p)
+        genes_df = genes_df.apply(np.log1p)
+        bins_df = bins_df.apply(np.log1p)
+
+    logger.info('Re-join separated dfs.', table_path=input_file)
+
+    # Join dataframes into df
+    df = pd.concat([dn_ds_df, fl_df, cnv_df, genes_df, bins_df], 
+                    ignore_index=False)
+
+    # Perform normalization
+    if robust_normalization:
+        logger.info('Performing robust normalization.',
+                table_path=input_file)
+        df = robust_normalize(df)
+    else:
+        logger.info('Performing normalization.',
+                table_path=input_file)
+        df = df.div(df.max(axis=1), axis=0)
+
+    logger.info('Re-separate the different kinds of feature.', 
+                table_path=input_file)
+
+    # Get df for the different kinds of feature again
+    bins_df = df.loc[df.index.to_series().str.startswith('bin_gvs')]
+    genes_df = df.loc[df.index.to_series().str.startswith('gene_gvs')]
+    dn_ds_df = df.loc[df.index.to_series().str.startswith('dn_ds')]
+    fl_df = df.loc[df.index.to_series().str.startswith('fragment')]
+    cnv_df = df.loc[df.index.to_series().str.startswith('cnv_length')]
+
+    logger.info('Removing minimums to avoid negative values.', 
+                table_path=input_file)
+
+    # Remove minimums to avoid negative values
+    cnv_df = cnv_df - min(cnv_df.min().min(), 0)
+    fl_df = fl_df - min(fl_df.min().min(), 0)
+    bins_df = bins_df - min(bins_df.min().min(), 0)
+    genes_df = genes_df - min(genes_df.min().min(), 0)
+    if not dn_ds_df.empty:
+        dn_ds_df = dn_ds_df - min(dn_ds_df.min().min(), 0)
+
+    logger.info('Re-joining separated dfs.', table_path=input_file)
+
+    # Join dataframes into df
+    df = pd.concat([dn_ds_df, fl_df, cnv_df, genes_df, bins_df], 
+                    ignore_index=False)
+
+    logger.info('Creating heatmaps.', table_path=input_file)
+
+    # Define if heatmaps will be created
+    create_heatmaps = False
+    if create_heatmaps:
+        save_tables = True
+        # Create heatmaps
+        create_heatmap(dn_ds_df, table_name+'_dn_ds', save_tables,
+                    output_folder)
+        create_heatmap(fl_df, table_name+'_fl', save_tables,
+                    output_folder)
+        create_heatmap(cnv_df, table_name+'_cnvs', save_tables,
+                    output_folder)
+        create_heatmap(genes_df, table_name+'_genes', save_tables,
+                    output_folder)
+        create_heatmap(bins_df, table_name+'_bins', save_tables,
+                    output_folder)
+        create_heatmap(df, table_name, save_tables, output_folder)
+    
+    # Get df for the different kinds of feature
+    bins_df = df.loc[df.index.to_series().str.startswith('bin_gvs')]
+    genes_df = df.loc[df.index.to_series().str.startswith('gene_gvs')]
+    dn_ds_df = df.loc[df.index.to_series().str.startswith('dn_ds')]
+    fl_df = df.loc[df.index.to_series().str.startswith('fragment')]
+    cnv_df = df.loc[df.index.to_series().str.startswith('cnv_length')]
+    # Create a heatmap with samples from subsets of features
+    l_df = [
+        fl_df,
+        cnv_df.sample(n=10, random_state=12),
+        genes_df.sample(n=10, random_state=12),
+        bins_df.sample(n=10, random_state=12)
+    ]
+    if not dn_ds_df.empty:
+        l_df.append(dn_ds_df.sample(n=10, random_state=12))
+    df_sample = pd.concat(l_df, ignore_index=False)
+    df_sample.index = df_sample.index.map(process_feature_names)
+    create_heatmap(df_sample, table_name+'_sample', True, 
+                   output_folder)
+
+    print('### Pre-feature modification df:')
+    print(df)
+
+    logger.info('Modifying feature names and saving dataframes.', 
+                table_path=input_file)
+
+    # Modify feature names
+    df.index = df.index.map(process_feature_names)
+
+    print('### Post-feature modification df:')
+    print(df)
+
+    # Save df as csv
+    df.to_csv(out_csv, sep=',')
+
+    # Save raw_df too
+    raw_df.index = raw_df.index.map(process_feature_names)
+    raw_df.to_csv(out_raw, sep=',')
+    # Return raw df and df
+    return raw_df, df
+
+
+def process_feature_names(row_name:str) -> str:
+    """Processes a feature row name and formats it."""
+    ret = row_name
+    if row_name.startswith('bin_gvs'):
+        region = row_name.rsplit('_')[-1]
+        ret = f'GVs in region {region}'
+    elif row_name.startswith('gene_gvs'):
+        gene_name = row_name.rsplit('_')[-1]
+        ret = f'GVs in gene {gene_name}'
+    elif row_name.startswith('fragment'):
+        feat = row_name.rsplit('_')[-1]
+        if feat == 'mean':
+            ret = 'Mean fragment length'
+        elif feat == 'median':
+            ret = 'Median fragment length'
+        elif feat == 'std':
+            ret = 'Fragment length standard deviation'
+        elif feat == 'min':
+            ret = 'Minimum fragment length'
+        elif feat == 'max':
+            ret = 'Maximum fragment length'
+        elif feat == 'count':
+            ret = 'Fragment count'
+        else:
+            er = f'WARNING: row_name {row_name} not processed properly.'
+            print(er)
+    elif row_name.startswith('cnv_length'):
+        chr_n = row_name.rsplit('_')[-1]
+        gain_loss = row_name.rsplit('_')[-2]
+        if gain_loss == 'gain':
+            ret = f'Nucleotides added by CNVs in {chr_n}'
+        elif gain_loss == 'loss':
+            ret = f'Nucleotides lost by CNVs in {chr_n}'
+        else:
+            er = f'WARNING: row_name {row_name} not processed properly.'
+            print(er)
+    elif row_name.startswith('dn_ds'):
+        gene_name = row_name.rsplit('_')[-1]
+        ret = f'dN/dS proportion in gene {gene_name}'
+    else:
+        print(f'WARNING: row_name {row_name} not processed properly.')
+    return ret
+
+
+def robust_normalize(df:pd.DataFrame) -> pd.DataFrame:
+    """Performs robust normalization on a dataframe."""
+    # Define Q1 and Q3
+    q1 = df.quantile(0.25, axis=1)
+    q3 = df.quantile(0.75, axis=1)
+    # Define rows to keep
+    rows_to_keep = (q3 != 0) | (q1 != 0)
+
+    # Filter the DataFrame
+    df_filtered = df[rows_to_keep]
+
+    print('# df_filtered:')
+    print(df_filtered)
+
+    # Perform robust scaling
+    # Create the scaler object
+    scaler = RobustScaler()
+
+    # Transpose the dataframe
+    df_transposed = df_filtered.T
+    print('# df_transposed:')
+    print(df_transposed)
+    # Scale the transposed DataFrame
+    scaled_data = scaler.fit_transform(df_transposed)
+
+    print('# Scaled raw df:')
+    print(scaled_data)
+
+    # Transpose the result back and create a new DataFrame
+    df_row_scaled = pd.DataFrame(scaled_data.T, 
+                                 columns=df_filtered.columns, 
+                                 index=df_filtered.index)
+    return df_row_scaled
