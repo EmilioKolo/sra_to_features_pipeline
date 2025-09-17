@@ -426,19 +426,19 @@ def create_feature_table(
 @click.option(
     "--input-file",
     required=True,
-    help="Input feature file path",
+    help="Input feature file path. Needs to have the same format as the table created by create-feature-table.",
     type=click.Path(exists=True, path_type=Path),
 )
 @click.option(
     "--metadata-file",
     required=False,
-    help="Input feature file path",
+    help="Input metadata file path. Must have accession ID in the first column.",
     type=click.Path(exists=True, path_type=Path),
 )
 @click.option(
     "--output-folder",
     required=True,
-    help="Output folder path",
+    help="Output folder path.",
     type=click.Path(path_type=Path),
 )
 @click.option(

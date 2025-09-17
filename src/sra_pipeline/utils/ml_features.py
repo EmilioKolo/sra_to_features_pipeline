@@ -597,7 +597,7 @@ def merge_with_metadata(
 
     # Open metadata file
     metadata_df = pd.read_csv(metadata_file, sep=',',
-                              index_col='run_accession')
+                              index_col=0)
     
     metadata_df = metadata_df.T
 
