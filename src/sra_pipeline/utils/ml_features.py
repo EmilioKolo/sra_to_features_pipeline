@@ -593,12 +593,13 @@ def merge_with_metadata(
                                       f'{table_name}_transposed.csv')
     out_csv = os.path.join(output_folder, f'{table_name}.csv')
 
+    logger.info('Opening metadata file.', metadata_file=metadata_file)
+
     # Open metadata file
     metadata_df = pd.read_csv(metadata_file, sep=',',
                               index_col='run_accession')
     
     metadata_df = metadata_df.T
-    print(metadata_df)
 
     # Modify gender to 1-0
     metadata_df.loc['Gender'] = \
@@ -608,15 +609,22 @@ def merge_with_metadata(
     feature_table = feature_table.T
     metadata_df = metadata_df.T
 
+    logger.info('Attempting merge with feature table.',
+                metadata_file=metadata_file)
+
     # Ensure both dataframes have the same index and are aligned
     if not feature_table.index.equals(metadata_df.index):
-        print("Warning: DataFrames indices do not match. Merging...")
+        logger.warning("DataFrames indices do not match. Merging...",
+                       metadata_file=metadata_file)
         # This is a robust way to merge if indices don't match
         merged_df = pd.merge(feature_table, metadata_df, 
                              left_index=True, right_index=True, 
                              how='inner')
     else:
         merged_df = pd.concat([feature_table, metadata_df], axis=1)
+    
+    logger.info('Merge completed. Saving files...',
+                metadata_file=metadata_file)
     
     # Save df as csv
     merged_df.to_csv(out_csv, sep=',')

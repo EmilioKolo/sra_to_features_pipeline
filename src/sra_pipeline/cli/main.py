@@ -467,7 +467,7 @@ def create_normalized_table(
 
         # Check if metadata file is provided
         if metadata_file:
-            metadata_df = merge_with_metadata(
+            _ = merge_with_metadata(
                 feature_table=df_normalized,
                 metadata_file=metadata_file,
                 output_folder=output_folder,
