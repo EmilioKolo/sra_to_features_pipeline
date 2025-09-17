@@ -4,7 +4,10 @@ ML-ready feature table utilities for the SRA to Features Pipeline.
 
 
 from pathlib import Path
-from sklearn.preprocessing import RobustScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import RobustScaler, LabelBinarizer
 from typing import List, Dict, Any
 import json
 import matplotlib.pyplot as plt
@@ -468,6 +471,54 @@ class MLFeatureTable:
         }
 
 
+def analyze_features_and_rank_by_auc(
+    df: pd.DataFrame,
+    logger: structlog.BoundLogger,
+    rand_seed:int=None
+) -> pd.DataFrame:
+    """
+    Performs feature-by-feature analysis and ranks them by AUC score.
+
+    Args:
+        df (pd.DataFrame): The DataFrame with features and a 
+                           'Diagnosis' column.
+        output_folder (Path): Folder where output files are created.
+        logger: Logger instance.
+        rand_seed (int): Random seed for repeatability.
+
+    Returns:
+        pd.DataFrame: A DataFrame of features ranked by AUC.
+    """
+    df = df.T
+    X = df.drop('Diagnosis', axis=1)
+    y = df['Diagnosis']
+
+    results = {}
+    model = RandomForestClassifier(random_state=rand_seed)
+
+    ### Display
+    # Counter
+    cont = 0
+    n_col = len(X.columns)
+    ###
+    for feature in X.columns:
+        auc_score = get_single_feature_auc(X, y, feature, model,
+                                           rand_seed)
+        results[feature] = auc_score
+        ### Display
+        if cont==0 or (cont+1)%1000==0:
+            logger.debug(f'Progress: {cont+1} / {n_col}')
+        cont += 1
+        ###
+    
+    # Create a DataFrame to store and sort the results
+    auc_df = pd.DataFrame.from_dict(
+        results, orient='index', columns=['AUC Score']
+    ).sort_values(by='AUC Score', ascending=False)
+    
+    return auc_df
+
+
 def create_feature_table_from_directory(
     input_directory: Path,
     output_path: Path,
@@ -575,6 +626,50 @@ def create_ml_feature_table_from_directory(
     return ml_table.create_sample_features_table()
 
 
+def get_single_feature_auc(
+    X:pd.DataFrame,
+    y:pd.Series,
+    feature_name:str,
+    model,
+    rand_seed:int
+) -> float:
+    """
+    Trains a model using a single feature and returns the ROC-AUC score.
+
+    Args:
+        X (pd.DataFrame): DataFrame of features.
+        y (pd.Series): Series of target labels.
+        feature_name (str): The name of the feature to use.
+        model: The machine learning model to train.
+        rand_seed (int): Random seed for repeatability.
+
+    Returns:
+        float: The ROC-AUC score.
+    """
+    X_single = X[[feature_name]]
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_single,
+        y,
+        test_size=0.3,
+        random_state=rand_seed,
+        stratify=y
+    )
+    
+    # Handle multi-class classification for AUC
+    lb = LabelBinarizer()
+    y_test_bin = lb.fit_transform(y_test)
+    y_pred_proba = model.fit(X_train, y_train).predict_proba(X_test)
+    
+    # Calculate AUC score
+    if y_test_bin.shape[1] == 1:
+        auc_score = roc_auc_score(y_test_bin, y_pred_proba[:, 1])
+    else:
+        auc_score = roc_auc_score(y_test_bin, y_pred_proba, 
+                                  multi_class='ovr')
+
+    return auc_score
+
+
 def merge_with_metadata(
     feature_table: pd.DataFrame,
     metadata_file: Path,
@@ -637,16 +732,21 @@ def normalize_feature_table(
     output_folder: Path,
     logger: structlog.BoundLogger,
     log_transform: bool = False,
-    robust_normalization: bool = False
+    robust_norm: bool = False
 ) -> List[pd.DataFrame]:
     """
     Normalize a feature table and create heatmaps.
     
     Args:
-        input_file: Path to the feature table CSV file.
-        output_folder: Output directory for heatmaps and normalized 
-                       tables.
+        input_file (Path): Path to the feature table CSV file.
+        output_folder (Path): Output directory for heatmaps and 
+                              normalized tables.
         logger: Logger instance.
+        log_transform (bool): Defines if logarithmic transform is
+                              performed on the data.
+        robust_norm (bool): Defines if robust normalization is used 
+                            instead of subtracting the minimum value 
+                            and dividing by the average.
     """
     # Make sure output folder exists
     output_folder.mkdir(parents=True, exist_ok=True)
@@ -708,7 +808,7 @@ def normalize_feature_table(
                     ignore_index=False)
 
     # Perform normalization
-    if robust_normalization:
+    if robust_norm:
         logger.info('Performing robust normalization.',
                 table_path=input_file)
         df = robust_normalize(df)
@@ -803,6 +903,38 @@ def normalize_feature_table(
     raw_df.to_csv(out_raw, sep=',')
     # Return raw df and df
     return raw_df, df
+
+
+def per_feature_analysis(
+    table_name: str,
+    output_folder: Path,
+    logger: structlog.BoundLogger,
+    rand_seed:int=None
+):
+    """Performs per-feature analysis on raw or normalized data."""
+    # Make sure output folder exists
+    output_folder.mkdir(parents=True, exist_ok=True)
+
+    # Process features
+    logger.info("Analyzing feature table.", table_name=table_name)
+    df = pd.read_csv(table_name, index_col=0)
+    df.loc['Diagnosis'] = df.loc['Diagnosis'].apply(
+        lambda x: 'CRC' if isinstance(x, str) and x.startswith('CRC')
+        else ('BRC' if isinstance(x, str) and \
+            x.startswith('BRC') else x)
+        )
+    auc_results = analyze_features_and_rank_by_auc(
+        df, logger, rand_seed
+    )
+
+    # Define output file
+    bname = str(table_name).rsplit('/')[-1].rsplit('.')[0]
+    file_out = output_folder / str(bname)+'.csv'
+
+    # Save output
+    auc_results.to_csv(file_out)
+
+    return None
 
 
 def process_feature_names(row_name:str) -> str:

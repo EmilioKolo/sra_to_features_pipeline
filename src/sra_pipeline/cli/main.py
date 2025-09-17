@@ -14,7 +14,9 @@ from ..config.settings import PipelineConfig
 from ..core.pipeline import Pipeline
 from ..utils import setup_logging, PipelineLogger, PerformanceMonitor
 from ..utils.ml_features import (
-    normalize_feature_table, merge_with_metadata
+    normalize_feature_table,
+    merge_with_metadata,
+    per_feature_analysis
 )
 from .. import __version__
 
@@ -433,7 +435,7 @@ def create_feature_table(
     "--metadata-file",
     required=False,
     help="Input metadata file path. Must have accession ID in the first column.",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(path_type=Path),
 )
 @click.option(
     "--output-folder",
@@ -451,7 +453,7 @@ def create_normalized_table(
     input_file: Path,
     metadata_file: Optional[Path],
     output_folder: Path,
-    log_level: str,
+    log_level: str
 ):
     """Create a normalized feature table."""
     # Setup logging
@@ -515,6 +517,53 @@ def create_normalized_table(
         
     except Exception as e:
         console.print(f"[red]Error creating normalized feature table: {e}[/red]")
+        sys.exit(1)
+
+
+@cli.command()
+@click.option(
+    "--input-file",
+    required=True,
+    help="Input feature file path. Needs to have the same format as the table created by create-normalized-table.",
+    type=click.Path(exists=True, path_type=Path),
+)
+@click.option(
+    "--output-folder",
+    required=True,
+    help="Output folder path.",
+    type=click.Path(path_type=Path),
+)
+@click.option(
+    "--random-seed",
+    required=False,
+    help="Random seed to give consistency to the classification",
+    type=int,
+)
+@click.option(
+    "--log-level",
+    default="INFO",
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"]),
+    help="Logging level",
+)
+def classify_features(
+    input_file: Path,
+    output_folder: Path,
+    random_seed: Optional[int],
+    log_level: str
+):
+    """Classify the samples of a feature table."""
+    # Setup logging
+    logger = setup_logging(log_level=log_level)
+    try:
+        per_feature_analysis(
+            table_name=input_file,
+            output_folder=output_folder,
+            logger=logger,
+            rand_seed=random_seed
+        )
+
+    except Exception as e:
+        console.print(f"[red]Error classifying the feature table: {e}[/red]")
         sys.exit(1)
 
 
