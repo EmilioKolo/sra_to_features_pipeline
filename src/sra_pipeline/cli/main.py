@@ -535,9 +535,15 @@ def create_normalized_table(
 )
 @click.option(
     "--random-seed",
-    required=False,
-    help="Random seed to give consistency to the classification",
+    default=None,
+    help="Random seed to give consistency to the classification.",
     type=int,
+)
+@click.option(
+    "--analysis-type",
+    default="RandomForest",
+    type=click.Choice(["RandomForest"]),
+    help="Logging level",
 )
 @click.option(
     "--log-level",
@@ -548,19 +554,25 @@ def create_normalized_table(
 def classify_features(
     input_file: Path,
     output_folder: Path,
+    analysis_type: str,
     random_seed: Optional[int],
     log_level: str
 ):
-    """Classify the samples of a feature table."""
+    """Classify the samples of a feature table with feature-per-feature analysis."""
     # Setup logging
     logger = setup_logging(log_level=log_level)
     try:
-        per_feature_analysis(
-            table_name=input_file,
-            output_folder=output_folder,
-            logger=logger,
-            rand_seed=random_seed
-        )
+        if analysis_type.lower() == 'randomforest':
+            per_feature_analysis(
+                table_name=input_file,
+                output_folder=output_folder,
+                target_var='Diagnosis',
+                logger=logger,
+                top_n=20,
+                rand_seed=random_seed
+            )
+        else:
+            raise ValueError(f"Unsupported analysis type: {analysis_type}")
 
     except Exception as e:
         console.print(f"[red]Error classifying the feature table: {e}[/red]")

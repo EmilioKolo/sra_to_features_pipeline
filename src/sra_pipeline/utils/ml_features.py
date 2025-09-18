@@ -9,6 +9,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import RobustScaler, LabelBinarizer
 from typing import List, Dict, Any
+import itertools
 import json
 import matplotlib.pyplot as plt
 import numpy as np
@@ -471,8 +472,175 @@ class MLFeatureTable:
         }
 
 
+def analyze_feature_pairs(
+    df: pd.DataFrame,
+    features_to_analyze: List[str],
+    target_column: str,
+    logger: structlog.BoundLogger,
+    rand_seed: int=None
+) -> pd.DataFrame:
+    """
+    Performs a classification analysis for all combinations of two 
+    features from a given list and ranks them by AUC score.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing features and the 
+                           target.
+        features_to_analyze (list): A list of feature names to be 
+                                    paired.
+        target_column (str): The name of the target variable column.
+
+    Returns:
+        pd.DataFrame: A DataFrame of feature pairs ranked by AUC.
+    """
+    if len(features_to_analyze) < 2:
+        logger.error(
+            "Please provide at least two features for pairing.",
+            feature_n=len(features_to_analyze)
+        )
+        return pd.DataFrame()
+
+    X = df.T[features_to_analyze]
+    y = df.T[target_column]
+
+    # Generate all unique pairs of the selected features
+    feature_pairs = list(itertools.combinations(features_to_analyze, 2))
+    logger.info(f"Generated {len(feature_pairs)} unique feature pairs from the list of {len(features_to_analyze)} features.",
+                feature_n=len(features_to_analyze))
+
+    pair_results = {}
+    model = RandomForestClassifier(random_state=rand_seed)
+    lb = LabelBinarizer()
+
+    ### Display
+    # Counter
+    cont = 0
+    n_feat_pairs = len(feature_pairs)
+    ###
+
+    for f1, f2 in feature_pairs:
+        # Create a new DataFrame with only the two features for training
+        X_pair = X[[f1, f2]]
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_pair, y, test_size=0.3, random_state=rand_seed, stratify=y
+        )
+
+        # Handle multi-class classification for AUC calculation
+        y_test_bin = lb.fit_transform(y_test)
+        y_pred_proba = model.fit(X_train, y_train).predict_proba(X_test)
+
+        if y_test_bin.shape[1] == 1:
+            auc_score = roc_auc_score(y_test_bin, y_pred_proba[:, 1])
+        else:
+            auc_score = roc_auc_score(y_test_bin, y_pred_proba, multi_class='ovr')
+
+        pair_results[(f1, f2)] = auc_score
+
+        ### Display
+        if cont==0 or (cont+1)%10==0:
+            logger.debug(f'Progress: {cont+1} / {n_feat_pairs}',
+                         feature_n=len(features_to_analyze))
+        cont += 1
+        ###
+    
+    # Create a DataFrame and sort the results
+    pair_auc_df = pd.DataFrame.from_dict(
+        pair_results, orient='index', columns=['AUC Score']
+    )
+    pair_auc_df.index.name = 'Feature Pair'
+    pair_auc_df = pair_auc_df.sort_values(by='AUC Score', ascending=False)
+
+    return pair_auc_df
+
+
+def analyze_feature_trios(
+    df: pd.DataFrame,
+    features_to_analyze: List[str],
+    target_column: str,
+    logger: structlog.BoundLogger,
+    rand_seed: int=None
+) -> pd.DataFrame:
+    """
+    Performs a classification analysis for all combinations of three 
+    features from a given list and ranks them by AUC score.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing features and the 
+                           target.
+        features_to_analyze (list): A list of feature names to be 
+                                    grouped.
+        target_column (str): The name of the target variable column.
+
+    Returns:
+        pd.DataFrame: A DataFrame of feature pairs ranked by AUC.
+    """
+    if len(features_to_analyze) < 3:
+        logger.error(
+            "Please provide at least three features for pairing.",
+            feature_n=len(features_to_analyze)
+        )
+        return pd.DataFrame()
+
+    X = df.T[features_to_analyze]
+    y = df.T[target_column]
+
+    # Generate all unique trios of the selected features
+    feature_trios = list(itertools.combinations(features_to_analyze, 3))
+    logger.info(f"Generated {len(feature_trios)} unique feature trios from the list of {len(features_to_analyze)} features.",
+                feature_n=len(features_to_analyze))
+
+    pair_results = {}
+    model = RandomForestClassifier(random_state=rand_seed)
+    lb = LabelBinarizer()
+
+    ### Display
+    # Counter
+    cont = 0
+    n_feat_trios = len(feature_trios)
+    ###
+
+    for f1, f2, f3 in feature_trios:
+        # Create a new DataFrame with only the features for training
+        X_pair = X[[f1, f2, f3]]
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_pair, y, test_size=0.3, random_state=rand_seed, stratify=y
+        )
+
+        # Handle multi-class classification for AUC calculation
+        y_test_bin = lb.fit_transform(y_test)
+        y_pred_proba = model.fit(X_train, y_train).predict_proba(X_test)
+
+        if y_test_bin.shape[1] == 1:
+            auc_score = roc_auc_score(y_test_bin, y_pred_proba[:, 1])
+        else:
+            auc_score = roc_auc_score(y_test_bin, y_pred_proba, 
+                                      multi_class='ovr')
+
+        pair_results[(f1, f2, f3)] = auc_score
+
+        ### Display
+        if cont==0 or (cont+1)%100==0:
+            logger.debug(f'Progress: {cont+1} / {n_feat_trios}',
+                         feature_n=len(features_to_analyze))
+        cont += 1
+        ###
+    
+    # Create a DataFrame and sort the results
+    pair_auc_df = pd.DataFrame.from_dict(
+        pair_results, orient='index', columns=['AUC Score']
+    )
+    pair_auc_df.index.name = 'Feature Pair'
+    pair_auc_df = pair_auc_df.sort_values(by='AUC Score', 
+                                          ascending=False)
+
+    return pair_auc_df
+
+
 def analyze_features_and_rank_by_auc(
     df: pd.DataFrame,
+    target_var: str,
     logger: structlog.BoundLogger,
     rand_seed:int=None
 ) -> pd.DataFrame:
@@ -481,7 +649,9 @@ def analyze_features_and_rank_by_auc(
 
     Args:
         df (pd.DataFrame): The DataFrame with features and a 
-                           'Diagnosis' column.
+                           target variable column.
+        target_var (str): Target variable to be predicted with the 
+                          feature classification.
         output_folder (Path): Folder where output files are created.
         logger: Logger instance.
         rand_seed (int): Random seed for repeatability.
@@ -490,8 +660,8 @@ def analyze_features_and_rank_by_auc(
         pd.DataFrame: A DataFrame of features ranked by AUC.
     """
     df = df.T
-    X = df.drop('Diagnosis', axis=1)
-    y = df['Diagnosis']
+    X = df.drop(target_var, axis=1)
+    y = df[target_var]
 
     results = {}
     model = RandomForestClassifier(random_state=rand_seed)
@@ -908,8 +1078,10 @@ def normalize_feature_table(
 def per_feature_analysis(
     table_name: str,
     output_folder: Path,
+    target_var: str,
     logger: structlog.BoundLogger,
-    rand_seed:int=None
+    top_n: int=20,
+    rand_seed: int=None
 ):
     """Performs per-feature analysis on raw or normalized data."""
     # Make sure output folder exists
@@ -918,21 +1090,57 @@ def per_feature_analysis(
     # Process features
     logger.info("Analyzing feature table.", table_name=table_name)
     df = pd.read_csv(table_name, index_col=0)
-    df.loc['Diagnosis'] = df.loc['Diagnosis'].apply(
-        lambda x: 'CRC' if isinstance(x, str) and x.startswith('CRC')
-        else ('BRC' if isinstance(x, str) and \
-            x.startswith('BRC') else x)
-        )
     auc_results = analyze_features_and_rank_by_auc(
-        df, logger, rand_seed
+        df, target_var, logger, rand_seed
     )
 
+    logger.info("Feature analysis completed. Saving results.",
+                table_name=table_name,
+                feature_count=len(auc_results))
     # Define output file name
-    file_name = f"{str(table_name).rsplit('/')[-1].rsplit('.')[0]}.csv"
+    bname = str(table_name).rsplit('/')[-1].rsplit('.')[0]
+    file_name = f"{bname}_feature_singles.csv"
     file_out = output_folder / file_name
 
     # Save output
     auc_results.to_csv(file_out)
+
+    if top_n >= 2:
+        # Define top features from auc_results
+        top_features = auc_results.head(top_n).index.tolist()
+
+        logger.debug(f'Top {top_n} features:',
+                     top_features=top_features)
+
+        logger.info(f'Analyzing top {top_n} features in pairs.',
+                    table_name=table_name,
+                    top_n=top_n)
+
+        # Define pairs output name
+        output_pairs = output_folder / f"{bname}_feature_pairs.csv"
+
+        # Run the analysis
+        top_feature_pairs_ranked = analyze_feature_pairs(
+            df, top_features, target_var, logger, rand_seed
+        )
+
+        # Save the resulting dataframe
+        top_feature_pairs_ranked.to_csv(output_pairs)
+        
+        if top_n >= 3:
+            logger.info(f'Analyzing top {top_n} features in trios.',
+                    table_name=table_name,
+                    top_n=top_n)
+            # Define trios output name
+            output_trios = output_folder / f"{bname}_feature_trios.csv"
+
+            # Run the analysis for trios
+            top_feature_trios_ranked = analyze_feature_trios(
+                df, top_features, target_var, logger, rand_seed
+            )
+
+            # Save the resulting dataframe
+            top_feature_trios_ranked.to_csv(output_trios)
 
     return None
 
