@@ -927,9 +927,9 @@ def per_feature_analysis(
         df, logger, rand_seed
     )
 
-    # Define output file
-    bname = str(table_name).rsplit('/')[-1].rsplit('.')[0]
-    file_out = output_folder / str(bname)+'.csv'
+    # Define output file name
+    file_name = f"{str(table_name).rsplit('/')[-1].rsplit('.')[0]}.csv"
+    file_out = output_folder / file_name
 
     # Save output
     auc_results.to_csv(file_out)
