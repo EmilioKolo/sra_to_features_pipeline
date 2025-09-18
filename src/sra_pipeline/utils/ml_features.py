@@ -512,9 +512,9 @@ def analyze_feature_pairs(
     model = RandomForestClassifier(random_state=rand_seed)
     lb = LabelBinarizer()
 
-    ### Display
     # Counter
     cont = 0
+    ### Display
     n_feat_pairs = len(feature_pairs)
     ###
 
@@ -535,20 +535,24 @@ def analyze_feature_pairs(
         else:
             auc_score = roc_auc_score(y_test_bin, y_pred_proba, multi_class='ovr')
 
-        pair_results[(f1, f2)] = auc_score
+        # Load the data
+        pair_results[f'ID_{cont}'] = (f1, f2, auc_score)
 
         ### Display
         if cont==0 or (cont+1)%10==0:
             logger.debug(f'Progress: {cont+1} / {n_feat_pairs}',
                          feature_n=len(features_to_analyze))
-        cont += 1
         ###
+
+        cont += 1
     
     # Create a DataFrame and sort the results
     pair_auc_df = pd.DataFrame.from_dict(
-        pair_results, orient='index', columns=['AUC Score']
+        pair_results, orient='index', columns=[
+            'Feature 1', 'Feature 2', 'AUC Score'
+        ]
     )
-    pair_auc_df.index.name = 'Feature Pair'
+    pair_auc_df.index.name = 'Feature Pair ID'
     pair_auc_df = pair_auc_df.sort_values(by='AUC Score', ascending=False)
 
     return pair_auc_df
@@ -590,13 +594,13 @@ def analyze_feature_trios(
     logger.info(f"Generated {len(feature_trios)} unique feature trios from the list of {len(features_to_analyze)} features.",
                 feature_n=len(features_to_analyze))
 
-    pair_results = {}
+    trio_results = {}
     model = RandomForestClassifier(random_state=rand_seed)
     lb = LabelBinarizer()
 
-    ### Display
     # Counter
     cont = 0
+    ### Display
     n_feat_trios = len(feature_trios)
     ###
 
@@ -618,24 +622,28 @@ def analyze_feature_trios(
             auc_score = roc_auc_score(y_test_bin, y_pred_proba, 
                                       multi_class='ovr')
 
-        pair_results[(f1, f2, f3)] = auc_score
+        # Load the data
+        trio_results[f'ID_{cont}'] = (f1, f2, f3, auc_score)
 
         ### Display
         if cont==0 or (cont+1)%100==0:
             logger.debug(f'Progress: {cont+1} / {n_feat_trios}',
                          feature_n=len(features_to_analyze))
-        cont += 1
         ###
+
+        cont += 1
     
     # Create a DataFrame and sort the results
-    pair_auc_df = pd.DataFrame.from_dict(
-        pair_results, orient='index', columns=['AUC Score']
+    trio_auc_df = pd.DataFrame.from_dict(
+        trio_results, orient='index', columns=[
+            'Feature 1', 'Feature 2', 'Feature 3', 'AUC Score'
+        ]
     )
-    pair_auc_df.index.name = 'Feature Pair'
-    pair_auc_df = pair_auc_df.sort_values(by='AUC Score', 
+    trio_auc_df.index.name = 'Feature Trio ID'
+    trio_auc_df = trio_auc_df.sort_values(by='AUC Score', 
                                           ascending=False)
 
-    return pair_auc_df
+    return trio_auc_df
 
 
 def analyze_features_and_rank_by_auc(
