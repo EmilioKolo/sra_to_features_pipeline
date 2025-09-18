@@ -524,26 +524,52 @@ def create_normalized_table(
 @click.option(
     "--input-file",
     required=True,
-    help="Input feature file path. Needs to have the same format as the table created by create-normalized-table.",
     type=click.Path(exists=True, path_type=Path),
+    help=str(
+        "Input feature file path. Needs to have the same format "+\
+        "as the table created by create-normalized-table."
+    ),
 )
 @click.option(
     "--output-folder",
     required=True,
-    help="Output folder path.",
     type=click.Path(path_type=Path),
-)
-@click.option(
-    "--random-seed",
-    default=None,
-    help="Random seed to give consistency to the classification.",
-    type=int,
+    help="Output folder path.",
 )
 @click.option(
     "--analysis-type",
     default="RandomForest",
     type=click.Choice(["RandomForest"]),
-    help="Logging level",
+    help=str(
+        "Analysis type to be performed (default: RandomForest). "+\
+        "Currently, only RandomForest is supported."
+    ),
+)
+@click.option(
+    "--target-variable",
+    default="Diagnosis",
+    type=str,
+    help=str(
+        "Name of the target variable column in the metadata "+\
+        "(default: Diagnosis)."
+    ),
+)
+@click.option(
+    "--top-feature-n",
+    default=20,
+    type=int,
+    help=str(
+        "Number of features to be selected for pair/trio analysis "+\
+        "(default: 20). "+\
+        "If it is less than 3, trio analysis is not performed. "+\
+        "If it is less than 2, pair analysis is not performed."
+    ),
+)
+@click.option(
+    "--random-seed",
+    default=None,
+    type=int,
+    help="Random seed to give consistency to the classification.",
 )
 @click.option(
     "--log-level",
@@ -555,6 +581,8 @@ def classify_features(
     input_file: Path,
     output_folder: Path,
     analysis_type: str,
+    target_variable: str,
+    top_feature_n: int,
     random_seed: Optional[int],
     log_level: str
 ):
@@ -566,9 +594,9 @@ def classify_features(
             per_feature_analysis(
                 table_name=input_file,
                 output_folder=output_folder,
-                target_var='Diagnosis',
+                target_var=target_variable,
                 logger=logger,
-                top_n=20,
+                top_n=top_feature_n,
                 rand_seed=random_seed
             )
         else:
