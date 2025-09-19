@@ -5,12 +5,21 @@ ML-ready feature table utilities for the SRA to Features Pipeline.
 
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score, f1_score, confusion_matrix
+from sklearn.metrics import make_scorer, precision_score, recall_score
+from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import RobustScaler, LabelBinarizer
+from sklearn.preprocessing import LabelEncoder
 from typing import List, Dict, Any
 import itertools
 import json
+import logging
+# Supress font messages
+logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -530,8 +539,8 @@ def analyze_feature_pairs(
         )
         return pd.DataFrame()
 
-    X = df.T[features_to_analyze]
-    y = df.T[target_column]
+    X = df[features_to_analyze]
+    y = df[target_column]
 
     # Generate all unique pairs of the selected features
     feature_pairs = list(itertools.combinations(features_to_analyze, 2))
@@ -621,8 +630,8 @@ def analyze_feature_trios(
         )
         return pd.DataFrame()
 
-    X = df.T[features_to_analyze]
-    y = df.T[target_column]
+    X = df[features_to_analyze]
+    y = df[target_column]
 
     # Generate all unique trios of the selected features
     feature_trios = list(itertools.combinations(features_to_analyze, 3))
@@ -687,6 +696,7 @@ def analyze_feature_trios(
 def analyze_features_and_rank_by_auc(
     df: pd.DataFrame,
     target_var: str,
+    model,
     logger: structlog.BoundLogger,
     rand_seed:int=None
 ) -> pd.DataFrame:
@@ -705,12 +715,10 @@ def analyze_features_and_rank_by_auc(
     Returns:
         pd.DataFrame: A DataFrame of features ranked by AUC.
     """
-    df = df.T
     X = df.drop(target_var, axis=1)
     y = df[target_var]
 
     results = {}
-    model = RandomForestClassifier(random_state=rand_seed)
 
     ### Display
     # Counter
@@ -844,6 +852,182 @@ def create_ml_feature_table_from_directory(
     logger.info("ML feature table created successfully", **summary)
     
     return ml_table.create_sample_features_table()
+
+
+def cross_validate_rf(
+    df: pd.DataFrame,
+    target_var: str,
+    output_folder: Path,
+    logger,
+    rand_seed: int|None,
+    top_n: int=0,
+    refit: str='roc_auc'
+) -> List[Any]:
+    """
+    Perform cross-validation with a Random Forest classifier.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing features and target 
+                           variable.
+        target_var (str): Name of the target variable column.
+        output_folder (Path): Folder where output files are created.
+        logger: Logger instance.
+        rand_seed (int): Random seed for repeatability.
+        refit (str): Metric to optimize during hyperparameter tuning.
+                     Default is 'roc_auc'. 
+                     Recommended alternative is 'f1'. 
+
+    Returns:
+        float: Mean ROC-AUC score across folds.
+        Any: Best model from cross-validation.
+        List[str]: List of top N feature names by importance.
+    """
+
+    X = df.drop(columns=[target_var])
+    y = df[target_var]
+
+    model = RandomForestClassifier(random_state=rand_seed)
+    
+    # Encode the target variable
+    le = LabelEncoder()
+    y_encoded = le.fit_transform(y)
+    
+    # Store the mapping for reference
+    label_mapping = dict(zip(le.classes_, le.transform(le.classes_)))
+    logger.info(f"Target label mapping: {label_mapping}")
+
+    logger.info("Splitting data into training and testing sets...")
+
+    # Split the data into training and testing sets
+    Xb_train, Xb_test, yb_train, yb_test = train_test_split(
+        X, y_encoded, test_size=0.3, random_state=rand_seed
+    )
+
+    # Define hyperparameters for CV to search over
+    cv_params = {
+        'max_depth': [2,3],
+        'min_samples_leaf': [1,2,3],
+        'min_samples_split': [2,3,4],
+        'max_features': [1,2,3,4],
+        'n_estimators': [75, 100]
+    }
+    # Define scoring metrics
+    scoring = {
+        'accuracy': 'accuracy',
+        'precision': make_scorer(precision_score, average='weighted', 
+                                 zero_division=0),
+        'recall': make_scorer(recall_score, average='weighted', 
+                              zero_division=0),
+        'f1': make_scorer(f1_score, average='weighted', 
+                          zero_division=0),
+        'roc_auc': 'roc_auc_ovr' 
+                    # make_scorer(roc_auc_score, multi_class='ovr')
+    }
+    refit = 'roc_auc' # Metric to optimize
+
+    logger.info("Instantiating cross-validated Random Forest model...")
+
+    # Instantiate the cross validated random forest
+    model_cv = GridSearchCV(model, cv_params, scoring=scoring,
+                            cv=5, refit=refit, n_jobs=4)
+
+    logger.info("Fitting model with cross-validation...")
+
+    # Fit the model
+    model_cv.fit(Xb_train, yb_train)
+
+    logger.info("Model fitting completed.")
+
+    logger.info("Getting best model from cross-validation...")
+
+    # Get the best model and best parameters
+    best_model = model_cv.best_estimator_
+    best_params = model_cv.best_params_
+
+    logger.info("Best model found", best_params=best_params)
+
+    logger.info("Evaluating best model on test set...")
+
+    # Evaluate the best model on the test set
+    yb_pred_proba = best_model.predict_proba(Xb_test)
+
+    logger.info("Model evaluation on test set completed.")
+
+    logger.info("Calculating AUC score...")
+
+    # Calculate mean score
+    try:
+        mean_score = roc_auc_score(yb_test, yb_pred_proba,
+                                   multi_class='ovr')
+    except Exception as e:
+        logger.warning(f"Final ROC-AUC calculation failed: {e}")
+        mean_score = 0.5
+
+    logger.info("Cross-validation completed.", mean_auc=mean_score)
+
+    # Get predictions on the test set
+    yb_pred = best_model.predict(Xb_test)
+
+    # Plot confusion matrix
+    cmb = confusion_matrix(yb_test, yb_pred, labels=best_model.classes_)
+
+    fig, a0 = plt.subplots(figsize=(8,4))
+    dispb = ConfusionMatrixDisplay(confusion_matrix=cmb, 
+                                   display_labels=best_model.classes_)
+    a0.set_title("Balanced CVRF")
+    dispb.plot(ax=a0,colorbar=False)
+    plt.tight_layout()
+
+    importance = best_model.feature_importances_
+    forest_importance = pd.Series(importance, 
+                                  index=model_cv.feature_names_in_)
+
+    # Get feature names - use the best model's feature names
+    if hasattr(best_model, 'feature_names_in_'):
+        feature_names = best_model.feature_names_in_
+    else:
+        # Fallback: use column names from the original DataFrame
+        feature_names = X.columns.tolist()
+
+    # Create a Series with feature importances and names
+    forest_importance = pd.Series(importance, index=feature_names)
+
+    # Sort by importance (descending)
+    importance_sorted = forest_importance.sort_values(
+        ascending=False
+    )
+
+    # Save the sorted importances to a CSV file
+    importance_sorted.to_csv(
+        os.path.join(output_folder, f'feature_importances.csv'),
+        header=['Importance']
+    )
+
+    if top_n >= 2:
+        # Select top n features by importance
+        top_n_features = importance_sorted.head(top_n)
+
+        # Plot the top n feature importances
+        fig, ax = plt.subplots()
+        top_n_features.plot.bar(ax=ax)
+        ax.set_title(f"Top {top_n} feature importances")
+        ax.set_ylabel("Mean decrease in impurity")
+        fig.tight_layout()
+        fig.savefig(
+            f'{output_folder}/top_{top_n}_feature_importances.png'
+        )
+
+        # Get just the names of the top n features as a list
+        top_n_feature_names = top_n_features.index.tolist()
+
+        # Print or log the results
+        print("Top 20 features by importance:")
+        for i, feature_name in enumerate(top_n_feature_names, 1):
+            print(f"{i}. {feature_name}: {top_n_features[feature_name]:.6f}")
+    else:
+        top_n_feature_names = []
+
+    return mean_score, best_model, top_n_feature_names
 
 
 def get_single_feature_auc(
@@ -1132,19 +1316,72 @@ def per_feature_analysis(
     """Performs per-feature analysis on raw or normalized data."""
     # Make sure output folder exists
     output_folder.mkdir(parents=True, exist_ok=True)
+    # Define base name for outputs
+    bname = str(table_name).rsplit('/')[-1].rsplit('.')[0]
 
-    # Process features
-    logger.info("Analyzing feature table.", table_name=table_name)
+    # Read feature table
     df = pd.read_csv(table_name, index_col=0)
+    # Transpose df to have samples as rows and features as columns
+    df = df.T
+
+    logger.info("Performing cross-validation for Random Forest.",
+                table_name=table_name)
+    
+    # Perform cross-validation with Random Forest
+    mean_score_cv, best_model, top_n_feature_names = cross_validate_rf(
+        df, target_var, output_folder, logger, rand_seed, top_n=top_n
+    )
+    
+    logger.info("Cross-validation completed.",
+                table_name=table_name,
+                mean_auc=mean_score_cv)
+
+    if top_n_feature_names:
+        logger.debug(f'Top {top_n} features calculated with CVRF:',
+                     top_features=top_n_feature_names)
+
+        logger.info(f'Analyzing top {top_n} features in pairs.',
+                    table_name=table_name,
+                    top_n=top_n)
+
+        # Define pairs output name
+        output_pairs = output_folder / f"{bname}_feature_pairs_CVRF.csv"
+
+        # Run the analysis
+        top_feature_pairs_ranked = analyze_feature_pairs(
+            df, top_n_feature_names, target_var, logger, rand_seed
+        )
+
+        # Save the resulting dataframe
+        top_feature_pairs_ranked.to_csv(output_pairs)
+        
+        if top_n >= 3:
+            logger.info(f'Analyzing top {top_n} features in trios.',
+                    table_name=table_name,
+                    top_n=top_n)
+            # Define trios output name
+            output_trios = output_folder / f"{bname}_feature_trios_CVRF.csv"
+
+            # Run the analysis for trios
+            top_feature_trios_ranked = analyze_feature_trios(
+                df, top_n_feature_names, target_var, logger, rand_seed
+            )
+
+            # Save the resulting dataframe
+            top_feature_trios_ranked.to_csv(output_trios)
+
+    logger.info("Analyzing feature table.", table_name=table_name)
+    
+    # Process features
     auc_results = analyze_features_and_rank_by_auc(
-        df, target_var, logger, rand_seed
+        df, target_var, best_model, logger, rand_seed
     )
 
     logger.info("Feature analysis completed. Saving results.",
                 table_name=table_name,
                 feature_count=len(auc_results))
+    
     # Define output file name
-    bname = str(table_name).rsplit('/')[-1].rsplit('.')[0]
     file_name = f"{bname}_feature_singles.csv"
     file_out = output_folder / file_name
 
