@@ -444,6 +444,12 @@ def create_feature_table(
     type=click.Path(path_type=Path),
 )
 @click.option(
+    "--random-seed",
+    default=None,
+    type=int,
+    help="Gives consistency to the random elements of the function.",
+)
+@click.option(
     "--log-level",
     default="INFO",
     type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"]),
@@ -453,6 +459,7 @@ def create_normalized_table(
     input_file: Path,
     metadata_file: Optional[Path],
     output_folder: Path,
+    random_seed: Optional[int],
     log_level: str
 ):
     """Create a normalized feature table."""
@@ -464,7 +471,8 @@ def create_normalized_table(
         df_raw, df_normalized = normalize_feature_table(
             input_file=input_file,
             output_folder=output_folder,
-            logger=logger
+            logger=logger,
+            rand_seed=random_seed
         )
 
         # Check if metadata file is provided

@@ -39,6 +39,7 @@ class FeatureTable:
         self.feature_dicts.append(feature_dict)
         self.logger.info("Added feature set", 
                          sra_id=feature_dict['sra_id'])
+        return self
 
     def add_feature_dicts_from_directory(self, directory: Path):
         """
@@ -62,6 +63,7 @@ class FeatureTable:
             except Exception as e:
                 self.logger.warning("Failed to load feature set", 
                                   file=str(feature_file), error=str(e))
+        return self
 
     def create_sample_features_table(self) -> pd.DataFrame:
         """
@@ -108,6 +110,55 @@ class FeatureTable:
         
         return df
 
+    def get_feature_summary(self) -> Dict[str, Any]:
+        """Get summary statistics of the feature table."""
+        df = self.create_sample_features_table()
+        
+        return {
+            'sample_count': len(df),
+            'feature_count': len(df.columns),
+            'numeric_features': len(df.select_dtypes(include=[np.number]).columns),
+            'categorical_features': len(df.select_dtypes(include=['object']).columns),
+            'missing_values': df.isnull().sum().sum(),
+            'feature_names': list(df.columns),
+        }
+
+    def save_feature_table(self, output_path: Path, format: str='csv'):
+        """
+        Save the feature table to file.
+        
+        Args:
+            output_path: Output file path
+            format: Output format ('csv', 'tsv', 'parquet', 'json')
+        """
+        # Get sample_features dataframe
+        df: pd.DataFrame = self.create_sample_features_table()
+
+        # Define if saving index is needed
+        save_index = False
+
+        # Make sure output_path exists
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Save in required format
+        if format.lower() == 'csv':
+            df.to_csv(output_path, index=save_index)
+        elif format.lower() == 'tsv':
+            df.to_csv(output_path, index=save_index, sep='\t')
+        elif format.lower() == 'parquet':
+            df.to_parquet(output_path, index=save_index)
+        elif format.lower() == 'json':
+            df.to_json(output_path, orient='records', indent=2)
+        else:
+            raise ValueError(f"Unsupported format: {format}")
+        
+        self.logger.info("Feature table saved", 
+                        path=str(output_path), 
+                        format=format,
+                        shape=df.shape)
+
+        return self
+    
     def _process_features(self, data) -> Dict:
         """
         Process raw feature data into a structured dictionary.
@@ -192,53 +243,6 @@ class FeatureTable:
                 feature_dict[f'fragment_{key}'] = float(val)
         
         return feature_dict
-
-    def save_feature_table(self, output_path: Path, format: str = 'csv'):
-        """
-        Save the feature table to file.
-        
-        Args:
-            output_path: Output file path
-            format: Output format ('csv', 'tsv', 'parquet', 'json')
-        """
-        # Get sample_features dataframe
-        df: pd.DataFrame = self.create_sample_features_table()
-
-        # Define if saving index is needed
-        save_index = False
-
-        # Make sure output_path exists
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Save in required format
-        if format.lower() == 'csv':
-            df.to_csv(output_path, index=save_index)
-        elif format.lower() == 'tsv':
-            df.to_csv(output_path, index=save_index, sep='\t')
-        elif format.lower() == 'parquet':
-            df.to_parquet(output_path, index=save_index)
-        elif format.lower() == 'json':
-            df.to_json(output_path, orient='records', indent=2)
-        else:
-            raise ValueError(f"Unsupported format: {format}")
-        
-        self.logger.info("Feature table saved", 
-                        path=str(output_path), 
-                        format=format,
-                        shape=df.shape)
-
-    def get_feature_summary(self) -> Dict[str, Any]:
-        """Get summary statistics of the feature table."""
-        df = self.create_sample_features_table()
-        
-        return {
-            'sample_count': len(df),
-            'feature_count': len(df.columns),
-            'numeric_features': len(df.select_dtypes(include=[np.number]).columns),
-            'categorical_features': len(df.select_dtypes(include=['object']).columns),
-            'missing_values': df.isnull().sum().sum(),
-            'feature_names': list(df.columns),
-        }
 
 
 class MLFeatureTable:
@@ -366,7 +370,10 @@ class MLFeatureTable:
         
         return df
     
-    def _extract_genomic_features(self, genomic_bins: List) -> Dict[str, Any]:
+    def _extract_genomic_features(
+        self,
+        genomic_bins: List
+    ) -> Dict[str, Any]:
         """Extract genomic variant features."""
         if not genomic_bins:
             return {}
@@ -380,21 +387,29 @@ class MLFeatureTable:
             'std_variants_per_bin': np.std(variant_counts),
             'max_variants_per_bin': max(variant_counts),
             'min_variants_per_bin': min(variant_counts),
-            'bins_with_variants': sum(1 for count in variant_counts if count > 0),
+            'bins_with_variants': sum(
+                1 for count in variant_counts if count > 0
+            ),
             'total_genomic_bins': len(genomic_bins),
             'variant_density': sum(variant_counts) / len(genomic_bins),
         }
     
-    def _extract_gene_features(self, gene_stats: List) -> Dict[str, Any]:
+    def _extract_gene_features(
+        self,
+        gene_stats: List
+    ) -> Dict[str, Any]:
         """Extract gene-level variant features."""
         if not gene_stats:
             return {}
         
         # Calculate summary statistics
         total_variants = [gene.total_variants for gene in gene_stats]
-        synonymous_variants = [gene.synonymous_variants for gene in gene_stats]
-        nonsynonymous_variants = [gene.nonsynonymous_variants for gene in gene_stats]
-        dn_ds_ratios = [gene.dn_ds_ratio for gene in gene_stats if gene.dn_ds_ratio is not None]
+        synonymous_variants = [gene.synonymous_variants \
+                               for gene in gene_stats]
+        nonsynonymous_variants = [gene.nonsynonymous_variants \
+                                  for gene in gene_stats]
+        dn_ds_ratios = [gene.dn_ds_ratio for gene in gene_stats \
+                        if gene.dn_ds_ratio is not None]
         
         return {
             'total_genes_with_variants': len(gene_stats),
@@ -403,12 +418,19 @@ class MLFeatureTable:
             'std_variants_per_gene': np.std(total_variants),
             'total_synonymous_variants': sum(synonymous_variants),
             'total_nonsynonymous_variants': sum(nonsynonymous_variants),
-            'mean_dn_ds_ratio': np.mean(dn_ds_ratios) if dn_ds_ratios else 0,
-            'std_dn_ds_ratio': np.std(dn_ds_ratios) if dn_ds_ratios else 0,
-            'genes_with_high_variants': sum(1 for count in total_variants if count > 10),
+            'mean_dn_ds_ratio': np.mean(dn_ds_ratios) \
+                if dn_ds_ratios else 0,
+            'std_dn_ds_ratio': np.std(dn_ds_ratios) \
+                if dn_ds_ratios else 0,
+            'genes_with_high_variants': sum(
+                1 for count in total_variants if count > 10
+            ),
         }
     
-    def _extract_cnv_features(self, cnv_regions: List) -> Dict[str, Any]:
+    def _extract_cnv_features(
+        self,
+        cnv_regions: List
+    ) -> Dict[str, Any]:
         """Extract CNV features."""
         if not cnv_regions:
             return {}
@@ -416,8 +438,10 @@ class MLFeatureTable:
         # Calculate summary statistics
         copy_numbers = [region.copy_number for region in cnv_regions]
         confidences = [region.confidence for region in cnv_regions]
-        gains = sum(1 for region in cnv_regions if region.type == 'gain')
-        losses = sum(1 for region in cnv_regions if region.type == 'loss')
+        gains = sum(1 for region in cnv_regions \
+                    if region.type == 'gain')
+        losses = sum(1 for region in cnv_regions \
+                     if region.type == 'loss')
         
         return {
             'total_cnv_regions': len(cnv_regions),
@@ -426,11 +450,17 @@ class MLFeatureTable:
             'mean_copy_number': np.mean(copy_numbers),
             'std_copy_number': np.std(copy_numbers),
             'mean_cnv_confidence': np.mean(confidences),
-            'high_confidence_cnvs': sum(1 for conf in confidences if conf > 0.9),
-            'cnv_burden': len(cnv_regions),  # Total CNV burden
+            'high_confidence_cnvs': sum(
+                1 for conf in confidences if conf > 0.9
+            ),
+            'cnv_burden': len(cnv_regions),
         }
     
-    def save_feature_table(self, output_path: Path, format: str = 'csv'):
+    def save_feature_table(
+        self,
+        output_path: Path,
+        format: str = 'csv'
+    ):
         """
         Save the feature table to file.
         
@@ -505,8 +535,11 @@ def analyze_feature_pairs(
 
     # Generate all unique pairs of the selected features
     feature_pairs = list(itertools.combinations(features_to_analyze, 2))
-    logger.info(f"Generated {len(feature_pairs)} unique feature pairs from the list of {len(features_to_analyze)} features.",
-                feature_n=len(features_to_analyze))
+    logger.info(
+        str(f"Generated {len(feature_pairs)} unique feature pairs "+\
+            "from the list of {len(features_to_analyze)} features."),
+        feature_n=len(features_to_analyze)
+    )
 
     pair_results = {}
     model = RandomForestClassifier(random_state=rand_seed)
@@ -533,7 +566,8 @@ def analyze_feature_pairs(
         if y_test_bin.shape[1] == 1:
             auc_score = roc_auc_score(y_test_bin, y_pred_proba[:, 1])
         else:
-            auc_score = roc_auc_score(y_test_bin, y_pred_proba, multi_class='ovr')
+            auc_score = roc_auc_score(y_test_bin, y_pred_proba,
+                                      multi_class='ovr')
 
         # Load the data
         pair_results[f'ID_{cont}'] = (f1, f2, auc_score)
@@ -553,7 +587,8 @@ def analyze_feature_pairs(
         ]
     )
     pair_auc_df.index.name = 'Feature Pair ID'
-    pair_auc_df = pair_auc_df.sort_values(by='AUC Score', ascending=False)
+    pair_auc_df = pair_auc_df.sort_values(by='AUC Score',
+                                          ascending=False)
 
     return pair_auc_df
 
@@ -591,8 +626,11 @@ def analyze_feature_trios(
 
     # Generate all unique trios of the selected features
     feature_trios = list(itertools.combinations(features_to_analyze, 3))
-    logger.info(f"Generated {len(feature_trios)} unique feature trios from the list of {len(features_to_analyze)} features.",
-                feature_n=len(features_to_analyze))
+    logger.info(
+        str(f"Generated {len(feature_trios)} unique feature trios "+\
+            "from the list of {len(features_to_analyze)} features."),
+        feature_n=len(features_to_analyze)
+    )
 
     trio_results = {}
     model = RandomForestClassifier(random_state=rand_seed)
@@ -741,14 +779,18 @@ def create_heatmap(
     df:pd.DataFrame,
     title:str,
     save_fig:bool,
-    out_path:str
-):
+    out_path:str,
+    logger: structlog.BoundLogger
+) -> None:
     """Creates a heatmap using Seaborn and Matplotlib"""
     # Check that df is not empty
     if df.empty:
-        print(f'# WARNING: Heatmap with title "{title}" could not be created.')
+        logger.warning(
+            f'Heatmap with title "{title}" could not be created.'
+        )
         return None
-    print(f'# Creating heatmap with title "{title}"...')
+    logger.info(f'Creating heatmap with title "{title}"...',
+                title=title)
     # Define the figure size
     fig_width = 9
     fig_height = 9
@@ -910,7 +952,8 @@ def normalize_feature_table(
     output_folder: Path,
     logger: structlog.BoundLogger,
     log_transform: bool = False,
-    robust_norm: bool = False
+    robust_norm: bool = False,
+    rand_seed: int|None = None
 ) -> List[pd.DataFrame]:
     """
     Normalize a feature table and create heatmaps.
@@ -1030,16 +1073,17 @@ def normalize_feature_table(
         save_tables = True
         # Create heatmaps
         create_heatmap(dn_ds_df, table_name+'_dn_ds', save_tables,
-                    output_folder)
+                       output_folder, logger=logger)
         create_heatmap(fl_df, table_name+'_fl', save_tables,
-                    output_folder)
+                       output_folder, logger=logger)
         create_heatmap(cnv_df, table_name+'_cnvs', save_tables,
-                    output_folder)
+                       output_folder, logger=logger)
         create_heatmap(genes_df, table_name+'_genes', save_tables,
-                    output_folder)
+                       output_folder, logger=logger)
         create_heatmap(bins_df, table_name+'_bins', save_tables,
-                    output_folder)
-        create_heatmap(df, table_name, save_tables, output_folder)
+                       output_folder, logger=logger)
+        create_heatmap(df, table_name, save_tables, output_folder,
+                       logger=logger)
     
     # Get df for the different kinds of feature
     bins_df = df.loc[df.index.to_series().str.startswith('bin_gvs')]
@@ -1050,28 +1094,22 @@ def normalize_feature_table(
     # Create a heatmap with samples from subsets of features
     l_df = [
         fl_df,
-        cnv_df.sample(n=10, random_state=12),
-        genes_df.sample(n=10, random_state=12),
-        bins_df.sample(n=10, random_state=12)
+        cnv_df.sample(n=10, random_state=rand_seed),
+        genes_df.sample(n=10, random_state=rand_seed),
+        bins_df.sample(n=10, random_state=rand_seed)
     ]
     if not dn_ds_df.empty:
-        l_df.append(dn_ds_df.sample(n=10, random_state=12))
+        l_df.append(dn_ds_df.sample(n=10, random_state=rand_seed))
     df_sample = pd.concat(l_df, ignore_index=False)
     df_sample.index = df_sample.index.map(process_feature_names)
     create_heatmap(df_sample, table_name+'_sample', True, 
-                   output_folder)
-
-    print('### Pre-feature modification df:')
-    print(df)
+                   output_folder, logger=logger)
 
     logger.info('Modifying feature names and saving dataframes.', 
                 table_path=input_file)
 
     # Modify feature names
     df.index = df.index.map(process_feature_names)
-
-    print('### Post-feature modification df:')
-    print(df)
 
     # Save df as csv
     df.to_csv(out_csv, sep=',')
@@ -1090,7 +1128,7 @@ def per_feature_analysis(
     logger: structlog.BoundLogger,
     top_n: int=20,
     rand_seed: int=None
-):
+) -> None:
     """Performs per-feature analysis on raw or normalized data."""
     # Make sure output folder exists
     output_folder.mkdir(parents=True, exist_ok=True)
@@ -1226,7 +1264,7 @@ def robust_normalize(df:pd.DataFrame) -> pd.DataFrame:
     print(scaled_data)
 
     # Transpose the result back and create a new DataFrame
-    df_row_scaled = pd.DataFrame(scaled_data.T, 
-                                 columns=df_filtered.columns, 
+    df_row_scaled = pd.DataFrame(scaled_data.T,
+                                 columns=df_filtered.columns,
                                  index=df_filtered.index)
     return df_row_scaled
