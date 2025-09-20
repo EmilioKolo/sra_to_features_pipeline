@@ -977,6 +977,9 @@ def cross_validate_rf(
     a0.set_title("Balanced CVRF")
     dispb.plot(ax=a0,colorbar=False)
     plt.tight_layout()
+    fig.savefig(
+        f'{output_folder}/confusion_matrix.png'
+    )
 
     importance = best_model.feature_importances_
     forest_importance = pd.Series(importance, 
