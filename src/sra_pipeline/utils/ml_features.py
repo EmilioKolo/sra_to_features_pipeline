@@ -1326,24 +1326,11 @@ def normalize_feature_table(
     df = cleanup_empty_rows_cols(df)
 
     logger.info('Creating heatmaps.', table_path=input_file)
-    
-    # Get df for the different kinds of feature (for heatmap)
-    bins_df = df.loc[df.index.to_series().str.startswith('bin_gvs')]
-    genes_df = df.loc[df.index.to_series().str.startswith('gene_gvs')]
-    dn_ds_df = df.loc[df.index.to_series().str.startswith('dn_ds')]
-    fl_df = df.loc[df.index.to_series().str.startswith('fragment')]
-    cnv_df = df.loc[df.index.to_series().str.startswith('cnv_length')]
-    # Create a heatmap with samples from subsets of features
-    l_df = [
-        fl_df,
-        cnv_df.sample(n=10, random_state=rand_seed),
-        genes_df.sample(n=10, random_state=rand_seed),
-        bins_df.sample(n=10, random_state=rand_seed)
-    ]
-    if not dn_ds_df.empty:
-        l_df.append(dn_ds_df.sample(n=10, random_state=rand_seed))
-    df_sample = pd.concat(l_df, ignore_index=False)
+    # Get sample of the dataframe
+    df_sample = sample_df(df, rand_seed, n=10)
+    # Change feature names for better visualization
     df_sample.index = df_sample.index.map(process_feature_names)
+    # Create the sample heatmap
     create_heatmap(df_sample, table_name+'_sample', True, 
                    output_folder, logger=logger)
 
@@ -1605,3 +1592,31 @@ def robust_normalize(df:pd.DataFrame) -> pd.DataFrame:
                                  columns=df_filtered.columns,
                                  index=df_filtered.index)
     return df_row_scaled
+
+
+def sample_df(
+    df: pd.DataFrame,
+    rand_seed: int|None,
+    n: int=10
+) -> pd.DataFrame:
+    """
+    Takes a sample of n rows from each feature type.
+    """
+    # Get df for the different kinds of feature
+    bins_df = df.loc[df.index.to_series().str.startswith('bin_gvs')]
+    genes_df = df.loc[df.index.to_series().str.startswith('gene_gvs')]
+    dn_ds_df = df.loc[df.index.to_series().str.startswith('dn_ds')]
+    fl_df = df.loc[df.index.to_series().str.startswith('fragment')]
+    cnv_df = df.loc[df.index.to_series().str.startswith('cnv_length')]
+    # Create a heatmap with samples from subsets of features
+    l_df = [
+        fl_df,
+        cnv_df.sample(n=n, random_state=rand_seed),
+        genes_df.sample(n=n, random_state=rand_seed),
+        bins_df.sample(n=n, random_state=rand_seed)
+    ]
+    if not dn_ds_df.empty:
+        l_df.append(dn_ds_df.sample(n=n, random_state=rand_seed))
+    df_sample = pd.concat(l_df, ignore_index=False)
+
+    return df_sample
