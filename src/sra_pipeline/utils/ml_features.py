@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
+import pickle
 import seaborn as sns
 import structlog
 
@@ -513,6 +514,7 @@ class MLFeatureTable:
 
 def analyze_feature_pairs(
     df: pd.DataFrame,
+    output_folder: Path,
     features_to_analyze: List[str],
     target_column: str,
     logger: structlog.BoundLogger,
@@ -539,14 +541,19 @@ def analyze_feature_pairs(
         )
         return pd.DataFrame()
 
+    # Make sure output folder exists
+    output_folder.mkdir(parents=True, exist_ok=True)
+
     X = df[features_to_analyze]
     y = df[target_column]
 
     # Generate all unique pairs of the selected features
-    feature_pairs = list(itertools.combinations(features_to_analyze, 2))
+    feature_pairs = list(itertools.combinations(
+        features_to_analyze, 2
+    ))
     logger.info(
         str(f"Generated {len(feature_pairs)} unique feature pairs "+\
-            "from the list of {len(features_to_analyze)} features."),
+            f"from the list of {len(features_to_analyze)} features."),
         feature_n=len(features_to_analyze)
     )
 
@@ -561,16 +568,27 @@ def analyze_feature_pairs(
     ###
 
     for f1, f2 in feature_pairs:
-        # Create a new DataFrame with only the two features for training
+        # Create a new DataFrame with only two features for training
         X_pair = X[[f1, f2]]
 
         X_train, X_test, y_train, y_test = train_test_split(
-            X_pair, y, test_size=0.3, random_state=rand_seed, stratify=y
+            X_pair,
+            y,
+            test_size=0.3,
+            random_state=rand_seed,
+            stratify=y
         )
+
+        # Train a model
+        trained_model = model.fit(X_train, y_train)
+
+        # Pickle trained model
+        pickle_model(trained_model,
+                     f'{output_folder}/model_pair_ID_{cont}.pickle')
 
         # Handle multi-class classification for AUC calculation
         y_test_bin = lb.fit_transform(y_test)
-        y_pred_proba = model.fit(X_train, y_train).predict_proba(X_test)
+        y_pred_proba = trained_model.predict_proba(X_test)
 
         if y_test_bin.shape[1] == 1:
             auc_score = roc_auc_score(y_test_bin, y_pred_proba[:, 1])
@@ -604,6 +622,7 @@ def analyze_feature_pairs(
 
 def analyze_feature_trios(
     df: pd.DataFrame,
+    output_folder: Path,
     features_to_analyze: List[str],
     target_column: str,
     logger: structlog.BoundLogger,
@@ -630,14 +649,19 @@ def analyze_feature_trios(
         )
         return pd.DataFrame()
 
+    # Make sure output folder exists
+    output_folder.mkdir(parents=True, exist_ok=True)
+
     X = df[features_to_analyze]
     y = df[target_column]
 
     # Generate all unique trios of the selected features
-    feature_trios = list(itertools.combinations(features_to_analyze, 3))
+    feature_trios = list(itertools.combinations(
+        features_to_analyze, 3
+    ))
     logger.info(
         str(f"Generated {len(feature_trios)} unique feature trios "+\
-            "from the list of {len(features_to_analyze)} features."),
+            f"from the list of {len(features_to_analyze)} features."),
         feature_n=len(features_to_analyze)
     )
 
@@ -656,12 +680,23 @@ def analyze_feature_trios(
         X_pair = X[[f1, f2, f3]]
 
         X_train, X_test, y_train, y_test = train_test_split(
-            X_pair, y, test_size=0.3, random_state=rand_seed, stratify=y
+            X_pair,
+            y,
+            test_size=0.3,
+            random_state=rand_seed,
+            stratify=y
         )
+
+        # Train a model
+        trained_model = model.fit(X_train, y_train)
+
+        # Pickle trained model
+        pickle_model(trained_model,
+                     f'{output_folder}/model_trio_ID_{cont}.pickle')
 
         # Handle multi-class classification for AUC calculation
         y_test_bin = lb.fit_transform(y_test)
-        y_pred_proba = model.fit(X_train, y_train).predict_proba(X_test)
+        y_pred_proba = trained_model.predict_proba(X_test)
 
         if y_test_bin.shape[1] == 1:
             auc_score = roc_auc_score(y_test_bin, y_pred_proba[:, 1])
@@ -743,6 +778,22 @@ def analyze_features_and_rank_by_auc(
     return auc_df
 
 
+def cleanup_empty_rows_cols(df: pd.DataFrame):
+    """
+    Performs cleanup of a DataFrame by removing empty rows
+    and columns.
+    """
+    # Replace empty strings with NaN
+    df_out = df.replace('', np.nan)
+    # Remove columns with NAN
+    df_out = df_out.dropna(axis=1, how='any')
+    # Remove rows that sum 0
+    df_out = df_out[df.sum(axis=1)!=0]
+    # Remove columns that sum 0
+    df_out = df_out.loc[:, (df_out.sum(axis=0)!=0)]
+
+    return df_out
+
 def create_feature_table_from_directory(
     input_directory: Path,
     output_path: Path,
@@ -816,7 +867,6 @@ def create_heatmap(
     if save_fig:
         path_out = os.path.join(out_path, f'heatmap_{title}.png')
         plt.savefig(path_out)
-    plt.show()
     return None
 
 
@@ -944,6 +994,10 @@ def cross_validate_rf(
     best_model = model_cv.best_estimator_
     best_params = model_cv.best_params_
 
+    # Save best model
+    pickle_model(best_model, 
+                 f'{output_folder}/best_model_single.pickle')
+
     logger.info("Best model found", best_params=best_params)
 
     logger.info("Evaluating best model on test set...")
@@ -969,7 +1023,8 @@ def cross_validate_rf(
     yb_pred = best_model.predict(Xb_test)
 
     # Plot confusion matrix
-    cmb = confusion_matrix(yb_test, yb_pred, labels=best_model.classes_)
+    cmb = confusion_matrix(yb_test, yb_pred, 
+                           labels=best_model.classes_)
 
     fig, a0 = plt.subplots(figsize=(8,4))
     dispb = ConfusionMatrixDisplay(confusion_matrix=cmb, 
@@ -1026,7 +1081,8 @@ def cross_validate_rf(
         # Print or log the results
         print("Top 20 features by importance:")
         for i, feature_name in enumerate(top_n_feature_names, 1):
-            print(f"{i}. {feature_name}: {top_n_features[feature_name]:.6f}")
+            print(f"{i}. {feature_name}:"+\
+                  f" {top_n_features[feature_name]:.6f}")
     else:
         top_n_feature_names = []
 
@@ -1119,12 +1175,12 @@ def merge_with_metadata(
         logger.warning("DataFrames indices do not match. Merging...",
                        metadata_file=metadata_file)
         # This is a robust way to merge if indices don't match
-        merged_df = pd.merge(feature_table, metadata_df, 
+        merged_df = pd.merge(metadata_df, feature_table,
                              left_index=True, right_index=True, 
                              how='inner')
     else:
-        merged_df = pd.concat([feature_table, metadata_df], axis=1)
-    
+        merged_df = pd.concat([metadata_df, feature_table], axis=1)
+
     logger.info('Merge completed. Saving files...',
                 metadata_file=metadata_file)
     
@@ -1132,6 +1188,49 @@ def merge_with_metadata(
     merged_df.to_csv(out_csv, sep=',')
     merged_df.T.to_csv(out_csv_transposed, sep=',')
     return merged_df
+
+
+def normalize_by_gv(
+    df_in: pd.DataFrame,
+    logger: structlog.BoundLogger
+) -> pd.DataFrame:
+    """
+    Normalizes a pandas DataFrame by number of GVs per sample.
+    """
+    logger.info('Separating the different kinds of feature.')
+
+    # Get df for the different kinds of feature
+    bins_df = df_in.loc[
+        df_in.index.to_series().str.startswith('bin_gvs')
+    ]
+    genes_df = df_in.loc[
+        df_in.index.to_series().str.startswith('gene_gvs')
+    ]
+    dn_ds_df = df_in.loc[
+        df_in.index.to_series().str.startswith('dn_ds')
+    ]
+    fl_df = df_in.loc[
+        df_in.index.to_series().str.startswith('fragment')
+    ]
+    cnv_df = df_in.loc[
+        df_in.index.to_series().str.startswith('cnv_length')
+    ]
+
+    logger.info('Dividing by number of GVs.')
+
+    # Get the sum of gvs per column (from bins_df)
+    gv_col_sum = (bins_df.sum())
+    # Divide by total GVs
+    bins_df = bins_df / gv_col_sum
+    genes_df = genes_df / gv_col_sum
+
+    logger.info('Re-joining separated dfs.')
+
+    # Join dataframes into df
+    df_out = pd.concat([dn_ds_df, fl_df, cnv_df, genes_df, bins_df], 
+                        ignore_index=False)
+    # Return df_out
+    return df_out
 
 
 def normalize_feature_table(
@@ -1172,17 +1271,20 @@ def normalize_feature_table(
     out_raw = os.path.join(output_folder, f'{table_name}_RAW.csv')
     out_csv = os.path.join(output_folder, 
                            f'{table_name}_NORMALIZED.csv')
+    out_max_per_row = os.path.join(output_folder,
+                                   f'{table_name}_max_col.csv')
+    out_min_per_row = os.path.join(output_folder,
+                                   f'{table_name}_min_per_row.csv')
 
-    # Remove rows that sum 0
-    df = df[df.sum(axis=1)!=0]
-    # Remove columns that sum 0
-    df = df.loc[:, (df.sum(axis=0)!=0)]
+    df = cleanup_empty_rows_cols(df)
+
+    # Save raw table
+    df.to_csv('raw_df.csv', sep=',')
 
     # Copy raw df before numerical modifications
     raw_df = df.copy()
 
-    logger.info('Separating the different kinds of feature.', 
-                table_path=input_file)
+    df = normalize_by_gv(df, logger)
 
     # Get df for the different kinds of feature
     bins_df = df.loc[df.index.to_series().str.startswith('bin_gvs')]
@@ -1190,89 +1292,42 @@ def normalize_feature_table(
     dn_ds_df = df.loc[df.index.to_series().str.startswith('dn_ds')]
     fl_df = df.loc[df.index.to_series().str.startswith('fragment')]
     cnv_df = df.loc[df.index.to_series().str.startswith('cnv_length')]
-
-    logger.info('Dividing by number of GVs.', table_path=input_file)
-
-    # Get the sum of gvs per column (from bins_df)
-    gv_col_sum = (bins_df.sum())
-    # Divide by total GVs
-    bins_df = bins_df / gv_col_sum
-    genes_df = genes_df / gv_col_sum
 
     if log_transform:
         logger.info('Perform log transformation.', 
                     table_path=input_file)
         # Perform log transformation
-        dn_ds_df = dn_ds_df.apply(np.log1p)
-        fl_df = fl_df.apply(np.log1p)
-        cnv_df = cnv_df.apply(np.log1p)
-        genes_df = genes_df.apply(np.log1p)
-        bins_df = bins_df.apply(np.log1p)
-
-    logger.info('Re-join separated dfs.', table_path=input_file)
-
-    # Join dataframes into df
-    df = pd.concat([dn_ds_df, fl_df, cnv_df, genes_df, bins_df], 
-                    ignore_index=False)
+        df = df.apply(np.log1p)
 
     # Perform normalization
     if robust_norm:
         logger.info('Performing robust normalization.',
-                table_path=input_file)
+                    table_path=input_file)
         df = robust_normalize(df)
     else:
         logger.info('Performing normalization.',
-                table_path=input_file)
-        df = df.div(df.max(axis=1), axis=0)
+                    table_path=input_file)
+        df_max_per_row = df.max(axis=1)
+        df = df.div(df_max_per_row, axis=0)
+        # Save df_max_per_row
+        df_max_per_row.to_csv(out_max_per_row,
+                              header=['max_per_row'])
 
-    logger.info('Re-separate the different kinds of feature.', 
-                table_path=input_file)
-
-    # Get df for the different kinds of feature again
-    bins_df = df.loc[df.index.to_series().str.startswith('bin_gvs')]
-    genes_df = df.loc[df.index.to_series().str.startswith('gene_gvs')]
-    dn_ds_df = df.loc[df.index.to_series().str.startswith('dn_ds')]
-    fl_df = df.loc[df.index.to_series().str.startswith('fragment')]
-    cnv_df = df.loc[df.index.to_series().str.startswith('cnv_length')]
-
-    logger.info('Removing minimums to avoid negative values.', 
+    logger.info('Removing minimums to avoid negative values.',
                 table_path=input_file)
 
-    # Remove minimums to avoid negative values
-    cnv_df = cnv_df - min(cnv_df.min().min(), 0)
-    fl_df = fl_df - min(fl_df.min().min(), 0)
-    bins_df = bins_df - min(bins_df.min().min(), 0)
-    genes_df = genes_df - min(genes_df.min().min(), 0)
-    if not dn_ds_df.empty:
-        dn_ds_df = dn_ds_df - min(dn_ds_df.min().min(), 0)
+    # Remove minimums per row to avoid negative values
+    df_min_per_row = df.min(axis=1)
+    df = df - df_min_per_row
+    # Save df_min_per_row
+    df_min_per_row.to_csv(out_min_per_row,
+                          header=['min_per_row'])
 
-    logger.info('Re-joining separated dfs.', table_path=input_file)
-
-    # Join dataframes into df
-    df = pd.concat([dn_ds_df, fl_df, cnv_df, genes_df, bins_df], 
-                    ignore_index=False)
+    df = cleanup_empty_rows_cols(df)
 
     logger.info('Creating heatmaps.', table_path=input_file)
-
-    # Define if heatmaps will be created
-    create_heatmaps = False
-    if create_heatmaps:
-        save_tables = True
-        # Create heatmaps
-        create_heatmap(dn_ds_df, table_name+'_dn_ds', save_tables,
-                       output_folder, logger=logger)
-        create_heatmap(fl_df, table_name+'_fl', save_tables,
-                       output_folder, logger=logger)
-        create_heatmap(cnv_df, table_name+'_cnvs', save_tables,
-                       output_folder, logger=logger)
-        create_heatmap(genes_df, table_name+'_genes', save_tables,
-                       output_folder, logger=logger)
-        create_heatmap(bins_df, table_name+'_bins', save_tables,
-                       output_folder, logger=logger)
-        create_heatmap(df, table_name, save_tables, output_folder,
-                       logger=logger)
     
-    # Get df for the different kinds of feature
+    # Get df for the different kinds of feature (for heatmap)
     bins_df = df.loc[df.index.to_series().str.startswith('bin_gvs')]
     genes_df = df.loc[df.index.to_series().str.startswith('gene_gvs')]
     dn_ds_df = df.loc[df.index.to_series().str.startswith('dn_ds')]
@@ -1297,13 +1352,13 @@ def normalize_feature_table(
 
     # Modify feature names
     df.index = df.index.map(process_feature_names)
-
     # Save df as csv
     df.to_csv(out_csv, sep=',')
 
     # Save raw_df too
     raw_df.index = raw_df.index.map(process_feature_names)
     raw_df.to_csv(out_raw, sep=',')
+    
     # Return raw df and df
     return raw_df, df
 
@@ -1348,11 +1403,18 @@ def per_feature_analysis(
                     top_n=top_n)
 
         # Define pairs output name
-        output_pairs = output_folder / f"{bname}_feature_pairs_CVRF.csv"
+        output_folder_pairs = output_folder / "pairs_out"
+        output_pairs = output_folder_pairs / \
+            f"{bname}_feature_pairs_CVRF.csv"
 
         # Run the analysis
         top_feature_pairs_ranked = analyze_feature_pairs(
-            df, top_n_feature_names, target_var, logger, rand_seed
+            df,
+            output_folder_pairs,
+            top_n_feature_names,
+            target_var,
+            logger,
+            rand_seed
         )
 
         # Save the resulting dataframe
@@ -1363,11 +1425,18 @@ def per_feature_analysis(
                     table_name=table_name,
                     top_n=top_n)
             # Define trios output name
-            output_trios = output_folder / f"{bname}_feature_trios_CVRF.csv"
+            output_folder_trios = output_folder / "trios_out"
+            output_trios = output_folder_trios / \
+                f"{bname}_feature_trios_CVRF.csv"
 
             # Run the analysis for trios
             top_feature_trios_ranked = analyze_feature_trios(
-                df, top_n_feature_names, target_var, logger, rand_seed
+                df,
+                output_folder_trios,
+                top_n_feature_names,
+                target_var,
+                logger,
+                rand_seed
             )
 
             # Save the resulting dataframe
@@ -1403,11 +1472,18 @@ def per_feature_analysis(
                     top_n=top_n)
 
         # Define pairs output name
-        output_pairs = output_folder / f"{bname}_feature_pairs.csv"
+        output_folder_pairs = output_folder / "pairs_auc_out"
+        output_pairs = output_folder_pairs / \
+            f"{bname}_feature_pairs.csv"
 
         # Run the analysis
         top_feature_pairs_ranked = analyze_feature_pairs(
-            df, top_features, target_var, logger, rand_seed
+            df,
+            output_folder_pairs,
+            top_features,
+            target_var,
+            logger,
+            rand_seed
         )
 
         # Save the resulting dataframe
@@ -1418,16 +1494,37 @@ def per_feature_analysis(
                     table_name=table_name,
                     top_n=top_n)
             # Define trios output name
-            output_trios = output_folder / f"{bname}_feature_trios.csv"
+            output_folder_trios = output_folder / "trios_auc_out"
+            output_trios = output_folder_trios / \
+                f"{bname}_feature_trios.csv"
 
             # Run the analysis for trios
             top_feature_trios_ranked = analyze_feature_trios(
-                df, top_features, target_var, logger, rand_seed
+                df,
+                output_folder_trios,
+                top_features,
+                target_var,
+                logger,
+                rand_seed
             )
 
             # Save the resulting dataframe
             top_feature_trios_ranked.to_csv(output_trios)
 
+    return None
+
+
+def pickle_load(model_path: Path):
+    """Loads a pickled model from the specified input path."""
+    with open(model_path, "rb") as f:
+        model_file = pickle.load(f)
+    return model_file
+
+
+def pickle_model(model, output_path: Path) -> None:
+    """Pickles a model to the specified output path."""
+    with open(output_path, 'wb') as f:
+        pickle.dump(model, f)
     return None
 
 
@@ -1471,7 +1568,7 @@ def process_feature_names(row_name:str) -> str:
         gene_name = row_name.rsplit('_')[-1]
         ret = f'dN/dS proportion in gene {gene_name}'
     else:
-        print(f'WARNING: row_name {row_name} not processed properly.')
+        print(f'row_name {row_name} not processed.')
     return ret
 
 
