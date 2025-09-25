@@ -1330,9 +1330,6 @@ def normalize_feature_table(
 
     df = cleanup_empty_rows_cols(df)
 
-    # Save raw table
-    df.to_csv('raw_df.csv', sep=',')
-
     # Copy raw df before numerical modifications
     raw_df = df.copy()
 
@@ -1358,15 +1355,17 @@ def normalize_feature_table(
         df_max_per_row.to_csv(out_max_per_row,
                               header=['max_per_row'])
 
+    df = cleanup_empty_rows_cols(df)
+
     logger.info('Removing minimums to avoid negative values.',
                 table_path=input_file)
 
     # Remove minimums per row to avoid negative values
     df_min_per_row = df.min(axis=1)
-    df = df - df_min_per_row
     # Save df_min_per_row
     df_min_per_row.to_csv(out_min_per_row,
                           header=['min_per_row'])
+    df = df.sub(df_min_per_row, axis=0)
 
     df = cleanup_empty_rows_cols(df)
 
