@@ -644,7 +644,15 @@ def classify_features(
     type=str,
     help=str(
         "Name of the target variable column in the data "+\
-        "(default: Diagnosis)."
+        "(default: 'Diagnosis')."
+    ),
+)
+@click.option(
+    "--out-name",
+    default="",
+    type=str,
+    help=str(
+        "Name suffix for output files (default: '')."
     ),
 )
 def run_model_validation_test(
