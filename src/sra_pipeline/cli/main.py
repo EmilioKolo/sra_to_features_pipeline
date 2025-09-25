@@ -535,7 +535,8 @@ def create_normalized_table(
     type=click.Path(exists=True, path_type=Path),
     help=str(
         "Input feature file path. Needs to have the same format "+\
-        "as the table created by create-normalized-table."
+        "as the table created by create-normalized-table (samples as"+\
+        "columns and features as rows)."
     ),
 )
 @click.option(
@@ -594,7 +595,10 @@ def classify_features(
     random_seed: Optional[int],
     log_level: str
 ):
-    """Classify the samples of a feature table with feature-per-feature analysis."""
+    """
+    Classify the samples of a feature table with feature-per-feature 
+    analysis.
+    """
     # Setup logging
     logger = setup_logging(log_level=log_level)
     try:
@@ -612,6 +616,70 @@ def classify_features(
 
     except Exception as e:
         console.print(f"[red]Error classifying the feature table: {e}[/red]")
+        sys.exit(1)
+
+
+@cli.command()
+@click.option(
+    "--model-path",
+    required=True,
+    help="Pickled model file path.",
+    type=click.Path(exists=True, path_type=Path),
+)
+@click.option(
+    "--data-table-path",
+    required=True,
+    help="Data table file path to run the model on (CSV format).",
+    type=click.Path(exists=True, path_type=Path),
+)
+@click.option(
+    "--output-folder",
+    required=True,
+    type=click.Path(path_type=Path),
+    help="Output folder path.",
+)
+@click.option(
+    "--target-variable",
+    default="Diagnosis",
+    type=str,
+    help=str(
+        "Name of the target variable column in the data "+\
+        "(default: Diagnosis)."
+    ),
+)
+def run_model_validation_test(
+    model_path: Path,
+    data_table_path: Path,
+    output_folder: Path,
+    target_var: Optional[str]='Diagnosis',
+    out_name: Optional[str]=''
+):
+    """
+    Run a model on validation and test sets for performance assessment.
+    Generates figures and performance metrics.
+    """
+    console.print("[bold blue]Running model validation "+\
+                  "and test...[/bold blue]")
+    
+    try:
+        from ..utils.ml_features import run_model_validation_and_test
+        
+        # Run model validation and test
+        run_model_validation_and_test(
+            model_path,
+            data_table_path,
+            output_folder,
+            target_var,
+            out_name
+        )
+        
+        console.print("[green]✓ Model validation and test "+\
+                      "completed successfully![/green]")
+        
+    except Exception as e:
+        console.print(
+            f"[red]Error during model validation and test: {e}[/red]"
+        )
         sys.exit(1)
 
 

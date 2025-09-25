@@ -5,13 +5,15 @@ ML-ready feature table utilities for the SRA to Features Pipeline.
 
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score, f1_score, confusion_matrix
-from sklearn.metrics import make_scorer, precision_score, recall_score
-from sklearn.metrics import ConfusionMatrixDisplay
-from sklearn.model_selection import cross_val_score, train_test_split
-from sklearn.model_selection import GridSearchCV
-from sklearn.preprocessing import RobustScaler, LabelBinarizer
-from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import (
+    roc_auc_score, f1_score, confusion_matrix, make_scorer,
+    precision_score, recall_score, accuracy_score,
+    ConfusionMatrixDisplay
+)
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import (
+    RobustScaler, LabelBinarizer, LabelEncoder
+)
 from typing import List, Dict, Any
 import itertools
 import json
@@ -579,6 +581,16 @@ def analyze_feature_pairs(
             stratify=y
         )
 
+        # Save train and test sets
+        X_train.to_csv(f'{output_folder}/X_train_{cont}.csv',
+                       index=False)
+        X_test.to_csv(f'{output_folder}/X_test_{cont}.csv',
+                      index=False)
+        y_train.to_csv(f'{output_folder}/y_train_{cont}.csv',
+                       index=False)
+        y_test.to_csv(f'{output_folder}/y_test_{cont}.csv',
+                      index=False)
+
         # Train a model
         trained_model = model.fit(X_train, y_train)
 
@@ -687,6 +699,16 @@ def analyze_feature_trios(
             stratify=y
         )
 
+        # Save train and test sets
+        X_train.to_csv(f'{output_folder}/X_train_{cont}.csv',
+                       index=False)
+        X_test.to_csv(f'{output_folder}/X_test_{cont}.csv',
+                      index=False)
+        y_train.to_csv(f'{output_folder}/y_train_{cont}.csv',
+                       index=False)
+        y_test.to_csv(f'{output_folder}/y_test_{cont}.csv',
+                      index=False)
+
         # Train a model
         trained_model = model.fit(X_train, y_train)
 
@@ -730,6 +752,7 @@ def analyze_feature_trios(
 
 def analyze_features_and_rank_by_auc(
     df: pd.DataFrame,
+    output_folder: Path,
     target_var: str,
     model,
     logger: structlog.BoundLogger,
@@ -741,28 +764,33 @@ def analyze_features_and_rank_by_auc(
     Args:
         df (pd.DataFrame): The DataFrame with features and a 
                            target variable column.
+        output_folder (Path): Folder where output files are created.
         target_var (str): Target variable to be predicted with the 
                           feature classification.
-        output_folder (Path): Folder where output files are created.
+        model: A sklearn model instance.
         logger: Logger instance.
         rand_seed (int): Random seed for repeatability.
 
     Returns:
         pd.DataFrame: A DataFrame of features ranked by AUC.
     """
+    # Obtain X and y
     X = df.drop(target_var, axis=1)
     y = df[target_var]
-
+    # Initialize results dictionary
     results = {}
-
+    # Define a folder for feature training and testing sets
+    out_sets = output_folder / 'feature_sets'
+    # Make sure the folder exists
+    out_sets.mkdir(parents=True, exist_ok=True)
     ### Display
     # Counter
     cont = 0
     n_col = len(X.columns)
     ###
     for feature in X.columns:
-        auc_score = get_single_feature_auc(X, y, feature, model,
-                                           rand_seed)
+        auc_score = get_single_feature_auc(X, y, out_sets, feature,
+                                           model, rand_seed)
         results[feature] = auc_score
         ### Display
         if cont==0 or (cont+1)%1000==0:
@@ -793,6 +821,22 @@ def cleanup_empty_rows_cols(df: pd.DataFrame):
     df_out = df_out.loc[:, (df_out.sum(axis=0)!=0)]
 
     return df_out
+
+
+def create_conf_matrix(y_true, y_pred, classes, out_path):
+    # Plot confusion matrix
+    cmb = confusion_matrix(y_true, y_pred, 
+                           labels=classes)
+
+    fig, a0 = plt.subplots(figsize=(8,4))
+    dispb = ConfusionMatrixDisplay(confusion_matrix=cmb, 
+                                   display_labels=classes)
+    out_name = out_path.stem.replace('_', ' ').title()
+    a0.set_title(out_name)
+    dispb.plot(ax=a0,colorbar=False)
+    plt.tight_layout()
+    fig.savefig(out_path)
+
 
 def create_feature_table_from_directory(
     input_directory: Path,
@@ -1092,6 +1136,7 @@ def cross_validate_rf(
 def get_single_feature_auc(
     X:pd.DataFrame,
     y:pd.Series,
+    output_folder: Path,
     feature_name:str,
     model,
     rand_seed:int
@@ -1109,7 +1154,9 @@ def get_single_feature_auc(
     Returns:
         float: The ROC-AUC score.
     """
+    # Get the single feature from X
     X_single = X[[feature_name]]
+    # Split train and test sets
     X_train, X_test, y_train, y_test = train_test_split(
         X_single,
         y,
@@ -1117,6 +1164,11 @@ def get_single_feature_auc(
         random_state=rand_seed,
         stratify=y
     )
+    # Save train and test sets
+    X_train.to_csv(f'{output_folder}/X_train_{feature_name}.csv', index=False)
+    X_test.to_csv(f'{output_folder}/X_test_{feature_name}.csv', index=False)
+    y_train.to_csv(f'{output_folder}/y_train_{feature_name}.csv', index=False)
+    y_test.to_csv(f'{output_folder}/y_test_{feature_name}.csv', index=False)
     
     # Handle multi-class classification for AUC
     lb = LabelBinarizer()
@@ -1286,13 +1338,6 @@ def normalize_feature_table(
 
     df = normalize_by_gv(df, logger)
 
-    # Get df for the different kinds of feature
-    bins_df = df.loc[df.index.to_series().str.startswith('bin_gvs')]
-    genes_df = df.loc[df.index.to_series().str.startswith('gene_gvs')]
-    dn_ds_df = df.loc[df.index.to_series().str.startswith('dn_ds')]
-    fl_df = df.loc[df.index.to_series().str.startswith('fragment')]
-    cnv_df = df.loc[df.index.to_series().str.startswith('cnv_length')]
-
     if log_transform:
         logger.info('Perform log transformation.', 
                     table_path=input_file)
@@ -1368,72 +1413,14 @@ def per_feature_analysis(
     df = pd.read_csv(table_name, index_col=0)
     # Transpose df to have samples as rows and features as columns
     df = df.T
-
-    logger.info("Performing cross-validation for Random Forest.",
-                table_name=table_name)
     
-    # Perform cross-validation with Random Forest
-    mean_score_cv, best_model, top_n_feature_names = cross_validate_rf(
-        df, target_var, output_folder, logger, rand_seed, top_n=top_n
-    )
-    
-    logger.info("Cross-validation completed.",
-                table_name=table_name,
-                mean_auc=mean_score_cv)
-
-    if top_n_feature_names:
-        logger.debug(f'Top {top_n} features calculated with CVRF:',
-                     top_features=top_n_feature_names)
-
-        logger.info(f'Analyzing top {top_n} features in pairs.',
-                    table_name=table_name,
-                    top_n=top_n)
-
-        # Define pairs output name
-        output_folder_pairs = output_folder / "pairs_out"
-        output_pairs = output_folder_pairs / \
-            f"{bname}_feature_pairs_CVRF.csv"
-
-        # Run the analysis
-        top_feature_pairs_ranked = analyze_feature_pairs(
-            df,
-            output_folder_pairs,
-            top_n_feature_names,
-            target_var,
-            logger,
-            rand_seed
-        )
-
-        # Save the resulting dataframe
-        top_feature_pairs_ranked.to_csv(output_pairs)
-        
-        if top_n >= 3:
-            logger.info(f'Analyzing top {top_n} features in trios.',
-                    table_name=table_name,
-                    top_n=top_n)
-            # Define trios output name
-            output_folder_trios = output_folder / "trios_out"
-            output_trios = output_folder_trios / \
-                f"{bname}_feature_trios_CVRF.csv"
-
-            # Run the analysis for trios
-            top_feature_trios_ranked = analyze_feature_trios(
-                df,
-                output_folder_trios,
-                top_n_feature_names,
-                target_var,
-                logger,
-                rand_seed
-            )
-
-            # Save the resulting dataframe
-            top_feature_trios_ranked.to_csv(output_trios)
+    model = RandomForestClassifier(random_state=rand_seed)
 
     logger.info("Analyzing feature table.", table_name=table_name)
     
     # Process features
     auc_results = analyze_features_and_rank_by_auc(
-        df, target_var, best_model, logger, rand_seed
+        df, output_folder, target_var, model, logger, rand_seed
     )
 
     logger.info("Feature analysis completed. Saving results.",
@@ -1451,7 +1438,7 @@ def per_feature_analysis(
         # Define top features from auc_results
         top_features = auc_results.head(top_n).index.tolist()
 
-        logger.debug(f'Top {top_n} features:',
+        logger.debug(f'Top {top_n} features obtained.',
                      top_features=top_features)
 
         logger.info(f'Analyzing top {top_n} features in pairs.',
@@ -1592,6 +1579,120 @@ def robust_normalize(df:pd.DataFrame) -> pd.DataFrame:
                                  columns=df_filtered.columns,
                                  index=df_filtered.index)
     return df_row_scaled
+
+
+def run_model_validation_and_test(
+    model_path: Path,
+    data_table_path: Path,
+    out_folder: Path,
+    target_var: str,
+    logger: structlog.BoundLogger,
+    out_name: str=''
+):
+    """
+    Runs a model on a data table and creates performance metrics.
+    Includes the creation of a confusion matrix figure.
+    """
+    # Make sure output folder exists
+    out_folder.mkdir(parents=True, exist_ok=True)
+
+    logger.info('Loading model.', model_path=model_path)
+
+    # Load model
+    model = pickle_load(model_path)
+    # Define basename from model_path
+    bname = model_path.name.rsplit('.')[0]
+
+    logger.info('Reading data table.', data_table=data_table_path)
+
+    # Load data table
+    df = pd.read_csv(data_table_path, sep=',', index_col=0)
+    # Define X and y values
+    X = df.T.drop(columns=[target_var])
+    y = df.T[target_var]
+    # Binarize y values
+    lb = LabelBinarizer()
+    y_true_bin = lb.fit_transform(y)
+    # Select only the features used in the model
+    model_features = model.feature_names_in_
+    X = X[model_features]
+
+    logger.info('Evaluating model on data table.',
+                data_table=data_table_path,
+                feature_count=len(model_features),
+                sample_count=len(X))
+
+    # Evaluate the model on the test set
+    y_pred = model.predict_proba(X)
+    # Select maximum value per row and set it to 1, the rest to 0
+    for i in range(len(y_pred)):
+        curr_row = y_pred[i]
+        max_val = 0
+        for j in range(len(curr_row)):
+            curr_cell = curr_row[j]
+            if curr_cell>max_val:
+                max_val = curr_cell
+                max_col = int(j)
+        for j in range(len(curr_row)):
+            if j==max_col:
+                y_pred[i][j] = 1
+            else:
+                y_pred[i][j] = 0
+    # Set type to int
+    y_pred = y_pred.astype(int)
+    # Define output confusion matrix path
+    out_conf = out_folder / f'conf_matrix_{bname}{out_name}.png'
+    # Transform one-hot encoded lists to labels
+    y_true_labels = np.argmax(y_true_bin, axis=1)
+    y_pred_labels = np.argmax(y_pred, axis=1)
+    class_labels = np.arange(len(model.classes_))
+
+    logger.info('Creating confusion matrix.',
+                data_table=data_table_path,
+                model_path=model_path)
+    
+    # Create confusion matrix figures
+    create_conf_matrix(y_true_labels, y_pred_labels, 
+                        class_labels, out_conf)
+    
+    logger.info('Calculating performance metrics.',
+                data_table=data_table_path,
+                model_path=model_path)
+    
+    # Calculate AUC score
+    auc_score = roc_auc_score(y_true_bin, y_pred,
+                              multi_class='ovr')
+    # Obtain accuracy, precision, recall, f1
+    accuracy = accuracy_score(y_true_labels, y_pred_labels)
+    precision = precision_score(y_true_labels, y_pred_labels,
+                                average='weighted', zero_division=0)
+    recall = recall_score(y_true_labels, y_pred_labels,
+                          average='weighted', zero_division=0)
+    f1 = f1_score(y_true_labels, y_pred_labels,
+                  average='weighted', zero_division=0)
+    
+    logger.info('Performance metrics calculated. Saving results.',
+                data_table=data_table_path,
+                model_path=model_path)
+    
+    # Save results to a text file
+    out_txt = out_folder / f'performance_{bname}{out_name}.txt'
+    with open(out_txt, 'w') as f:
+        f.write(f'AUC: {auc_score}\n')
+        f.write(f'Accuracy: {accuracy}\n')
+        f.write(f'Precision: {precision}\n')
+        f.write(f'Recall: {recall}\n')
+        f.write(f'F1: {f1}\n')
+    # Return the performance metrics into a dictionary
+    results = {
+        'AUC': auc_score,
+        'Accuracy': accuracy,
+        'Precision': precision,
+        'Recall': recall,
+        'F1': f1
+    }
+    return results
+
 
 
 def sample_df(
