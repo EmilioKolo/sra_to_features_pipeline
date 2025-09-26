@@ -10,6 +10,8 @@ from sklearn.metrics import (
     precision_score, recall_score, accuracy_score,
     ConfusionMatrixDisplay
 )
+from sklearn.metrics import RocCurveDisplay
+
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import (
     RobustScaler, LabelBinarizer, LabelEncoder
@@ -822,6 +824,76 @@ def cleanup_empty_rows_cols(df: pd.DataFrame):
     return df_out
 
 
+def collapse_probabilities(y_pred: np.ndarray) -> np.ndarray:
+    """
+    Collapse probability predictions into class labels.
+    """
+    # Select maximum value per row and set it to 1, the rest to 0
+    for i in range(len(y_pred)):
+        curr_row = y_pred[i]
+        max_val = 0
+        for j in range(len(curr_row)):
+            curr_cell = curr_row[j]
+            if curr_cell>max_val:
+                max_val = curr_cell
+                max_col = int(j)
+        for j in range(len(curr_row)):
+            if j==max_col:
+                y_pred[i][j] = 1
+            else:
+                y_pred[i][j] = 0
+    # Set type to int
+    y_pred = y_pred.astype(int)
+    return y_pred
+
+
+def create_auc_roc_curves(
+    y_true_bin: np.ndarray,
+    y_pred: np.ndarray,
+    out_folder: Path,
+    bname: str,
+    out_name: str,
+    model,
+    logger: structlog.BoundLogger,
+) -> None:
+    """
+    Creates a ROC curve plot for multi-class classification.
+    """
+
+    logger.info('Calculating micro-averaged AUC score for OvR strategy.')
+
+    # Prepare for plotting the one-vs-rest ROC curves
+    n_classes = len(model.classes_)
+    
+    # Set up the plot
+    plt.figure(figsize=(10, 8))
+    ax = plt.gca()
+    
+    # Plot chance level (diagonal line)
+    plt.plot([0, 1], [0, 1], linestyle="--", lw=2, color="navy", 
+             label="Chance level", alpha=0.8)
+
+    # Loop through each class to plot its individual ROC curve
+    for i in range(n_classes):
+        # Create a display for each class using RocCurveDisplay
+        RocCurveDisplay.from_predictions(
+            y_true_bin[:, i],
+            y_pred[:, i],
+            name=f"ROC curve (class {i})",
+            ax=ax,
+        )
+
+    out_name_spaces = out_name.replace('_', ' ').title()
+    title = 'Receiver Operating Characteristic (ROC) Curve '+\
+        f'for {out_name_spaces}'
+    plt.title(title)
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.legend(loc='lower right')
+    plt.grid(True)
+    plt.savefig(out_folder / f'roc_curve_{bname}{out_name}.png')
+
+
 def create_conf_matrix(y_true, y_pred, classes, out_path):
     # Plot confusion matrix
     cmb = confusion_matrix(y_true, y_pred, 
@@ -1189,13 +1261,14 @@ def get_single_feature_auc(
         for f in os.listdir(output_folder):
             os.remove(os.path.join(output_folder, f))
         # Save train and test sets
-        X_train.to_csv(f'{output_folder}/{feature_name}_X_train.csv')
-        X_test.to_csv(f'{output_folder}/{feature_name}_X_test.csv')
-        y_train.to_csv(f'{output_folder}/{feature_name}_y_train.csv')
-        y_test.to_csv(f'{output_folder}/{feature_name}_y_test.csv')
+        feat_name = feature_name.replace(' ', '_')
+        X_train.to_csv(f'{output_folder}/{feat_name}_X_train.csv')
+        X_test.to_csv(f'{output_folder}/{feat_name}_X_test.csv')
+        y_train.to_csv(f'{output_folder}/{feat_name}_y_train.csv')
+        y_test.to_csv(f'{output_folder}/{feat_name}_y_test.csv')
         # Save the model
         pickle_model(curr_model,
-                    f'{output_folder}/{feature_name}_model.pickle')
+                    f'{output_folder}/{feat_name}_model.pickle')
 
     return auc_score
 
@@ -1638,22 +1711,7 @@ def run_model_validation_and_test(
 
     # Evaluate the model on the test set
     y_pred = model.predict_proba(X)
-    # Select maximum value per row and set it to 1, the rest to 0
-    for i in range(len(y_pred)):
-        curr_row = y_pred[i]
-        max_val = 0
-        for j in range(len(curr_row)):
-            curr_cell = curr_row[j]
-            if curr_cell>max_val:
-                max_val = curr_cell
-                max_col = int(j)
-        for j in range(len(curr_row)):
-            if j==max_col:
-                y_pred[i][j] = 1
-            else:
-                y_pred[i][j] = 0
-    # Set type to int
-    y_pred = y_pred.astype(int)
+
     # Define output confusion matrix path
     out_conf = out_folder / f'conf_matrix_{bname}{out_name}.png'
     # Transform one-hot encoded lists to labels
@@ -1672,10 +1730,22 @@ def run_model_validation_and_test(
     logger.info('Calculating performance metrics.',
                 data_table=data_table_path,
                 model_path=model_path)
-    
+
     # Calculate AUC score
     auc_score = roc_auc_score(y_true_bin, y_pred,
                               multi_class='ovr')
+    
+    # Create ROC curve figure
+    create_auc_roc_curves(
+        y_true_bin,
+        y_pred,
+        out_folder,
+        bname,
+        out_name,
+        model,
+        logger,
+    )
+
     # Obtain accuracy, precision, recall, f1
     accuracy = accuracy_score(y_true_labels, y_pred_labels)
     precision = precision_score(y_true_labels, y_pred_labels,
