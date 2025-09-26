@@ -582,14 +582,10 @@ def analyze_feature_pairs(
         )
 
         # Save train and test sets
-        X_train.to_csv(f'{output_folder}/X_train_{cont}.csv',
-                       index=False)
-        X_test.to_csv(f'{output_folder}/X_test_{cont}.csv',
-                      index=False)
-        y_train.to_csv(f'{output_folder}/y_train_{cont}.csv',
-                       index=False)
-        y_test.to_csv(f'{output_folder}/y_test_{cont}.csv',
-                      index=False)
+        X_train.to_csv(f'{output_folder}/X_train_{cont}.csv')
+        X_test.to_csv(f'{output_folder}/X_test_{cont}.csv')
+        y_train.to_csv(f'{output_folder}/y_train_{cont}.csv')
+        y_test.to_csv(f'{output_folder}/y_test_{cont}.csv')
 
         # Train a model
         trained_model = model.fit(X_train, y_train)
@@ -700,14 +696,10 @@ def analyze_feature_trios(
         )
 
         # Save train and test sets
-        X_train.to_csv(f'{output_folder}/X_train_{cont}.csv',
-                       index=False)
-        X_test.to_csv(f'{output_folder}/X_test_{cont}.csv',
-                      index=False)
-        y_train.to_csv(f'{output_folder}/y_train_{cont}.csv',
-                       index=False)
-        y_test.to_csv(f'{output_folder}/y_test_{cont}.csv',
-                      index=False)
+        X_train.to_csv(f'{output_folder}/X_train_{cont}.csv')
+        X_test.to_csv(f'{output_folder}/X_test_{cont}.csv')
+        y_train.to_csv(f'{output_folder}/y_train_{cont}.csv')
+        y_test.to_csv(f'{output_folder}/y_test_{cont}.csv')
 
         # Train a model
         trained_model = model.fit(X_train, y_train)
@@ -788,9 +780,16 @@ def analyze_features_and_rank_by_auc(
     cont = 0
     n_col = len(X.columns)
     ###
+    # Initialize max_auc_score with 0
+    max_auc_score = 0.0
     for feature in X.columns:
         auc_score = get_single_feature_auc(X, y, out_sets, feature,
-                                           model, rand_seed)
+                                           model, rand_seed,
+                                           max_auc_score)
+        # Update max_auc_score if needed
+        if auc_score > max_auc_score:
+            max_auc_score = auc_score
+        # Store the result
         results[feature] = auc_score
         ### Display
         if cont==0 or (cont+1)%1000==0:
@@ -1139,10 +1138,12 @@ def get_single_feature_auc(
     output_folder: Path,
     feature_name:str,
     model,
-    rand_seed:int
+    rand_seed:int,
+    max_auc_score:float=0.0
 ) -> float:
     """
-    Trains a model using a single feature and returns the ROC-AUC score.
+    Trains a model using a single feature and returns the ROC-AUC 
+    score.
 
     Args:
         X (pd.DataFrame): DataFrame of features.
@@ -1150,6 +1151,9 @@ def get_single_feature_auc(
         feature_name (str): The name of the feature to use.
         model: The machine learning model to train.
         rand_seed (int): Random seed for repeatability.
+        max_auc_score (float): Maximum AUC score observed so far.
+                               Used to skip saving files if the new
+                               score is not better.
 
     Returns:
         float: The ROC-AUC score.
@@ -1164,23 +1168,34 @@ def get_single_feature_auc(
         random_state=rand_seed,
         stratify=y
     )
-    # Save train and test sets
-    X_train.to_csv(f'{output_folder}/X_train_{feature_name}.csv', index=False)
-    X_test.to_csv(f'{output_folder}/X_test_{feature_name}.csv', index=False)
-    y_train.to_csv(f'{output_folder}/y_train_{feature_name}.csv', index=False)
-    y_test.to_csv(f'{output_folder}/y_test_{feature_name}.csv', index=False)
     
     # Handle multi-class classification for AUC
     lb = LabelBinarizer()
     y_test_bin = lb.fit_transform(y_test)
-    y_pred_proba = model.fit(X_train, y_train).predict_proba(X_test)
-    
+    curr_model = model.fit(X_train, y_train)
+    y_pred_proba = curr_model.predict_proba(X_test)
+
     # Calculate AUC score
     if y_test_bin.shape[1] == 1:
         auc_score = roc_auc_score(y_test_bin, y_pred_proba[:, 1])
     else:
         auc_score = roc_auc_score(y_test_bin, y_pred_proba, 
                                   multi_class='ovr')
+
+    # If the AUC score is better than max_auc_score, 
+    # delete previous files and save new ones
+    if auc_score > max_auc_score:
+        # Delete previous files
+        for f in os.listdir(output_folder):
+            os.remove(os.path.join(output_folder, f))
+        # Save train and test sets
+        X_train.to_csv(f'{output_folder}/{feature_name}_X_train.csv')
+        X_test.to_csv(f'{output_folder}/{feature_name}_X_test.csv')
+        y_train.to_csv(f'{output_folder}/{feature_name}_y_train.csv')
+        y_test.to_csv(f'{output_folder}/{feature_name}_y_test.csv')
+        # Save the model
+        pickle_model(curr_model,
+                    f'{output_folder}/{feature_name}_model.pickle')
 
     return auc_score
 
