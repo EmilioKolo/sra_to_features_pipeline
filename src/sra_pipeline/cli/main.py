@@ -639,6 +639,12 @@ def classify_features(
     help="Output folder path.",
 )
 @click.option(
+    "--log-level",
+    default="INFO",
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"]),
+    help="Logging level",
+)
+@click.option(
     "--target-variable",
     default="Diagnosis",
     type=str,
@@ -659,7 +665,8 @@ def run_model_validation_test(
     model_path: Path,
     data_table_path: Path,
     output_folder: Path,
-    target_var: Optional[str]='Diagnosis',
+    log_level: str,
+    target_variable: Optional[str]='Diagnosis',
     out_name: Optional[str]=''
 ):
     """
@@ -672,12 +679,16 @@ def run_model_validation_test(
     try:
         from ..utils.ml_features import run_model_validation_and_test
         
+        # Setup logging
+        logger = setup_logging(log_level=log_level)
+
         # Run model validation and test
         run_model_validation_and_test(
             model_path,
             data_table_path,
             output_folder,
-            target_var,
+            target_variable,
+            logger,
             out_name
         )
         

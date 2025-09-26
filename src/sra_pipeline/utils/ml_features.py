@@ -1708,7 +1708,6 @@ def run_model_validation_and_test(
     return results
 
 
-
 def sample_df(
     df: pd.DataFrame,
     rand_seed: int|None,
