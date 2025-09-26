@@ -6,12 +6,10 @@ ML-ready feature table utilities for the SRA to Features Pipeline.
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
-    roc_auc_score, f1_score, confusion_matrix, make_scorer,
-    precision_score, recall_score, accuracy_score,
-    ConfusionMatrixDisplay
+    accuracy_score, auc, confusion_matrix, f1_score, make_scorer,
+    precision_score, recall_score, roc_auc_score, roc_curve,
+    ConfusionMatrixDisplay, RocCurveDisplay
 )
-from sklearn.metrics import RocCurveDisplay
-
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import (
     RobustScaler, LabelBinarizer, LabelEncoder
@@ -20,10 +18,10 @@ from typing import List, Dict, Any
 import itertools
 import json
 import logging
-# Supress font messages
-logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
 import matplotlib
 matplotlib.use('Agg')
+# Supress font messages
+logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -854,7 +852,7 @@ def create_auc_roc_curves(
     bname: str,
     out_name: str,
     model,
-    logger: structlog.BoundLogger,
+    logger: structlog.BoundLogger
 ) -> None:
     """
     Creates a ROC curve plot for multi-class classification.
@@ -1017,6 +1015,143 @@ def create_ml_feature_table_from_directory(
     logger.info("ML feature table created successfully", **summary)
     
     return ml_table.create_sample_features_table()
+
+
+def create_macro_avg_auc_roc_curve(
+    y_true_bin: np.ndarray,
+    y_pred: np.ndarray,
+    out_folder: Path,
+    bname: str,
+    out_name: str,
+    logger: structlog.BoundLogger
+) -> None:
+    """
+    Creates a macro-averaged ROC curve plot for multi-class 
+    classification.
+    
+    Args:
+        y_true_bin (np.ndarray): True binary labels (one-hot encoded).
+        y_pred (np.ndarray): Predicted probabilities 
+                             (n_samples, n_classes).
+        out_folder (Path): Folder to save the plot.
+        bname (str): Base name for the output file.
+        out_name (str): Additional name component for the output and 
+                        plot title.
+        logger (structlog.BoundLogger): Logger instance.
+    """
+
+    logger.info('Creating macro-averaged ROC curve.')
+    
+    # Determine the number of classes
+    n_classes = y_true_bin.shape[1]
+
+    # Dictionaries to store per-class ROC components
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+
+    # Calculate ROC curve and AUC for each class
+    for i in range(n_classes):
+        # Calculate the ROC curve for class 'i' as the positive class 
+        # against all others
+        fpr[i], tpr[i], _ = roc_curve(y_true_bin[:, i], y_pred[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])
+
+    # Aggregate all false positive rates (FPRs)
+    all_fpr = np.unique(np.concatenate(
+        [fpr[i] for i in range(n_classes)]
+    ))
+
+    # Interpolate all ROC curves at these common FPR points
+    mean_tpr = np.zeros_like(all_fpr)
+    for i in range(n_classes):
+        # Interpolate the TPR for class 'i' to match the 'all_fpr' points
+        mean_tpr += np.interp(all_fpr, fpr[i], tpr[i])
+
+    # Average the interpolated TPRs
+    mean_tpr /= n_classes
+
+    # Store the final macro-average results
+    fpr["macro"] = all_fpr
+    tpr["macro"] = mean_tpr
+    macro_roc_auc = auc(fpr["macro"], tpr["macro"])
+
+    # Generate and save the AUC graph
+    plt.figure(figsize=(8, 6))
+
+    # Plot the macro-average curve
+    label_str = f'Macro-average ROC curve (AUC = {macro_roc_auc:.2f})'
+    plt.plot(fpr["macro"], tpr["macro"], label=label_str, color='blue',
+             linewidth=2)
+             
+    # Plot the chance level line
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--',
+             label='Chance level')
+
+    # Define title of the graph
+    out_name_spaces = out_name.replace('_', ' ').lstrip().title()
+    title = 'Macro-averaged Receiver Operating Characteristic (ROC) ' + \
+        f'Curve for {out_name_spaces}'
+    # Set title and labels of the graph
+    plt.title(title)
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.legend(loc='lower right')
+    plt.grid(True)
+    plt.savefig(out_folder / f'macro_avg_roc_curve_{bname}{out_name}.png')
+
+
+def create_micro_avg_auc_roc_curve(
+    y_true_bin: np.ndarray,
+    y_pred: np.ndarray,
+    out_folder: Path,
+    bname: str,
+    out_name: str,
+    logger: structlog.BoundLogger
+) -> None:
+    """
+    Creates a micro-averaged ROC curve plot for multi-class 
+    classification.
+
+    Args:
+        y_true_bin (np.ndarray): True binary labels (one-hot encoded).
+        y_pred (np.ndarray): Predicted probabilities 
+                             (n_samples, n_classes).
+        out_folder (Path): Folder to save the plot.
+        bname (str): Base name for the output file.
+        out_name (str): Additional name component for the output and 
+                        plot title.
+        logger (structlog.BoundLogger): Logger instance.
+    """
+
+    logger.info('Creating micro-averaged ROC curve.')
+    
+    # Calculate micro-averaged ROC curve
+    fpr, tpr, _ = roc_curve(y_true_bin.ravel(), y_pred.ravel())
+    micro_roc_auc = auc(fpr, tpr)
+
+    # Generate and save the AUC graph
+    plt.figure(figsize=(8, 6))
+
+    # Plot the micro-average curve
+    label_str = f'Micro-average ROC curve (AUC = {micro_roc_auc:.2f})'
+    plt.plot(fpr, tpr, color='blue', linewidth=2, label=label_str)
+
+    # Plot the chance level line
+    plt.plot(np.arange(0, 1.1, 0.1), np.arange(0, 1.1, 0.1),
+             color='navy', lw=2, linestyle='--', label='Chance level')
+
+    # Define title of the graph
+    out_name_spaces = out_name.replace('_', ' ').lstrip().title()
+    title = 'Micro-averaged Receiver Operating Characteristic (ROC) '+\
+        f'Curve for {out_name_spaces}'
+    # Set title and labels of the graph
+    plt.title(title)
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.legend(loc='lower right')
+    plt.grid(True)
+    plt.savefig(out_folder / f'micro_avg_roc_curve_{bname}{out_name}.png')
 
 
 def cross_validate_rf(
@@ -1744,6 +1879,24 @@ def run_model_validation_and_test(
         out_name,
         model,
         logger,
+    )
+
+    create_micro_avg_auc_roc_curve(
+        y_true_bin,
+        y_pred,
+        out_folder,
+        bname,
+        out_name,
+        logger
+    )
+
+    create_macro_avg_auc_roc_curve(
+        y_true_bin,
+        y_pred,
+        out_folder,
+        bname,
+        out_name,
+        logger
     )
 
     # Obtain accuracy, precision, recall, f1
