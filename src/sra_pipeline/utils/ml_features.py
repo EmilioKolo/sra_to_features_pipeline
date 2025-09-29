@@ -1281,7 +1281,7 @@ def cross_validate_rf(
     fig, a0 = plt.subplots(figsize=(8,4))
     dispb = ConfusionMatrixDisplay(confusion_matrix=cmb, 
                                    display_labels=best_model.classes_)
-    a0.set_title("Balanced CVRF")
+    a0.set_title("Best CVRF model (single feature)")
     dispb.plot(ax=a0,colorbar=False)
     plt.tight_layout()
     fig.savefig(
@@ -1339,6 +1339,90 @@ def cross_validate_rf(
         top_n_feature_names = []
 
     return mean_score, best_model, top_n_feature_names
+
+
+def cross_validated_feature_analysis(
+    table_name: str,
+    output_folder: Path,
+    target_var: str,
+    logger: structlog.BoundLogger,
+    top_n: int=20,
+    rand_seed: int=None
+) -> None:
+    """
+    Performs RandomForest CrossValidated feature analysis.
+    """
+    # Make sure output folder exists
+    output_folder.mkdir(parents=True, exist_ok=True)
+    # Define base name for outputs
+    bname = str(table_name).rsplit('/')[-1].rsplit('.')[0]
+
+    # Read feature table
+    df = pd.read_csv(table_name, index_col=0)
+    # Transpose df to have samples as rows and features as columns
+    df = df.T
+
+    # Perform CVRF
+    mean_score, best_model, top_n_features = cross_validate_rf(
+        df,
+        target_var,
+        output_folder,
+        logger,
+        rand_seed,
+        top_n,
+        refit='roc_auc'
+    )
+
+    # Run in pairs/trios
+    if top_n >= 2:
+
+        logger.debug(f'Top {top_n} features obtained.',
+                     top_features=top_n_features)
+
+        logger.info(f'Analyzing top {top_n} features in pairs.',
+                    table_name=table_name,
+                    top_n=top_n)
+
+        # Define pairs output name
+        output_folder_pairs = output_folder / "pairs_auc_out"
+        output_pairs = output_folder_pairs / \
+            f"{bname}_feature_pairs.csv"
+
+        # Run the analysis
+        top_feature_pairs_ranked = analyze_feature_pairs(
+            df,
+            output_folder_pairs,
+            top_n_features,
+            target_var,
+            logger,
+            rand_seed
+        )
+
+        # Save the resulting dataframe
+        top_feature_pairs_ranked.to_csv(output_pairs)
+        
+        if top_n >= 3:
+            logger.info(f'Analyzing top {top_n} features in trios.',
+                    table_name=table_name,
+                    top_n=top_n)
+            # Define trios output name
+            output_folder_trios = output_folder / "trios_auc_out"
+            output_trios = output_folder_trios / \
+                f"{bname}_feature_trios.csv"
+
+            # Run the analysis for trios
+            top_feature_trios_ranked = analyze_feature_trios(
+                df,
+                output_folder_trios,
+                top_n_features,
+                target_var,
+                logger,
+                rand_seed
+            )
+
+            # Save the resulting dataframe
+            top_feature_trios_ranked.to_csv(output_trios)
+    return None
 
 
 def get_single_feature_auc(
@@ -1856,7 +1940,6 @@ def run_model_validation_and_test(
     # Transform one-hot encoded lists to labels
     y_true_labels = np.argmax(y_true_bin, axis=1)
     y_pred_labels = np.argmax(y_pred, axis=1)
-    class_labels = np.arange(len(model.classes_))
 
     logger.info('Creating confusion matrix.',
                 data_table=data_table_path,

@@ -16,7 +16,8 @@ from ..utils import setup_logging, PipelineLogger, PerformanceMonitor
 from ..utils.ml_features import (
     normalize_feature_table,
     merge_with_metadata,
-    per_feature_analysis
+    per_feature_analysis,
+    cross_validated_feature_analysis
 )
 from .. import __version__
 
@@ -547,8 +548,10 @@ def create_normalized_table(
 )
 @click.option(
     "--analysis-type",
-    default="RandomForest",
-    type=click.Choice(["RandomForest"]),
+    default="CVRF",
+    type=click.Choice([
+        "RandomForest", "CrossValidatedRandomForest", "CVRF"
+    ]),
     help=str(
         "Analysis type to be performed (default: RandomForest). "+\
         "Currently, only RandomForest is supported."
@@ -601,9 +604,20 @@ def classify_features(
     """
     # Setup logging
     logger = setup_logging(log_level=log_level)
+    # Define lists of analysis types
+    l_cvrf = ["crossvalidatedrandomforest", "cvrf"]
     try:
         if analysis_type.lower() == 'randomforest':
             per_feature_analysis(
+                table_name=input_file,
+                output_folder=output_folder,
+                target_var=target_variable,
+                logger=logger,
+                top_n=top_feature_n,
+                rand_seed=random_seed
+            )
+        elif analysis_type.lower() in l_cvrf:
+            cross_validated_feature_analysis(
                 table_name=input_file,
                 output_folder=output_folder,
                 target_var=target_variable,
