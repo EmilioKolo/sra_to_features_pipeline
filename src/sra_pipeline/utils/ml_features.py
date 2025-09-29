@@ -893,9 +893,11 @@ def create_auc_roc_curves(
 
 
 def create_conf_matrix(y_true, y_pred, classes, out_path):
+    # Define integer labels
+    int_labels = np.arange(len(classes))
     # Plot confusion matrix
     cmb = confusion_matrix(y_true, y_pred, 
-                           labels=classes)
+                           labels=int_labels)
 
     fig, a0 = plt.subplots(figsize=(8,4))
     dispb = ConfusionMatrixDisplay(confusion_matrix=cmb, 
@@ -1833,8 +1835,10 @@ def run_model_validation_and_test(
     X = df.T.drop(columns=[target_var])
     y = df.T[target_var]
     # Binarize y values
+    ALL_POSSIBLE_CLASSES = ['Healthy', 'CRC', 'BRC'] 
     lb = LabelBinarizer()
-    y_true_bin = lb.fit_transform(y)
+    lb.fit(ALL_POSSIBLE_CLASSES)
+    y_true_bin = lb.transform(y)
     # Select only the features used in the model
     model_features = model.feature_names_in_
     X = X[model_features]
@@ -1860,7 +1864,7 @@ def run_model_validation_and_test(
     
     # Create confusion matrix figures
     create_conf_matrix(y_true_labels, y_pred_labels, 
-                        class_labels, out_conf)
+                       ALL_POSSIBLE_CLASSES, out_conf)
     
     logger.info('Calculating performance metrics.',
                 data_table=data_table_path,
