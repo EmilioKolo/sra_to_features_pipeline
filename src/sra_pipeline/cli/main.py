@@ -553,8 +553,9 @@ def create_normalized_table(
         "RandomForest", "CrossValidatedRandomForest", "CVRF"
     ]),
     help=str(
-        "Analysis type to be performed (default: RandomForest). "+\
-        "Currently, only RandomForest is supported."
+        "Analysis type to be performed (default: CVRF). " +\
+        "Currently, only Random Forest and Cross-validated " +\
+        "Random Forest (CVRF) are supported."
     ),
 )
 @click.option(
@@ -922,4 +923,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

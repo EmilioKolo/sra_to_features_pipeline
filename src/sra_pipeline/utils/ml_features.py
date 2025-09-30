@@ -10,7 +10,9 @@ from sklearn.metrics import (
     precision_score, recall_score, roc_auc_score, roc_curve,
     ConfusionMatrixDisplay, RocCurveDisplay
 )
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import (
+    train_test_split, GridSearchCV, StratifiedKFold
+)
 from sklearn.preprocessing import (
     RobustScaler, LabelBinarizer, LabelEncoder
 )
@@ -1363,21 +1365,19 @@ def cross_validated_feature_analysis(
     df = df.T
 
     # Perform CVRF
-    mean_score, best_model, top_n_features = cross_validate_rf(
+    top_features = top_single_features_cvrf(
         df,
         target_var,
-        output_folder,
         logger,
-        rand_seed,
-        top_n,
-        refit='roc_auc'
+        n_splits=5,
+        random_state=rand_seed
     )
 
     # Run in pairs/trios
     if top_n >= 2:
 
         logger.debug(f'Top {top_n} features obtained.',
-                     top_features=top_n_features)
+                     top_features=top_features)
 
         logger.info(f'Analyzing top {top_n} features in pairs.',
                     table_name=table_name,
@@ -1392,7 +1392,7 @@ def cross_validated_feature_analysis(
         top_feature_pairs_ranked = analyze_feature_pairs(
             df,
             output_folder_pairs,
-            top_n_features,
+            top_features,
             target_var,
             logger,
             rand_seed
@@ -1414,7 +1414,7 @@ def cross_validated_feature_analysis(
             top_feature_trios_ranked = analyze_feature_trios(
                 df,
                 output_folder_trios,
-                top_n_features,
+                top_features,
                 target_var,
                 logger,
                 rand_seed
@@ -1810,6 +1810,105 @@ def pickle_model(model, output_path: Path) -> None:
     return None
 
 
+def plot_feature_roc(
+    df: pd.DataFrame, 
+    target_var: str, 
+    output_folder: Path,
+    feature_name: str,
+    fitted_model: Any,
+    logger: structlog.BoundLogger,
+    random_state: int|None = None
+) -> None:
+    """
+    Generates and displays a multi-class One-vs-Rest ROC curve plot 
+    for a single feature using the provided model, evaluated on a 
+    held-out test set.
+    
+    Args:
+        df (pd.DataFrame): The full DataFrame.
+        target_var (str): Name of the target variable column.
+        output_folder (Path): Directory to store the final models.
+        feature_name (str): The name of the single feature to plot.
+        fitted_model: The trained RF model for this feature 
+                      (fitted on full data).
+        logger: Logger instance.
+        random_state (int|None): Seed for reproducibility.
+    """
+    # Make sure output folder exists
+    output_folder.mkdir(parents=True, exist_ok=True)
+
+    # Define X and y
+    X = df.drop(columns=[target_var])
+    y = df[target_var]
+
+    # Use LabelBinarizer for easy One-vs-Rest handling
+    label_binarizer = LabelBinarizer()
+    label_binarizer.fit(y)
+    classes = label_binarizer.classes_
+    n_classes = len(classes)
+    
+    # Prepare Data and Split
+    X_feature = X[[feature_name]]
+    
+    # Split the data to get a test set for plotting AUC
+    X_train, X_test, y_train_orig, y_test_orig = train_test_split(
+        X_feature, y, 
+        test_size=0.33, 
+        stratify=y, 
+        random_state=random_state
+    )
+    
+    # Binarize the test labels
+    y_test_bin = label_binarizer.transform(y_test_orig)
+
+    # Predict probabilities using the provided fitted model
+    y_proba = fitted_model.predict_proba(X_test)
+    
+    # Calculate OVR AUC
+    roc_auc_ovr_macro = roc_auc_score(
+        y_test_orig,
+        y_proba,
+        multi_class="ovr",
+        average="macro"
+    )
+    
+    # Plot the figure
+    plt.figure(figsize=(8, 6))
+    
+    fpr = dict()
+    tpr = dict()
+    roc_auc_class = dict()
+
+    for i in range(n_classes):
+        str_label = f'ROC curve for {classes[i]} '+\
+            f'(AUC = {roc_auc_class[i]:.2f})'
+        fpr[i], tpr[i], _ = roc_curve(y_test_bin[:, i], y_proba[:, i])
+        roc_auc_class[i] = auc(fpr[i], tpr[i])
+        plt.plot(
+            fpr[i], 
+            tpr[i], 
+            label=str_label
+        )
+
+    plt.plot([0, 1], [0, 1], 'k--', label='Chance Level (AUC = 0.50)')
+    
+    plot_title = 'ROC Curve (Test Split) for Feature: ' +\
+        f'{feature_name}\n(Overall Macro OVR AUC: ' +\
+        f'{roc_auc_ovr_macro:.3f})'
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(plot_title)
+    plt.legend(loc="lower right")
+    plt.grid(alpha=0.3)
+    feat_name = feature_name.replace(' ', '_')
+    plt.savefig(output_folder / f'roc_curve_{feat_name}.png')
+
+    logger.info(f"Generated ROC curve for feature: {feature_name} " +\
+                f"(Macro AUC: {roc_auc_ovr_macro:.3f})")
+    
+    return None
+
+
 def process_feature_names(row_name:str) -> str:
     """Processes a feature row name and formats it."""
     ret = row_name
@@ -2044,3 +2143,188 @@ def sample_df(
     df_sample = pd.concat(l_df, ignore_index=False)
 
     return df_sample
+
+
+def top_single_features_cvrf(
+    df: pd.DataFrame,
+    target_var: str,
+    logger: structlog.BoundLogger,
+    n_splits: int = 5,
+    random_state: int|None = None
+) -> pd.Series:
+    """
+    Performs cross-validated Random Forest (RF) classification on each
+    feature in X individually and returns the mean AUC for each feature.
+
+    This function handles multi-class classification by using 'ovr'
+    (One-vs-Rest) approach for AUC calculation.
+
+    Returns a pandas Series mapping feature names to their mean 
+    cross-validated AUC, sorted in descending order of performance.
+    """
+    
+    # Define X and y
+    X = df.drop(columns=[target_var])
+    y = df[target_var]
+
+    logger.info(
+        f"Starting single-feature CVRF on {X.shape[1]} features..."
+    )
+    
+    # Encode target labels
+    label_encoder = LabelEncoder()
+    y_encoded = label_encoder.fit_transform(y)
+    n_classes = len(label_encoder.classes_)
+    
+    if n_classes < 2:
+        logger.error(
+            "Target variable must have at least two unique classes."
+        )
+        return pd.Series({})
+
+    # Initialize CV and Model
+    cv = StratifiedKFold(n_splits=n_splits, shuffle=True,
+                         random_state=random_state)
+    
+    # Use conservative RF parameters for the single-feature model
+    rf_base_model = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=5,
+        class_weight='balanced',
+        random_state=random_state,
+        n_jobs=-1
+    )
+
+    results = {}
+
+    ### Display
+    # Counter
+    cont = 0
+    n_col = len(X.columns)
+    ###
+
+    # Iterate through each feature
+    for feature_name in X.columns:
+        # Extract single feature data and reshape
+        X_feature = X[[feature_name]].values 
+        fold_auc_scores = []
+        
+        # Clone the model for each feature run
+        rf_model = rf_base_model
+
+        # Perform Cross-Validation
+        for fold, (train_index, test_index) in \
+            enumerate(cv.split(X_feature, y_encoded)):
+            X_train, X_test = \
+                X_feature[train_index], X_feature[test_index]
+            y_train, y_test = \
+                y_encoded[train_index], y_encoded[test_index]
+
+            try:
+                # Train the model
+                rf_model.fit(X_train, y_train)
+                
+                # Predict probabilities
+                y_proba = rf_model.predict_proba(X_test)
+                
+                # Calculate AUC
+                auc = roc_auc_score(
+                    y_test, 
+                    y_proba, 
+                    multi_class='ovr', 
+                    average='macro',
+                    labels=np.arange(n_classes)
+                )
+                fold_auc_scores.append(auc)
+                
+                ### Display
+                if cont==0 or (cont+1)%1000==0:
+                    logger.debug(f'Progress: {cont+1} / {n_col}')
+                cont += 1
+                ###
+            except ValueError as e:
+                logger.warning(f"Skipping fold {fold} for feature " +\
+                               f"{feature_name} due to error: {e}")
+        
+        if fold_auc_scores:
+            mean_auc = np.mean(fold_auc_scores)
+            results[feature_name] = mean_auc
+        else:
+            results[feature_name] = np.nan
+    
+    # Return sorted results
+    results_series = \
+        pd.Series(results).sort_values(ascending=False).dropna()
+    
+    logger.info("CVRF classification complete.")
+
+    return results_series
+
+
+def train_and_store_final_models(
+    df: pd.DataFrame, 
+    target_var: str, 
+    output_folder: Path,
+    top_feature_names: List[str], 
+    auc_results: pd.Series,
+    logger: structlog.BoundLogger,
+    random_state: int|None = None
+) -> Dict:
+    """
+    Trains a final Random Forest model on the entire dataset for each 
+    of the top performing features and stores the model object.
+
+    Args:
+        df (pd.DataFrame): The full DataFrame.
+        target_var (str): Name of the target variable column.
+        output_folder (Path): Directory to store the final models.
+        top_feature_names (List[str]): List of feature names to train
+                                       final models for.
+        auc_results (pd.Series): Series of CVRF AUC scores for 
+                                 reporting.
+        logger: Logger instance.
+        random_state (int|None): Seed for reproducibility.
+
+    Returns:
+        A dictionary mapping feature name to a tuple: 
+        (mean_cv_auc, fitted_model).
+    """
+    # Make sure output folder exists
+    output_folder.mkdir(parents=True, exist_ok=True)
+
+    # Define X and y
+    X = df.drop(columns=[target_var])
+    y = df[target_var]
+
+    final_models = {}
+    
+    # Prepare base model and target encoding
+    rf_final_model = RandomForestClassifier(
+        n_estimators=100, 
+        max_depth=5, 
+        class_weight='balanced', 
+        random_state=random_state,
+        n_jobs=-1
+    )
+    y_encoded = LabelEncoder().fit_transform(y)
+    
+    logger.info("Training and storing final models for the " +\
+                f"top {len(top_feature_names)} features...")
+    
+    # Train a final model on the full data for each top feature
+    for feature_name in top_feature_names:
+        X_feature = X[[feature_name]].values
+        
+        # Train the model on ALL data for the final saved model
+        rf_final_model.fit(X_feature, y_encoded)
+        
+        # Store the CV AUC score and the final fitted model object
+        mean_cv_auc = auc_results.loc[feature_name]
+        final_models[feature_name] = (mean_cv_auc, rf_final_model)
+        
+        # Pickle the final model
+        feat_name = feature_name.replace(' ', '_')
+        model_path = output_folder / f'{feat_name}_final_model.pickle'
+        pickle_model(rf_final_model, model_path)
+        
+    return final_models
