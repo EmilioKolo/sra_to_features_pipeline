@@ -2237,15 +2237,16 @@ def top_single_features_cvrf(
                 )
                 fold_auc_scores.append(auc)
                 
-                ### Display
-                if cont==0 or (cont+1)%1000==0:
-                    logger.debug(f'Progress: {cont+1} / {n_col}')
-                cont += 1
-                ###
             except ValueError as e:
                 logger.warning(f"Skipping fold {fold} for feature " +\
                                f"{feature_name} due to error: {e}")
-        
+            
+        ### Display
+        if cont==0 or (cont+1)%1000==0:
+            logger.debug(f'Progress: {cont+1} / {n_col}')
+        cont += 1
+        ###
+
         if fold_auc_scores:
             mean_auc = np.mean(fold_auc_scores)
             results[feature_name] = mean_auc
