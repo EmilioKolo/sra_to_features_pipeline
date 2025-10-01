@@ -516,6 +516,143 @@ class MLFeatureTable:
         }
 
 
+def analyze_feature_groups_cvrf(
+    df: pd.DataFrame,
+    output_folder: Path,
+    features_to_analyze: List[str],
+    feature_n: int,
+    target_column: str,
+    logger: structlog.BoundLogger,
+    rand_seed: int=None
+) -> pd.DataFrame:
+    """
+    Performs a classification analysis for all combinations of N
+    features from a given list and ranks them by AUC score.
+
+    Performs cross-validated Random Forest classification.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing features and the 
+                           target.
+        output_folder (Path): Folder where output files are created.
+        features_to_analyze (list): A list of feature names to be 
+                                    grouped.
+        feature_n (int): Number of features to group together.
+        target_column (str): The name of the target variable column.
+        logger: Logger instance.
+        rand_seed (int): Random seed for repeatability.
+    
+    Returns:
+        pd.DataFrame: A DataFrame of feature pairs grouped by AUC.
+    """
+    if len(features_to_analyze) < feature_n:
+        err = f"Please provide at least {feature_n} "+\
+            "features for grouping."
+        logger.error(err, feature_n=feature_n)
+        return pd.DataFrame()
+
+    # Make sure output folder exists
+    output_folder.mkdir(parents=True, exist_ok=True)
+
+    X = df[features_to_analyze]
+    y = df[target_column]
+
+    # Generate all unique combinations of the selected features
+    feature_groups = list(itertools.combinations(
+        features_to_analyze, feature_n
+    ))
+
+    logger.info(
+        str(f"Generated {len(feature_groups)} unique feature groups "+\
+            f"from the list of {len(features_to_analyze)} features."),
+        feature_n=feature_n
+    )
+
+    # Initialize results dictionary
+    results = {}
+
+    # Initialize CV and Model
+    cv = StratifiedKFold(n_splits=5, shuffle=True, 
+                         random_state=rand_seed)
+    rf_base_model = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=5,
+        class_weight='balanced',
+        random_state=rand_seed,
+        n_jobs=-1
+    )
+    # Initialize the label encoder and encode y
+    label_encoder = LabelEncoder()
+    y_encoded = label_encoder.fit_transform(y)
+    n_classes = len(label_encoder.classes_)
+
+    ### Display
+    n_feat_pairs = len(feature_groups)
+    ###
+
+    for i, curr_group in enumerate(feature_groups):
+        # Define a feature group key
+        feature_group_key = f'ID_{i}'
+        # Create a new DataFrame with only two features for training
+        X_group = X[list(curr_group)].values
+
+        # Initialize AUC scores list and used model
+        fold_auc_scores = []
+        rf_model = rf_base_model
+
+        # Perform Cross-Validated Random Forest
+        for fold, (train_index, test_index) in \
+            enumerate(cv.split(X_group, y_encoded)):
+            X_train, X_test = X_group[train_index], \
+                X_group[test_index]
+            y_train, y_test = y_encoded[train_index], \
+                y_encoded[test_index]
+
+            try:
+                rf_model.fit(X_train, y_train)
+                y_proba = rf_model.predict_proba(X_test)
+                
+                auc_score = roc_auc_score(
+                    y_test, 
+                    y_proba, 
+                    multi_class='ovr', 
+                    average='macro',
+                    labels=np.arange(n_classes)
+                )
+                fold_auc_scores.append(auc_score)
+            except ValueError as e:
+                logger.warn(
+                    f"Skipping fold {fold} for group "+\
+                    f"{feature_group_key} due to error: {e}"
+                )
+
+        if fold_auc_scores:
+            mean_auc = np.mean(fold_auc_scores)
+            results[feature_group_key] = [fi for fi in curr_group] +\
+                                         [mean_auc]
+        else:
+            results[feature_group_key] = [fi for fi in curr_group] +\
+                                         [np.nan]
+
+        ### Display
+        if i==0 or (i+1)%50==0:
+            logger.debug(f'Progress: {i+1} / {n_feat_pairs}',
+                         feature_n=len(features_to_analyze))
+        ###
+
+    # Create a DataFrame and sort the results
+    feature_cols = [f'Feature {i+1}' for i in range(feature_n)]
+    feature_cols.append('AUC Score')
+    group_auc_df = pd.DataFrame.from_dict(
+        results, orient='index', columns=feature_cols
+    )
+    group_auc_df.index.name = 'Feature Group ID'
+    group_auc_df = group_auc_df.sort_values(by='AUC Score',
+                                            ascending=False)
+
+    return group_auc_df
+
+
 def analyze_feature_pairs(
     df: pd.DataFrame,
     output_folder: Path,
@@ -531,9 +668,12 @@ def analyze_feature_pairs(
     Args:
         df (pd.DataFrame): The DataFrame containing features and the 
                            target.
+        output_folder (Path): Folder where output files are created.
         features_to_analyze (list): A list of feature names to be 
                                     paired.
         target_column (str): The name of the target variable column.
+        logger: Logger instance.
+        rand_seed (int): Random seed for repeatability.
 
     Returns:
         pd.DataFrame: A DataFrame of feature pairs ranked by AUC.
@@ -555,6 +695,7 @@ def analyze_feature_pairs(
     feature_pairs = list(itertools.combinations(
         features_to_analyze, 2
     ))
+
     logger.info(
         str(f"Generated {len(feature_pairs)} unique feature pairs "+\
             f"from the list of {len(features_to_analyze)} features."),
@@ -645,9 +786,12 @@ def analyze_feature_trios(
     Args:
         df (pd.DataFrame): The DataFrame containing features and the 
                            target.
+        output_folder (Path): Folder where output files are created.
         features_to_analyze (list): A list of feature names to be 
                                     grouped.
         target_column (str): The name of the target variable column.
+        logger: Logger instance.
+        rand_seed (int): Random seed for repeatability.
 
     Returns:
         pd.DataFrame: A DataFrame of feature pairs ranked by AUC.
@@ -669,6 +813,7 @@ def analyze_feature_trios(
     feature_trios = list(itertools.combinations(
         features_to_analyze, 3
     ))
+
     logger.info(
         str(f"Generated {len(feature_trios)} unique feature trios "+\
             f"from the list of {len(features_to_analyze)} features."),
@@ -1365,19 +1510,50 @@ def cross_validated_feature_analysis(
     df = df.T
 
     # Perform CVRF
-    top_features = top_single_features_cvrf(
+    ordered_features = top_single_features_cvrf(
         df,
         target_var,
         logger,
         n_splits=5,
         random_state=rand_seed
     )
+    # Save top features and their scores
+    ordered_features.to_csv(output_folder / f"{bname}_top_features.csv")
+    
+    # Pick the top_n features and get the feature names
+    top_features_series = ordered_features.head(top_n)
+    top_feature_names = top_features_series.index.tolist()
+
+    # Train final models and store them
+    final_models_and_results = train_and_store_final_models(
+        df, 
+        target_var, 
+        output_folder / 'top_models',
+        top_feature_names, 
+        ordered_features,
+        logger,
+        rand_seed
+    )
+
+    # Generate ROC curves for the top features
+    logger.info("Generating ROC curves for top features")
+    for feature_name, (cv_auc, fitted_model) in \
+        final_models_and_results.items():
+        plot_feature_roc(
+            df, 
+            target_var, 
+            output_folder / 'top_models',
+            feature_name,
+            fitted_model,
+            logger,
+            random_state = rand_seed
+        )
 
     # Run in pairs/trios
     if top_n >= 2:
 
         logger.debug(f'Top {top_n} features obtained.',
-                     top_features=top_features)
+                     top_features=top_feature_names)
 
         logger.info(f'Analyzing top {top_n} features in pairs.',
                     table_name=table_name,
@@ -1389,10 +1565,11 @@ def cross_validated_feature_analysis(
             f"{bname}_feature_pairs.csv"
 
         # Run the analysis
-        top_feature_pairs_ranked = analyze_feature_pairs(
+        top_feature_pairs_ranked = analyze_feature_groups_cvrf(
             df,
             output_folder_pairs,
-            top_features,
+            top_feature_names,
+            2,
             target_var,
             logger,
             rand_seed
@@ -1411,10 +1588,11 @@ def cross_validated_feature_analysis(
                 f"{bname}_feature_trios.csv"
 
             # Run the analysis for trios
-            top_feature_trios_ranked = analyze_feature_trios(
+            top_feature_trios_ranked = analyze_feature_groups_cvrf(
                 df,
                 output_folder_trios,
-                top_features,
+                top_feature_names,
+                3,
                 target_var,
                 logger,
                 rand_seed
@@ -1687,7 +1865,7 @@ def normalize_feature_table(
     create_heatmap(df_sample, table_name+'_sample', True, 
                    output_folder, logger=logger)
 
-    logger.info('Modifying feature names and saving dataframes.', 
+    logger.info('Modifying feature names and saving dataframes.',
                 table_path=input_file)
 
     # Modify feature names
@@ -1773,8 +1951,7 @@ def per_feature_analysis(
         
         if top_n >= 3:
             logger.info(f'Analyzing top {top_n} features in trios.',
-                    table_name=table_name,
-                    top_n=top_n)
+                    table_name=table_name, top_n=top_n)
             # Define trios output name
             output_folder_trios = output_folder / "trios_auc_out"
             output_trios = output_folder_trios / \
@@ -1834,6 +2011,9 @@ def plot_feature_roc(
         logger: Logger instance.
         random_state (int|None): Seed for reproducibility.
     """
+
+    logger.info(f"Generating ROC curve for feature: {feature_name} ")
+    
     # Make sure output folder exists
     output_folder.mkdir(parents=True, exist_ok=True)
 
@@ -1863,7 +2043,7 @@ def plot_feature_roc(
 
     # Predict probabilities using the provided fitted model
     y_proba = fitted_model.predict_proba(X_test)
-    
+
     # Calculate OVR AUC
     roc_auc_ovr_macro = roc_auc_score(
         y_test_orig,
@@ -1871,7 +2051,7 @@ def plot_feature_roc(
         multi_class="ovr",
         average="macro"
     )
-    
+
     # Plot the figure
     plt.figure(figsize=(8, 6))
     
@@ -1880,10 +2060,10 @@ def plot_feature_roc(
     roc_auc_class = dict()
 
     for i in range(n_classes):
-        str_label = f'ROC curve for {classes[i]} '+\
-            f'(AUC = {roc_auc_class[i]:.2f})'
         fpr[i], tpr[i], _ = roc_curve(y_test_bin[:, i], y_proba[:, i])
         roc_auc_class[i] = auc(fpr[i], tpr[i])
+        str_label = f'ROC curve for {classes[i]} '+\
+            f'(AUC = {roc_auc_class[i]:.2f})'
         plt.plot(
             fpr[i], 
             tpr[i], 
@@ -2272,7 +2452,7 @@ def train_and_store_final_models(
     random_state: int|None = None
 ) -> Dict:
     """
-    Trains a final Random Forest model on the entire dataset for each 
+    Trains a final Random Forest model on the entire dataset for each
     of the top performing features and stores the model object.
 
     Args:
