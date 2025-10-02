@@ -1518,7 +1518,8 @@ def cross_validated_feature_analysis(
         random_state=rand_seed
     )
     # Save top features and their scores
-    ordered_features.to_csv(output_folder / f"{bname}_top_features.csv")
+    ordered_features.to_csv(output_folder / f"{bname}_top_features.csv",
+                            header=['AUC Score'])
     
     # Pick the top_n features and get the feature names
     top_features_series = ordered_features.head(top_n)
@@ -1600,6 +1601,86 @@ def cross_validated_feature_analysis(
 
             # Save the resulting dataframe
             top_feature_trios_ranked.to_csv(output_trios)
+    return None
+
+
+def cvrf_load_top_features(
+    df: pd.DataFrame,
+    target_var: str,
+    output_folder: Path,
+    top_features_file: Path,
+    bname: str,
+    group_n: int,
+    logger: structlog.BoundLogger,
+    top_n: int=20,
+    rand_seed: int=None
+) -> None:
+    """
+    Runs the cross_validated_feature_analysis pipeline by loading
+    top features from a previous run.
+    """
+    # Open top features file to get the ordered feature scores
+    ordered_features = pd.read_csv(top_features_file, index_col=0)
+
+    # Pick the top_n features and get the feature names
+    top_features_series = ordered_features.head(top_n)
+    top_feature_names = top_features_series.index.tolist()
+
+    # Train final models and store them
+    final_models_and_results = train_and_store_final_models(
+        df, 
+        target_var, 
+        output_folder / 'top_models',
+        top_feature_names, 
+        ordered_features,
+        logger,
+        rand_seed
+    )
+
+    # Generate ROC curves for the top features
+    logger.info("Generating ROC curves for top features")
+    for feature_name, (cv_auc, fitted_model) in \
+        final_models_and_results.items():
+        plot_feature_roc(
+            df, 
+            target_var, 
+            output_folder / 'top_models',
+            feature_name,
+            fitted_model,
+            logger,
+            random_state = rand_seed
+        )
+
+    # Run in pairs/trios
+    if (group_n > 1) and (top_n >= group_n):
+
+        logger.debug(f'Top {top_n} features obtained.',
+                     top_features=top_feature_names)
+
+        logger.info(
+            f'Analyzing top {top_n} features in groups of {group_n}.',
+            top_n=top_n
+        )
+
+        # Define group output name
+        output_folder_group = output_folder / \
+            f"{group_n}_groups_auc_out"
+        output_group = output_folder_group / \
+            f"{bname}_feature_{group_n}_groups.csv"
+
+        # Run the analysis
+        top_feature_groups_ranked = analyze_feature_groups_cvrf(
+            df,
+            output_folder_group,
+            top_feature_names,
+            group_n,
+            target_var,
+            logger,
+            rand_seed
+        )
+        # Save the resulting dataframe
+        top_feature_groups_ranked.to_csv(output_group)
+
     return None
 
 
@@ -2420,13 +2501,11 @@ def top_single_features_cvrf(
             except ValueError as e:
                 logger.warning(f"Skipping fold {fold} for feature " +\
                                f"{feature_name} due to error: {e}")
-            
         ### Display
         if cont==0 or (cont+1)%1000==0:
             logger.debug(f'Progress: {cont+1} / {n_col}')
         cont += 1
         ###
-
         if fold_auc_scores:
             mean_auc = np.mean(fold_auc_scores)
             results[feature_name] = mean_auc
@@ -2443,10 +2522,10 @@ def top_single_features_cvrf(
 
 
 def train_and_store_final_models(
-    df: pd.DataFrame, 
-    target_var: str, 
+    df: pd.DataFrame,
+    target_var: str,
     output_folder: Path,
-    top_feature_names: List[str], 
+    top_feature_names: List[str],
     auc_results: pd.Series,
     logger: structlog.BoundLogger,
     random_state: int|None = None
@@ -2480,7 +2559,7 @@ def train_and_store_final_models(
     final_models = {}
     
     # Prepare base model and target encoding
-    rf_final_model = RandomForestClassifier(
+    rf_model = RandomForestClassifier(
         n_estimators=100, 
         max_depth=5, 
         class_weight='balanced', 
@@ -2489,13 +2568,14 @@ def train_and_store_final_models(
     )
     y_encoded = LabelEncoder().fit_transform(y)
     
-    logger.info("Training and storing final models for the " +\
+    logger.info("Training and storing models for the " +\
                 f"top {len(top_feature_names)} features...")
     
-    # Train a final model on the full data for each top feature
+    # Train a model on the full data for each top feature
     for feature_name in top_feature_names:
         X_feature = X[[feature_name]].values
-        
+        # Copy rf model per feature
+        rf_final_model = rf_model
         # Train the model on ALL data for the final saved model
         rf_final_model.fit(X_feature, y_encoded)
         
@@ -2503,9 +2583,9 @@ def train_and_store_final_models(
         mean_cv_auc = auc_results.loc[feature_name]
         final_models[feature_name] = (mean_cv_auc, rf_final_model)
         
-        # Pickle the final model
+        # Pickle the feature model
         feat_name = feature_name.replace(' ', '_')
-        model_path = output_folder / f'{feat_name}_final_model.pickle'
+        model_path = output_folder / f'{feat_name}_model.pickle'
         pickle_model(rf_final_model, model_path)
         
     return final_models
