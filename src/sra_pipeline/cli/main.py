@@ -579,6 +579,12 @@ def create_normalized_table(
     ),
 )
 @click.option(
+    "--split-n",
+    default=5,
+    type=int,
+    help="Number of splits for cross-validation.",
+)
+@click.option(
     "--random-seed",
     default=None,
     type=int,
@@ -596,6 +602,7 @@ def classify_features(
     analysis_type: str,
     target_variable: str,
     top_feature_n: int,
+    split_n: int,
     random_seed: Optional[int],
     log_level: str
 ):
@@ -624,6 +631,7 @@ def classify_features(
                 target_var=target_variable,
                 logger=logger,
                 top_n=top_feature_n,
+                split_n=split_n,
                 rand_seed=random_seed
             )
         else:

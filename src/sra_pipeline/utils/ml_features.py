@@ -523,6 +523,7 @@ def analyze_feature_groups_cvrf(
     feature_n: int,
     target_column: str,
     logger: structlog.BoundLogger,
+    split_n: int=5,
     rand_seed: int=None
 ) -> pd.DataFrame:
     """
@@ -540,6 +541,7 @@ def analyze_feature_groups_cvrf(
         feature_n (int): Number of features to group together.
         target_column (str): The name of the target variable column.
         logger: Logger instance.
+        split_n (int): Number of splits for cross-validation.
         rand_seed (int): Random seed for repeatability.
     
     Returns:
@@ -553,7 +555,12 @@ def analyze_feature_groups_cvrf(
 
     # Make sure output folder exists
     output_folder.mkdir(parents=True, exist_ok=True)
+    # Define an output folder for models
+    models_out = output_folder / 'saved_models'
+    # Make sure models folder exists
+    models_out.mkdir(parents=True, exist_ok=True)
 
+    # Define X and y
     X = df[features_to_analyze]
     y = df[target_column]
 
@@ -572,7 +579,7 @@ def analyze_feature_groups_cvrf(
     results = {}
 
     # Initialize CV and Model
-    cv = StratifiedKFold(n_splits=5, shuffle=True, 
+    cv = StratifiedKFold(n_splits=split_n, shuffle=True, 
                          random_state=rand_seed)
     rf_base_model = RandomForestClassifier(
         n_estimators=100,
@@ -590,11 +597,17 @@ def analyze_feature_groups_cvrf(
     n_feat_pairs = len(feature_groups)
     ###
 
+    # Initialize max auc score
+    max_auc_score = 0
+
     for i, curr_group in enumerate(feature_groups):
         # Define a feature group key
         feature_group_key = f'ID_{i}'
         # Create a new DataFrame with only two features for training
         X_group = X[list(curr_group)].values
+
+        # Initialize the list of model names
+        l_model_files: List[Path] = []
 
         # Initialize AUC scores list and used model
         fold_auc_scores = []
@@ -620,6 +633,14 @@ def analyze_feature_groups_cvrf(
                     labels=np.arange(n_classes)
                 )
                 fold_auc_scores.append(auc_score)
+
+                # Pickle the model
+                model_path = models_out / \
+                    f'cvrf_model_{feature_group_key}_fold{fold+1}.pickle'
+                pickle_model(rf_model, Path(model_path))
+                # Append model name to l_model_files
+                l_model_files.append(model_path)
+                
             except ValueError as e:
                 logger.warn(
                     f"Skipping fold {fold} for group "+\
@@ -633,6 +654,16 @@ def analyze_feature_groups_cvrf(
         else:
             results[feature_group_key] = [fi for fi in curr_group] +\
                                          [np.nan]
+
+        # Check if mean_auc is bigger than max_auc_score
+        if mean_auc > max_auc_score:
+            # Update max_auc_score
+            max_auc_score = mean_auc
+        else:
+            # Remove all files in l_model_files
+            for model_file in l_model_files:
+                # Remove using Path functions
+                model_file.unlink(missing_ok=True)
 
         ### Display
         if i==0 or (i+1)%50==0:
@@ -1494,6 +1525,7 @@ def cross_validated_feature_analysis(
     target_var: str,
     logger: structlog.BoundLogger,
     top_n: int=20,
+    split_n: int=5,
     rand_seed: int=None
 ) -> None:
     """
@@ -1509,12 +1541,15 @@ def cross_validated_feature_analysis(
     # Transpose df to have samples as rows and features as columns
     df = df.T
 
+    out_feature_models = output_folder / 'feature_models'
+
     # Perform CVRF
     ordered_features = top_single_features_cvrf(
         df,
         target_var,
+        out_feature_models,
         logger,
-        n_splits=5,
+        split_n=split_n,
         random_state=rand_seed
     )
     # Save top features and their scores
@@ -1573,7 +1608,8 @@ def cross_validated_feature_analysis(
             2,
             target_var,
             logger,
-            rand_seed
+            split_n=split_n,
+            rand_seed=rand_seed
         )
 
         # Save the resulting dataframe
@@ -1596,7 +1632,8 @@ def cross_validated_feature_analysis(
                 3,
                 target_var,
                 logger,
-                rand_seed
+                split_n=split_n,
+                rand_seed=rand_seed
             )
 
             # Save the resulting dataframe
@@ -2409,8 +2446,9 @@ def sample_df(
 def top_single_features_cvrf(
     df: pd.DataFrame,
     target_var: str,
+    output_path: Path,
     logger: structlog.BoundLogger,
-    n_splits: int = 5,
+    split_n: int = 5,
     random_state: int|None = None
 ) -> pd.Series:
     """
@@ -2423,7 +2461,8 @@ def top_single_features_cvrf(
     Returns a pandas Series mapping feature names to their mean 
     cross-validated AUC, sorted in descending order of performance.
     """
-    
+    # Make sure output folder exists
+    output_path.mkdir(parents=True, exist_ok=True)
     # Define X and y
     X = df.drop(columns=[target_var])
     y = df[target_var]
@@ -2444,7 +2483,7 @@ def top_single_features_cvrf(
         return pd.Series({})
 
     # Initialize CV and Model
-    cv = StratifiedKFold(n_splits=n_splits, shuffle=True,
+    cv = StratifiedKFold(n_splits=split_n, shuffle=True,
                          random_state=random_state)
     
     # Use conservative RF parameters for the single-feature model
@@ -2498,6 +2537,12 @@ def top_single_features_cvrf(
                 )
                 fold_auc_scores.append(auc)
                 
+                # Pickle the model
+                feat_name = feature_name.replace(' ', '_')
+                model_path = output_path / \
+                    f'cvrf_model_{feat_name}_fold{fold+1}.pickle'
+                pickle_model(rf_model, Path(model_path))
+
             except ValueError as e:
                 logger.warning(f"Skipping fold {fold} for feature " +\
                                f"{feature_name} due to error: {e}")
