@@ -595,6 +595,7 @@ def analyze_feature_groups_cvrf(
 
     ### Display
     n_feat_pairs = len(feature_groups)
+    display_range = (10**max(2, split_n-1)) / 2
     ###
 
     # Initialize max auc score
@@ -666,7 +667,7 @@ def analyze_feature_groups_cvrf(
                 model_file.unlink(missing_ok=True)
 
         ### Display
-        if i==0 or (i+1)%50==0:
+        if i==0 or (i+1)%display_range==0:
             logger.debug(f'Progress: {i+1} / {n_feat_pairs}',
                          feature_n=len(features_to_analyze))
         ###
