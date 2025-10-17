@@ -1650,6 +1650,7 @@ def cvrf_load_top_features(
     group_n: int,
     logger: structlog.BoundLogger,
     top_n: int=20,
+    split_n: int=10,
     rand_seed: int=None
 ) -> None:
     """
@@ -1713,7 +1714,8 @@ def cvrf_load_top_features(
             group_n,
             target_var,
             logger,
-            rand_seed
+            split_n=split_n,
+            rand_seed=rand_seed
         )
         # Save the resulting dataframe
         top_feature_groups_ranked.to_csv(output_group)
