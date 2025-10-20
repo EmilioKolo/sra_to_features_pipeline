@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import Optional, List
 import click
+import configparser
 from rich.console import Console
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -57,7 +58,7 @@ def cli():
 )
 @click.option(
     "--threads",
-    default=1,
+    default=0,
     help="Number of threads to use",
     type=int,
 )
@@ -104,17 +105,31 @@ def run(
     
     # Load configuration
     try:
+        pipeline_config = PipelineConfig()
         if config:
+            config_elem = configparser.ConfigParser()
+            config_vars = config_elem.read(config)
+            if not config_vars:
+                # Raise an error if the file was specified but not found/readable
+                raise FileNotFoundError(f"Configuration file not found or empty: {config}")
+            
             pipeline_config = PipelineConfig(_env_file=config)
-        else:
-            pipeline_config = PipelineConfig()
-        
+            pipeline_config.reference_fasta = config_vars['Paths'].get('REFERENCE_FASTA', pipeline_config.reference_fasta)
+            pipeline_config.reference_gff = config_vars['Paths'].get('REFERENCE_GFF', pipeline_config.reference_gff)
+            pipeline_config.bed_genes = config_vars['Paths'].get('BED_GENES', pipeline_config.bed_genes)
+            pipeline_config.genome_sizes = config_vars['Paths'].get('GENOME_SIZES', pipeline_config.genome_sizes)
+
         # Override config with CLI options
         pipeline_config.output_dir = output_dir
-        pipeline_config.threads = threads
+        if threads:
+            pipeline_config.threads = threads
         pipeline_config.log_level = log_level
         pipeline_config.log_file = log_file
-        
+    
+    except configparser.Error as e:
+        # Catch errors like malformed lines, etc.
+        print(f"Error reading configuration file {config}: {e}")
+        sys.exit(1)
     except Exception as e:
         console.print(f"[red]Error loading configuration: {e}[/red]")
         sys.exit(1)
