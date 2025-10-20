@@ -41,6 +41,16 @@ if [ -z "$SNPEFF_URL" ]; then
     echo "Error: SNPEFF_URL not found in config.ini"
     exit 1
 fi
+REFERENCE_FASTA=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Paths" "REFERENCE_FASTA")
+if [ -z "$REFERENCE_FASTA" ]; then
+    echo "Error: REFERENCE_FASTA not found in config.ini"
+    exit 1
+fi
+REFERENCE_GFF=$(python3 scripts/get_config_value.py "$CONFIG_FILE" "Paths" "REFERENCE_GFF")
+if [ -z "$REFERENCE_GFF" ]; then
+    echo "Error: REFERENCE_GFF not found in config.ini"
+    exit 1
+fi
 
 # Make sure that BASE_DIR exists
 mkdir -p "$BASE_DIR"
@@ -75,10 +85,10 @@ log() {
 
 log "Starting reference genome download."
 # Download reference genome
-download "$FASTA_URL" "$DATA_DIR/reference.fasta.gz"
-gunzip -f "$DATA_DIR/reference.fasta.gz"
-download "$GFF_URL" "$DATA_DIR/reference.gff.gz"
-gunzip -f "$DATA_DIR/reference.gff.gz"
+download "$FASTA_URL" "$REFERENCE_FASTA.gz"
+gunzip -f "$REFERENCE_FASTA.gz"
+download "$GFF_URL" "$REFERENCE_GFF.gz"
+gunzip -f "$REFERENCE_GFF.gz"
 
 log "Finished reference genome download. Starting snpEff download."
 # Install snpEff
@@ -89,14 +99,14 @@ rm -f "$SNPEFF_DIR/snpEff.zip"
 log "Finished snpEff download. Starting snpEff custom genome setup."
 # Create custom genome for snpeff
 mkdir -p "$SNPEFF_DIR/snpEff/data/$GENOME_NAME"
-cp "$DATA_DIR/reference.fasta" "$SNPEFF_DIR/snpEff/data/$GENOME_NAME/sequences.fa"
-cp "$DATA_DIR/reference.gff" "$SNPEFF_DIR/snpEff/data/$GENOME_NAME/genes.gff"
+cp "$REFERENCE_FASTA" "$SNPEFF_DIR/snpEff/data/$GENOME_NAME/sequences.fa"
+cp "$REFERENCE_GFF" "$SNPEFF_DIR/snpEff/data/$GENOME_NAME/genes.gff"
 echo "${GENOME_NAME}.genome : Custom genome" >> "$SNPEFF_DIR/snpEff/snpEff.config"
 java -Xmx4g -jar "$snpeff_jar" build -gff3 -v "$GENOME_NAME"
 
 log "Finished snpEff custom genome setup. Starting BWA indexing."
 # Index reference genome with bwa
-bwa index "$DATA_DIR/reference.fasta"
+bwa index "$REFERENCE_FASTA"
 
 ### Temporarily disabled steps. Will be re-enabled in future versions.
 log "Finished BWA indexing. Starting cnvpytor data download."
