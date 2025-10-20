@@ -13,13 +13,13 @@ class PipelineConfig(BaseSettings):
     """Configuration for the SRA to Features Pipeline."""
     
     # Base paths
-    base_dir: Path = Field(default=None, description="Base directory for pipeline")
-    output_dir: Path = Field(default=None, description="Output directory")
+    base_dir: Path = Field(default=Path("content"), description="Base directory for pipeline")
+    output_dir: Path = Field(default=Path("content/data/output"), description="Output directory")
     
     # Reference files
     reference_fasta: Optional[Path] = Field(default=None, description="Reference genome FASTA file")
     reference_gff: Optional[Path] = Field(default=None, description="Reference genome GFF file")
-    bed_file: Path = Field(default=None, description="BED file with regions of interest")
+    bed_file: Path = Field(default=Path("regions.bed"), description="BED file with regions of interest")
     bed_genes: Optional[Path] = Field(default=None, description="BED file with gene regions")
     genome_sizes: Optional[Path] = Field(default=None, description="Genome sizes file")
     
