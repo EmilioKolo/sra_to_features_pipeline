@@ -105,20 +105,10 @@ def run(
     
     # Load configuration
     try:
-        pipeline_config = PipelineConfig()
         if config:
-            config_elem = configparser.ConfigParser()
-            config_read = config_elem.read(config)
-            if not config_read:
-                # Raise an error if the file was specified but not found/readable
-                raise FileNotFoundError(f"Configuration file not found or empty: {config}")
-            
-            pipeline_config.base_dir = Path(config_elem['Paths'].get('BASE_DIR', pipeline_config.base_dir))
-            pipeline_config.bed_file = Path(config_elem['Paths'].get('BED_FILE', pipeline_config.bed_file))
-            pipeline_config.reference_fasta = Path(config_elem['Paths'].get('REFERENCE_FASTA', pipeline_config.reference_fasta))
-            pipeline_config.reference_gff = Path(config_elem['Paths'].get('REFERENCE_GFF', pipeline_config.reference_gff))
-            pipeline_config.bed_genes = Path(config_elem['Paths'].get('BED_GENES', pipeline_config.bed_genes))
-            pipeline_config.genome_sizes = Path(config_elem['Paths'].get('GENOME_SIZES', pipeline_config.genome_sizes))
+            pipeline_config = load_pipeline_config(config)
+        else:
+            pipeline_config = PipelineConfig()
 
         # Override config with CLI options
         pipeline_config.output_dir = output_dir
@@ -276,20 +266,10 @@ def batch(
     
     # Load configuration
     try:
-        pipeline_config = PipelineConfig()
         if config:
-            config_elem = configparser.ConfigParser()
-            config_read = config_elem.read(config)
-            if not config_read:
-                # Raise an error if the file was specified but not found/readable
-                raise FileNotFoundError(f"Configuration file not found or empty: {config}")
-            
-            pipeline_config.base_dir = Path(config_elem['Paths'].get('BASE_DIR', pipeline_config.base_dir))
-            pipeline_config.bed_file = Path(config_elem['Paths'].get('BED_FILE', pipeline_config.bed_file))
-            pipeline_config.reference_fasta = Path(config_elem['Paths'].get('REFERENCE_FASTA', pipeline_config.reference_fasta))
-            pipeline_config.reference_gff = Path(config_elem['Paths'].get('REFERENCE_GFF', pipeline_config.reference_gff))
-            pipeline_config.bed_genes = Path(config_elem['Paths'].get('BED_GENES', pipeline_config.bed_genes))
-            pipeline_config.genome_sizes = Path(config_elem['Paths'].get('GENOME_SIZES', pipeline_config.genome_sizes))
+            pipeline_config = load_pipeline_config(config)
+        else:
+            pipeline_config = PipelineConfig()
 
         # Override config with CLI options
         pipeline_config.output_dir = output_dir
@@ -950,6 +930,46 @@ For more information, see the full documentation.
     
     with open(output_dir / "README.md", "w") as f:
         f.write(readme_content)
+
+
+def load_pipeline_config(config_file_path: Path) -> PipelineConfig:
+    """
+    Handles loading of pipeline variables from the config.ini file.
+    """
+    # Initialize PipelineConfig
+    pipeline_config = PipelineConfig()
+    # Initialize config parser
+    config_elem = configparser.ConfigParser()
+    # Read the config.ini file
+    config_read = config_elem.read(config_file_path)
+    # Raise an error if the file was specified but not found/readable
+    if not config_read:
+        raise FileNotFoundError(
+            f"Configuration file not found or empty: {config_file_path}"
+        )
+    # Load configuration values
+    pipeline_config.base_dir = Path(config_elem['Paths'].get(
+        'BASE_DIR', pipeline_config.base_dir
+    ))
+    pipeline_config.bed_file = Path(config_elem['Paths'].get(
+        'BED_FILE', pipeline_config.bed_file
+    ))
+    pipeline_config.reference_fasta = Path(config_elem['Paths'].get(
+        'REFERENCE_FASTA', pipeline_config.reference_fasta
+    ))
+    pipeline_config.reference_gff = Path(config_elem['Paths'].get(
+        'REFERENCE_GFF', pipeline_config.reference_gff
+    ))
+    pipeline_config.bed_genes = Path(config_elem['Paths'].get(
+        'BED_GENES', pipeline_config.bed_genes
+    ))
+    pipeline_config.genome_sizes = Path(config_elem['Paths'].get(
+        'GENOME_SIZES', pipeline_config.genome_sizes
+    ))
+    pipeline_config.snpeff_dir = Path(config_elem['Paths'].get(
+        'SNPEFF_DIR', pipeline_config.snpeff_dir
+    ))
+    return pipeline_config
 
 
 def main():
