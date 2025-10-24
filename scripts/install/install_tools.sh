@@ -180,28 +180,6 @@ install_cnvpytor() {
     fi
 }
 
-# Install snpEff
-install_snpeff() {
-    print_status "Installing snpEff..."
-    
-    local snpeff_dir="/opt/snpEff"
-    local snpeff_url="https://sourceforge.net/projects/snpeff/files/snpEff_v4_3t_core.zip"
-    
-    # Create directory
-    sudo mkdir -p "$snpeff_dir"
-    
-    # Download and extract
-    cd /tmp
-    wget -O snpEff.zip "$snpeff_url"
-    sudo unzip -o snpEff.zip -d "$snpeff_dir"
-    rm snpEff.zip
-    
-    # Create symlink
-    sudo ln -sf "$snpeff_dir/snpEff/snpEff.jar" /usr/local/bin/snpEff.jar
-    
-    print_success "snpEff installed to $snpeff_dir"
-}
-
 # Main function
 main() {
     echo "=========================================="
@@ -254,7 +232,6 @@ main() {
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             install_tools "$os_type"
             install_cnvpytor
-            install_snpeff
             
             echo
             print_status "Re-checking tools after installation..."

@@ -43,6 +43,9 @@ def main():
     fasta_file = config['Paths']['REFERENCE_FASTA']
     gff_file = config['Paths']['REFERENCE_GFF']
     bed_genes = config['Paths']['BED_GENES']
+    snpeff_dir = config['Paths']['SNPEFF_DIR']
+    snpeff_url = config['Snpeff']['SNPEFF_URL']
+    snpeff_genome = config['Snpeff']['SNPEFF_GENOME']
 
     # Creation of genome.sizes file
     print(f'Creating {genome_sizes} file...')
@@ -72,7 +75,7 @@ def main():
     print(f'{genome_sizes} file created.')
 
     # Create list of genes from gff file
-    print(f'Extracting gene_data from gff file.')
+    print('Extracting gene_data from gff file.')
     gene_data = []
     with open(gff_file) as f:
         # Go through gff file
@@ -123,6 +126,34 @@ def main():
             str_bed = f"{chr}\t{start}\t{end}\t{name}\n"
             f.write(str_bed)
     print(f'{bed_genes} file created and populated.')
+
+    print('Running snpEff installation script...')
+
+    # Run snpEff installation script
+    install_snpeff_script = Path("scripts/install/install_snpeff.sh")
+    if not install_snpeff_script.exists():
+        print(f"Error: {install_snpeff_script} does not exist.")
+        sys.exit(1)
+    try:
+        subprocess.run(
+            [
+                "bash",
+                str(install_snpeff_script),
+                snpeff_dir,
+                snpeff_url,
+                snpeff_genome,
+                fasta_file,
+                gff_file
+            ],
+            check=True
+        )
+        print("snpEff installed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during snpEff installation: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Unexpected error during snpEff installation: {e}")
+        sys.exit(1)
 
     print('🎉 Setup complete.')
 
