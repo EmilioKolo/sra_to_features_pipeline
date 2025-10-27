@@ -44,8 +44,8 @@ def main():
     gff_file = config['Paths']['REFERENCE_GFF']
     bed_genes = config['Paths']['BED_GENES']
     snpeff_dir = config['Paths']['SNPEFF_DIR']
-    snpeff_url = config['Snpeff']['SNPEFF_URL']
-    snpeff_genome = config['Snpeff']['SNPEFF_GENOME']
+    snpeff_genome = config['Paths']['SNPEFF_GENOME']
+    snpeff_url = config['Links']['SNPEFF_URL']
 
     # Creation of genome.sizes file
     print(f'Creating {genome_sizes} file...')
