@@ -969,7 +969,7 @@ def load_pipeline_config(config_file_path: Path) -> PipelineConfig:
     pipeline_config.snpeff_dir = Path(config_elem['Paths'].get(
         'SNPEFF_DIR', pipeline_config.snpeff_dir
     ))
-    pipeline_config.genome_name = config_elem['Settings'].get(
+    pipeline_config.genome_name = config_elem['Parameters'].get(
         'GENOME_NAME', pipeline_config.genome_name
     )
     return pipeline_config
