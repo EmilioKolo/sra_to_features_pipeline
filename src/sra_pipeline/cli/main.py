@@ -54,6 +54,7 @@ def cli():
 @click.option(
     "--config",
     help="Configuration file path",
+    default='./config.ini',
     type=click.Path(exists=True, path_type=Path),
 )
 @click.option(
@@ -86,7 +87,7 @@ def run(
     threads: int,
     log_level: str,
     log_file: Optional[Path],
-    dry_run: bool,
+    dry_run: bool
 ):
     """Run the SRA to Features Pipeline."""
     
@@ -94,15 +95,13 @@ def run(
     if not sra_id and not fastq:
         console.print("[red]Error: Must provide either --sra-id or --fastq[/red]")
         sys.exit(1)
-    
     if sra_id and fastq:
         console.print("[red]Error: Cannot specify both --sra-id and --fastq[/red]")
         sys.exit(1)
-    
     if len(fastq) > 2:
         console.print("[red]Error: Maximum 2 FASTQ files allowed for paired-end sequencing[/red]")
         sys.exit(1)
-    
+
     # Load configuration
     try:
         if config:
@@ -116,7 +115,7 @@ def run(
             pipeline_config.threads = threads
         pipeline_config.log_level = log_level
         pipeline_config.log_file = log_file
-    
+
     except configparser.Error as e:
         # Catch errors like malformed lines, etc.
         print(f"Error reading configuration file {config}: {e}")
@@ -124,54 +123,44 @@ def run(
     except Exception as e:
         console.print(f"[red]Error loading configuration: {e}[/red]")
         sys.exit(1)
-    
+
     # Setup logging
     logger = setup_logging(
         log_level=pipeline_config.log_level,
         log_file=pipeline_config.log_file,
         log_format="console"
     )
-    
+
     # Display pipeline information
     with console.status("[bold green]Initializing pipeline..."):
         console.print(f"[bold blue]SRA to Features Pipeline v{__version__}[/bold blue]")
         console.print(f"Output directory: {output_dir}")
         console.print(f"Threads: {threads}")
         console.print(f"Log level: {log_level}")
-        
+
         if sra_id:
             console.print(f"SRA ID: {sra_id}")
         else:
             console.print(f"FASTQ files: {[str(f) for f in fastq]}")
-    
+
     if dry_run:
         console.print("[yellow]Dry run mode - no actual processing will occur[/yellow]")
         return
-    
+
     # Validate required configuration
     missing_fields = []
     if pipeline_config.reference_fasta is None:
         missing_fields.append("reference_fasta")
-    if pipeline_config.reference_gff is None:
-        missing_fields.append("reference_gff")
-    if pipeline_config.bed_genes is None:
-        missing_fields.append("bed_genes")
-    if pipeline_config.genome_sizes is None:
-        missing_fields.append("genome_sizes")
-    
+    if pipeline_config.base_dir is None:
+        missing_fields.append("base_dir")
+    if pipeline_config.output_dir is None:
+        missing_fields.append("output_dir")
+
     if missing_fields:
         console.print(f"[red]Error: Missing required configuration fields: {', '.join(missing_fields)}[/red]")
-        console.print("[yellow]Please provide these fields via:[/yellow]")
-        console.print("  - Environment variables (SRA_PIPELINE_REFERENCE_FASTA, etc.)")
-        console.print("  - Configuration file (--config option)")
-        console.print("  - .env file in the current directory")
-        console.print("\n[yellow]Example configuration:[/yellow]")
-        console.print("  export SRA_PIPELINE_REFERENCE_FASTA=/path/to/reference.fasta")
-        console.print("  export SRA_PIPELINE_REFERENCE_GFF=/path/to/reference.gff")
-        console.print("  export SRA_PIPELINE_BED_GENES=/path/to/genes.bed")
-        console.print("  export SRA_PIPELINE_GENOME_SIZES=/path/to/genome.sizes")
+        console.print("[yellow]Please provide these fields via configuration file (--config option)[/yellow]")
         sys.exit(1)
-    
+
     # Initialize pipeline
     try:
         pipeline = Pipeline(pipeline_config, logger)
@@ -179,7 +168,7 @@ def run(
         console.print(f"[red]Error initializing pipeline: {e}[/red]")
         logger.error("Pipeline initialization failed", error=str(e))
         sys.exit(1)
-    
+
     # Run pipeline
     try:
         with Progress(
@@ -188,17 +177,17 @@ def run(
             console=console,
         ) as progress:
             task = progress.add_task("Running pipeline...", total=None)
-            
+
             if sra_id:
                 feature_set = pipeline.run_sra(sra_id)
             else:
                 feature_set = pipeline.run_fastq(fastq)
-            
+
             progress.update(task, description="Pipeline completed successfully!")
-        
+
         # Display results
         display_results(feature_set)
-        
+
     except Exception as e:
         console.print(f"[red]Pipeline failed: {e}[/red]")
         logger.error("Pipeline execution failed", error=str(e))
@@ -221,6 +210,7 @@ def run(
 @click.option(
     "--config",
     help="Configuration file path",
+    default='./config.ini',
     type=click.Path(exists=True, path_type=Path),
 )
 @click.option(
@@ -255,15 +245,15 @@ def batch(
     no_merge_vcfs: bool,
 ):
     """Run the SRA to Features Pipeline on multiple SRA IDs with VCF merging."""
-    
+
     # Parse SRA IDs
     sra_id_list = [s.strip() for s in sra_ids.split(",") if s.strip()]
     if not sra_id_list:
         console.print("[red]Error: No valid SRA IDs provided[/red]")
         sys.exit(1)
-    
+
     console.print(f"[green]Processing {len(sra_id_list)} SRA IDs: {', '.join(sra_id_list)}[/green]")
-    
+
     # Load configuration
     try:
         if config:
@@ -277,38 +267,38 @@ def batch(
             pipeline_config.threads = threads
         pipeline_config.log_level = log_level
         pipeline_config.log_file = log_file
-        
+
     except Exception as e:
         console.print(f"[red]Error loading configuration: {e}[/red]")
         sys.exit(1)
-    
+
     # Setup logging
     logger = setup_logging(
         log_level=pipeline_config.log_level,
         log_file=pipeline_config.log_file,
     )
-    
+
     try:
         # Initialize pipeline
         pipeline = Pipeline(pipeline_config, logger)
-        
+
         # Run batch processing
         merge_vcfs = not no_merge_vcfs
         feature_sets = pipeline.run_batch(sra_id_list, merge_vcfs=merge_vcfs)
-        
+
         # Display results
         console.print(f"\n[green]✓ Batch processing completed successfully![/green]")
         console.print(f"Processed {len(feature_sets)} samples")
-        
+
         if merge_vcfs:
             merged_vcf = output_dir / "merged_variants.vcf.gz"
             if merged_vcf.exists():
                 console.print(f"Merged VCF file: {merged_vcf}")
-        
+
         # Display summary for each sample
         for feature_set in feature_sets:
             display_results(feature_set)
-        
+
     except Exception as e:
         console.print(f"[red]Error during batch processing: {e}[/red]")
         sys.exit(1)
@@ -322,18 +312,18 @@ def batch(
 )
 def validate(config: Optional[Path]):
     """Validate pipeline configuration and dependencies."""
-    
+
     try:
         if config:
             pipeline_config = PipelineConfig(_env_file=config)
         else:
             pipeline_config = PipelineConfig()
-        
+
         console.print("[bold blue]Validating pipeline configuration...[/bold blue]")
-        
+
         # Check configuration
         errors = pipeline_config.validate_setup()
-        
+
         if errors:
             console.print("[red]Configuration validation failed:[/red]")
             for error in errors:
@@ -341,10 +331,10 @@ def validate(config: Optional[Path]):
             sys.exit(1)
         else:
             console.print("[green]✓ Configuration validation passed[/green]")
-        
+
         # Display configuration summary
         display_config_summary(pipeline_config)
-        
+
     except Exception as e:
         console.print(f"[red]Validation failed: {e}[/red]")
         sys.exit(1)
