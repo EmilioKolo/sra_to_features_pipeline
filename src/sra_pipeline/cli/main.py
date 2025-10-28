@@ -308,6 +308,7 @@ def batch(
 @click.option(
     "--config",
     help="Configuration file path",
+    default='./config.ini',
     type=click.Path(exists=True, path_type=Path),
 )
 def validate(config: Optional[Path]):
