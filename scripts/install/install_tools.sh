@@ -255,10 +255,10 @@ main() {
     print_status "Next steps:"
     echo "  1. Install the Python package: pip install sra-to-features-pipeline"
     echo "  2. Download reference genomes and annotation files"
-    echo "  3. Configure the pipeline using environment variables or .env file"
+    echo "  3. Configure the pipeline using the config.ini file"
     echo "  4. Run: sra-pipeline validate"
     echo
 }
 
 # Run main function
-main "$@" 
+main "$@"
