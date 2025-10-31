@@ -127,7 +127,8 @@ def _run_mpileup(
         "bcftools", "mpileup",
         "-f", str(reference_fasta),
         str(bam_file),
-        "-o", str(bcf_file)
+        "-o", str(bcf_file),
+        "-d", "100000",  # Max depth
     ]
     
     log_command(logger, " ".join(cmd), sample_id=sample_id)
