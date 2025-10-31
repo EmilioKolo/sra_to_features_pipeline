@@ -84,13 +84,20 @@ log() {
 }
 
 log "Starting reference genome download."
-# Download reference genome
-download "$FASTA_URL" "$REFERENCE_FASTA.gz"
-gunzip -f "$REFERENCE_FASTA.gz"
-download "$GFF_URL" "$REFERENCE_GFF.gz"
-gunzip -f "$REFERENCE_GFF.gz"
 
-log "Finished reference genome download. Starting snpEff download."
+# Download reference genome
+
+log "Setting up reference FASTA..."
+
+python3 ./scripts/install/setup_reference.py "$FASTA_URL" "$REFERENCE_FASTA"
+
+log "Setting up reference GFF..."
+
+python3 ./scripts/install/setup_reference.py "$GFF_URL" "$REFERENCE_GFF"
+
+
+log "Starting snpEff download."
+
 # Install snpEff
 mkdir -p "$SNPEFF_DIR"
 download "$SNPEFF_URL" "$SNPEFF_DIR/snpEff.zip"
