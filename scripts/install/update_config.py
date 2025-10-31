@@ -5,9 +5,9 @@ import sys
 import os
 
 # Command Line Argument Handling
-if len(sys.argv) != 4:
-    print(f"Usage: python {sys.argv[0]} <config_file> <section> <variable_name> <new_value>")
-    print("Example: python update_config.py config.ini Parameters THREADS 4")
+if len(sys.argv) != 5:
+    print(f"Usage: python3 {sys.argv[0]} <config_file> <section> <variable_name> <new_value>")
+    print("Example: python3 update_config.py config.ini Parameters THREADS 4")
     sys.exit(1)
 
 config_file_path = sys.argv[1]
