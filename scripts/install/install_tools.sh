@@ -152,9 +152,7 @@ install_tools_macos() {
         wget \
         curl \
         git \
-        unzip 
-    
-    brew install --cask adoptopenjdk8
+        unzip
     
     # Install bioinformatics tools
     brew install \
@@ -163,7 +161,7 @@ install_tools_macos() {
         bcftools \
         bedtools \
         fastqc \
-        sra-toolkit \
+        sratoolkit \
         htslib
     
     print_success "Tools installed via Homebrew"
