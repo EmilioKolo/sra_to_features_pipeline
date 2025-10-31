@@ -152,8 +152,9 @@ install_tools_macos() {
         wget \
         curl \
         git \
-        unzip \
-        openjdk@8
+        unzip 
+    
+    brew install --cask adoptopenjdk8
     
     # Install bioinformatics tools
     brew install \
