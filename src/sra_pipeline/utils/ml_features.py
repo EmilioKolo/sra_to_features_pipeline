@@ -595,8 +595,11 @@ def analyze_feature_groups_cvrf(
 
     ### Display
     n_feat_pairs = len(feature_groups)
-    display_range = (10**max(2, split_n-1)) / 2
+    display_range = int((10**max(2, feature_n-1)) / 2)
     ###
+
+    logger.debug(f'display_range set to {display_range}',
+                 feature_n=feature_n)
 
     # Initialize max auc score
     max_auc_score = 0
