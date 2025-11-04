@@ -1647,6 +1647,7 @@ def cross_validated_feature_analysis(
 
 def cvrf_load_top_features(
     df: pd.DataFrame,
+    data_table_path: Path,
     target_var: str,
     output_folder: Path,
     top_features_file: Path,
@@ -1681,7 +1682,7 @@ def cvrf_load_top_features(
 
     # Generate ROC curves for the top features
     logger.info("Generating ROC curves for top features")
-    for feature_name, (cv_auc, fitted_model) in \
+    for feature_name, (cv_auc, fitted_model, model_path, feature_names) in \
         final_models_and_results.items():
         plot_feature_roc(
             df, 
@@ -2298,7 +2299,8 @@ def run_model_validation_and_test(
     out_folder: Path,
     target_var: str,
     logger: structlog.BoundLogger,
-    out_name: str=''
+    out_name: str='',
+    feature_names: List[str]=[]
 ):
     """
     Runs a model on a data table and creates performance metrics.
@@ -2327,7 +2329,10 @@ def run_model_validation_and_test(
     lb.fit(ALL_POSSIBLE_CLASSES)
     y_true_bin = lb.transform(y)
     # Select only the features used in the model
-    model_features = model.feature_names_in_
+    if feature_names:
+        model_features = feature_names
+    else:
+        model_features = model.feature_names_in_
     X = X[model_features]
 
     logger.info('Evaluating model on data table.',
@@ -2630,13 +2635,14 @@ def train_and_store_final_models(
         # Train the model on ALL data for the final saved model
         rf_final_model.fit(X_feature, y_encoded)
         
-        # Store the CV AUC score and the final fitted model object
-        mean_cv_auc = auc_results.loc[feature_name]
-        final_models[feature_name] = (mean_cv_auc, rf_final_model)
-        
         # Pickle the feature model
         feat_name = feature_name.replace(' ', '_')
         model_path = output_folder / f'{feat_name}_model.pickle'
         pickle_model(rf_final_model, model_path)
+
+        # Store the CV AUC score and the final fitted model object
+        mean_cv_auc = auc_results.loc[feature_name]
+        final_models[feature_name] = \
+            (mean_cv_auc, rf_final_model, model_path, [feature_name])
         
     return final_models
