@@ -139,7 +139,7 @@ def _convert_sam_to_bam(
             capture_output=True,
             text=True,
             check=True,
-            timeout=1800  # 30 minute timeout
+            timeout=3600  # 1 hour timeout
         )
         
         logger.info("SAM to BAM conversion completed", 
