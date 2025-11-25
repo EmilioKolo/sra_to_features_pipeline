@@ -64,20 +64,6 @@ class Pipeline:
                 sample_id=sra_id,
                 download_fastq=True
             ))
-            # Define csv_path for this run
-            self.monitor.csv_path = self.config.output_dir / sra_id / "performance.log"
-            # Make sure the directory exists
-            self.monitor.csv_path.parent.mkdir(parents=True, exist_ok=True)
-            # Initialize csv file
-            self.monitor.init_csv()
-            # Start performance monitoring
-            self.monitor.start_monitoring(section="global")
-            
-            # Download FASTQ files
-            fastq_files = self._download_sra_data(sra_id)
-            
-            # Run pipeline on FASTQ files
-            return self._run_pipeline(sra_id, fastq_files)
     
     def run_fastq(self, fastq_files: List[Path]) -> FeatureSet:
         """
@@ -100,16 +86,6 @@ class Pipeline:
                 download_fastq=False,
                 fq_files=fastq_files
             ))
-            # Define csv_path for this run
-            self.monitor.csv_path = self.config.output_dir / sample_id / "performance.log"
-            # Make sure the directory exists
-            self.monitor.csv_path.parent.mkdir(parents=True, exist_ok=True)
-            # Initialize csv file
-            self.monitor.init_csv()
-            # Start performance monitoring
-            self.monitor.start_monitoring(section="global")
-            
-            return self._run_pipeline(sample_id, fastq_files)
     
     async def _run_sample(
         self,
