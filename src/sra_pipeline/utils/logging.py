@@ -282,17 +282,6 @@ class PerformanceMonitor:
                     gpu_util
                 ])
 
-            # Optional structured log
-            self.logger.info(
-                "Performance sample",
-                cpu_percent=cpu_total,
-                ram_percent=ram_total,
-                proc_ram_mb=proc_ram,
-                gpu_mem_mb=gpu_mem,
-                gpu_util=gpu_util,
-                section=self.current_section
-            )
-
             await asyncio.sleep(interval)
     
     def start_monitoring(
