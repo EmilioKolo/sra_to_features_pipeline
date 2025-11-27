@@ -1125,18 +1125,21 @@ def create_auc_roc_curves(
 
 
 def create_conf_matrix(y_true, y_pred, classes, out_path):
+    """
+    Creates and saves a confusion matrix plot.
+    """
     # Define integer labels
     int_labels = np.arange(len(classes))
-    # Plot confusion matrix
-    cmb = confusion_matrix(y_true, y_pred, 
-                           labels=int_labels)
+
+    # Generate confusion matrix
+    cmb = confusion_matrix(y_true, y_pred, labels=int_labels)
 
     fig, a0 = plt.subplots(figsize=(8,4))
     dispb = ConfusionMatrixDisplay(confusion_matrix=cmb, 
                                    display_labels=classes)
     out_name = out_path.stem.replace('_', ' ').title()
     a0.set_title(out_name)
-    dispb.plot(ax=a0,colorbar=False)
+    dispb.plot(ax=a0, colorbar=False)
     plt.tight_layout()
     fig.savefig(out_path)
 
@@ -1837,6 +1840,116 @@ def cvrf_load_top_features(
     return None
 
 
+def evaluate_model(
+    model_path: Path,
+    data_table_path: Path,
+    out_folder: Path,
+    out_name: str,
+    logger: structlog.BoundLogger,
+    target_var: str='Diagnosis',
+    feature_list: list[str]=[],
+    label_list: list[str]=['Healthy', 'BRC', 'CRC']
+):
+    """
+    Evaluates a trained model on a data table and creates confusion 
+    matrix plots.
+    """
+
+    logger.info('Evaluating model.', model_path=model_path,
+                data_table_path=data_table_path,
+                out_folder=out_folder,
+                out_name=out_name,
+                target_var=target_var,
+                feature_list=feature_list)
+    
+    out_folder.mkdir(parents=True, exist_ok=True)
+
+    # Load model
+    model = load_pickled_model(model_path)
+
+    # Load data
+    df = pd.read_csv(data_table_path, sep=',', index_col=0)
+    X = df.T.drop(columns=[target_var])
+    y = df.T[target_var]
+
+    if label_list:
+        model_classes = label_list.copy()
+    else:
+        model_classes = list(model.classes_)
+
+    # Last fallback: use sorted unique labels
+    if any(lbl not in model_classes for lbl in y.unique()):
+        model_classes = sorted(y.unique())
+
+    # Mapping label to integer according to model_classes
+    label_to_int = {label: i for i, label in enumerate(model_classes)}
+    y_true_int = y.map(label_to_int).values
+
+    # Select only model features
+    if feature_list:
+        model_features = feature_list
+    else:
+        model_features = model.feature_names_in_
+
+    X = X[model_features]
+
+    # Predict probabilities
+    y_pred_proba = model.predict_proba(X)
+
+    # Convert probs to integer labels
+    y_pred_int = np.argmax(y_pred_proba, axis=1)
+
+    # Ensure class label list length matches number of classes
+    class_labels = label_list[:len(y_pred_proba[0])]
+    # Define output confusion matrix path
+    out_conf = out_folder / f'{out_name}.png'
+
+    # Create confusion matrix
+    create_conf_matrix(y_true_int, y_pred_int, class_labels, out_conf)
+
+    # Generate ROC curves
+    generate_roc_curves(
+        y_true_int=y_true_int,
+        y_pred_proba=y_pred_proba,
+        class_labels=model_classes,
+        out_folder=out_folder,
+        out_name=out_name
+    )
+
+    return None
+
+
+def generate_roc_curves(y_true_int, y_pred_proba, class_labels, out_folder, out_name):
+    """
+    Generates one ROC curve per class.
+    """
+
+    n_classes = len(class_labels)
+
+    # Convert y_true to one-hot
+    y_true_bin = np.zeros((len(y_true_int), n_classes))
+    for i, val in enumerate(y_true_int):
+        y_true_bin[i, val] = 1
+
+    for i, cls in enumerate(class_labels):
+        fpr, tpr, _ = roc_curve(y_true_bin[:, i], y_pred_proba[:, i])
+        roc_auc = auc(fpr, tpr)
+
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.plot(fpr, tpr, lw=2, label=f"AUC = {roc_auc:.3f}")
+        ax.plot([0, 1], [0, 1], linestyle='--')
+
+        ax.set_title(f"ROC Curve — {cls}")
+        ax.set_xlabel("False Positive Rate")
+        ax.set_ylabel("True Positive Rate")
+        ax.legend(loc="lower right")
+
+        roc_path = out_folder / f"{out_name}_ROC_{cls}.png"
+        fig.tight_layout()
+        fig.savefig(roc_path)
+        plt.close(fig)
+
+
 def get_single_feature_auc(
     X:pd.DataFrame,
     y:pd.Series,
@@ -1904,6 +2017,13 @@ def get_single_feature_auc(
                     f'{output_folder}/{feat_name}_model.pickle')
 
     return auc_score
+
+
+def load_pickled_model(model_path: Path):
+    # Load trained model
+    with open(model_path, "rb") as f:
+        model_file = pickle.load(f)
+    return model_file
 
 
 def merge_with_metadata(
