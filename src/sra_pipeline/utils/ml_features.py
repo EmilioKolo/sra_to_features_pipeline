@@ -2176,6 +2176,12 @@ def normalize_feature_table(
     out_csv = os.path.join(output_folder, 
                            f'{table_name}_NORMALIZED.csv')
 
+    if not parameters_file:
+        df = cleanup_empty_rows_cols(df)
+
+    # Copy raw df before numerical modifications
+    raw_df = df.copy()
+
     if parameters_file:
         training_features = norm_params.get("feature_index_order")
         if training_features is None:
@@ -2194,11 +2200,6 @@ def normalize_feature_table(
 
         # Reorder to match training feature order exactly
         df = df.loc[training_features]
-
-    df = cleanup_empty_rows_cols(df)
-
-    # Copy raw df before numerical modifications
-    raw_df = df.copy()
 
     df = normalize_by_gv(df, logger)
 
@@ -2230,7 +2231,8 @@ def normalize_feature_table(
 
         df = df.div(df_max_per_row, axis=0)
 
-    df = cleanup_empty_rows_cols(df)
+    if not parameters_file:
+        df = cleanup_empty_rows_cols(df)
 
     logger.info('Removing minimums to avoid negative values.',
                 table_path=input_file)
@@ -2244,7 +2246,12 @@ def normalize_feature_table(
 
     df = df.sub(df_min_per_row, axis=0)
 
-    df = cleanup_empty_rows_cols(df)
+    if not parameters_file:
+        df = cleanup_empty_rows_cols(df)
+
+    # Save feature index order if not loaded from file
+    if not parameters_file:
+        norm_params["feature_index_order"] = df.index.tolist()
 
     logger.info('Creating heatmaps.', table_path=input_file)
     # Get sample of the dataframe
@@ -2269,7 +2276,6 @@ def normalize_feature_table(
     
     # Save normalization parameters if not loaded from file
     if not parameters_file:
-        norm_params["feature_index_order"] = df.index.tolist()
         with open(params_out, "w") as f:
             json.dump(norm_params, f, indent=2)
         logger.info("Saved normalization parameters.", file=str(params_out))
@@ -2559,7 +2565,7 @@ def process_feature_names(row_name:str) -> str:
         else:
             er = f'WARNING: row_name {row_name} not processed properly.'
             print(er)
-    elif row_name.startswith('dn_ds'):
+    elif row_name.startswith('dn_ds') or row_name.startswith('gene_dn_ds'):
         gene_name = row_name.rsplit('_')[-1]
         ret = f'dN/dS proportion in gene {gene_name}'
     else:
