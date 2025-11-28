@@ -17,7 +17,7 @@ from sklearn.model_selection import (
 from sklearn.preprocessing import (
     RobustScaler, LabelBinarizer, LabelEncoder
 )
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 import itertools
 import json
@@ -2132,7 +2132,8 @@ def normalize_feature_table(
     logger: structlog.BoundLogger,
     log_transform: bool = False,
     robust_norm: bool = False,
-    rand_seed: int|None = None
+    rand_seed: int|None = None,
+    parameters_file: Optional[Path] = None
 ) -> List[pd.DataFrame]:
     """
     Normalize a feature table and create heatmaps.
@@ -2154,6 +2155,16 @@ def normalize_feature_table(
     # Define table name from input_file
     table_name = input_file.name.rsplit('.')[0]
 
+    # Parameter storage
+    params_out = output_folder / "normalization_parameters.json"
+
+    if parameters_file:
+        logger.info("Loading normalization parameters.", file=str(parameters_file))
+        with open(parameters_file, "r") as f:
+            norm_params = json.load(f)
+    else:
+        norm_params = {}
+
     logger.info('Reading feature table.', table_path=input_file)
 
     # Read feature table
@@ -2164,10 +2175,6 @@ def normalize_feature_table(
     out_raw = os.path.join(output_folder, f'{table_name}_RAW.csv')
     out_csv = os.path.join(output_folder, 
                            f'{table_name}_NORMALIZED.csv')
-    out_max_per_row = os.path.join(output_folder,
-                                   f'{table_name}_max_col.csv')
-    out_min_per_row = os.path.join(output_folder,
-                                   f'{table_name}_min_per_row.csv')
 
     df = cleanup_empty_rows_cols(df)
 
@@ -2186,15 +2193,23 @@ def normalize_feature_table(
     if robust_norm:
         logger.info('Performing robust normalization.',
                     table_path=input_file)
-        df = robust_normalize(df)
+        df, scaler_params = robust_normalize(
+            df,
+            loaded_params=norm_params.get("robust_scaler") if parameters_file else None
+        )
+        if not parameters_file:
+            norm_params["robust_scaler"] = scaler_params
     else:
         logger.info('Performing normalization.',
                     table_path=input_file)
-        df_max_per_row = df.max(axis=1)
+        if parameters_file:
+            # Apply saved max-per-row
+            df_max_per_row = pd.Series(norm_params["max_per_row"])
+        else:
+            df_max_per_row = df.max(axis=1)
+            norm_params["max_per_row"] = df_max_per_row.to_dict()
+
         df = df.div(df_max_per_row, axis=0)
-        # Save df_max_per_row
-        df_max_per_row.to_csv(out_max_per_row,
-                              header=['max_per_row'])
 
     df = cleanup_empty_rows_cols(df)
 
@@ -2202,10 +2217,12 @@ def normalize_feature_table(
                 table_path=input_file)
 
     # Remove minimums per row to avoid negative values
-    df_min_per_row = df.min(axis=1)
-    # Save df_min_per_row
-    df_min_per_row.to_csv(out_min_per_row,
-                          header=['min_per_row'])
+    if parameters_file:
+        df_min_per_row = pd.Series(norm_params["min_per_row"])
+    else:
+        df_min_per_row = df.min(axis=1)
+        norm_params["min_per_row"] = df_min_per_row.to_dict()
+
     df = df.sub(df_min_per_row, axis=0)
 
     df = cleanup_empty_rows_cols(df)
@@ -2231,6 +2248,12 @@ def normalize_feature_table(
     raw_df.index = raw_df.index.map(process_feature_names)
     raw_df.to_csv(out_raw, sep=',')
     
+    # Save normalization parameters if not loaded from file
+    if not parameters_file:
+        with open(params_out, "w") as f:
+            json.dump(norm_params, f, indent=2)
+        logger.info("Saved normalization parameters.", file=str(params_out))
+
     # Return raw df and df
     return raw_df, df
 
@@ -2524,39 +2547,39 @@ def process_feature_names(row_name:str) -> str:
     return ret
 
 
-def robust_normalize(df:pd.DataFrame) -> pd.DataFrame:
-    """Performs robust normalization on a dataframe."""
-    # Define Q1 and Q3
+def robust_normalize(
+    df: pd.DataFrame,
+    loaded_params: Optional[dict] = None
+):
+    """
+    Performs robust normalization on a dataframe.
+    If loaded_params is given, use them.
+    """
     q1 = df.quantile(0.25, axis=1)
     q3 = df.quantile(0.75, axis=1)
-    # Define rows to keep
     rows_to_keep = (q3 != 0) | (q1 != 0)
-
-    # Filter the DataFrame
     df_filtered = df[rows_to_keep]
 
-    print('# df_filtered:')
-    print(df_filtered)
+    df_transposed = df_filtered.T
 
-    # Perform robust scaling
-    # Create the scaler object
     scaler = RobustScaler()
 
-    # Transpose the dataframe
-    df_transposed = df_filtered.T
-    print('# df_transposed:')
-    print(df_transposed)
-    # Scale the transposed DataFrame
-    scaled_data = scaler.fit_transform(df_transposed)
+    if loaded_params:
+        scaler.center_ = np.array(loaded_params["center_"])
+        scaler.scale_ = np.array(loaded_params["scale_"])
+        scaled_data = scaler.transform(df_transposed)
+    else:
+        scaled_data = scaler.fit_transform(df_transposed)
+        loaded_params = {
+            "center_": scaler.center_.tolist(),
+            "scale_": scaler.scale_.tolist()
+        }
 
-    print('# Scaled raw df:')
-    print(scaled_data)
-
-    # Transpose the result back and create a new DataFrame
     df_row_scaled = pd.DataFrame(scaled_data.T,
                                  columns=df_filtered.columns,
                                  index=df_filtered.index)
-    return df_row_scaled
+
+    return df_row_scaled, loaded_params
 
 
 def run_model_validation_and_test(

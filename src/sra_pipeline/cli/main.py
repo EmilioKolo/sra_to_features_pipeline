@@ -443,6 +443,12 @@ def create_feature_table(
     type=click.Path(path_type=Path),
 )
 @click.option(
+    "--parameters",
+    required=False,
+    help="JSON file with normalization parameters. If given, normalization uses these parameters. Otherwise, parameters are created and saved.",
+    type=click.Path(exists=True, path_type=Path)
+)
+@click.option(
     "--random-seed",
     default=None,
     type=int,
@@ -458,6 +464,7 @@ def create_normalized_table(
     input_file: Path,
     metadata_file: Optional[Path],
     output_folder: Path,
+    parameters: Optional[Path],
     random_seed: Optional[int],
     log_level: str
 ):
@@ -471,7 +478,8 @@ def create_normalized_table(
             input_file=input_file,
             output_folder=output_folder,
             logger=logger,
-            rand_seed=random_seed
+            rand_seed=random_seed,
+            parameters_file=parameters
         )
 
         # Check if metadata file is provided
