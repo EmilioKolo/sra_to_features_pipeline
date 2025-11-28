@@ -2176,6 +2176,25 @@ def normalize_feature_table(
     out_csv = os.path.join(output_folder, 
                            f'{table_name}_NORMALIZED.csv')
 
+    if parameters_file:
+        training_features = norm_params.get("feature_index_order")
+        if training_features is None:
+            raise ValueError(
+                "Normalization parameters file does not contain 'feature_index_order'. "
+                "Re-train normalization to include it."
+            )
+
+        # Add missing features (fill with zeros)
+        for feat in training_features:
+            if feat not in df.index:
+                df.loc[feat] = 0
+
+        # Remove extra features
+        df = df.loc[df.index.intersection(training_features)]
+
+        # Reorder to match training feature order exactly
+        df = df.loc[training_features]
+
     df = cleanup_empty_rows_cols(df)
 
     # Copy raw df before numerical modifications
@@ -2250,6 +2269,7 @@ def normalize_feature_table(
     
     # Save normalization parameters if not loaded from file
     if not parameters_file:
+        norm_params["feature_index_order"] = df.index.tolist()
         with open(params_out, "w") as f:
             json.dump(norm_params, f, indent=2)
         logger.info("Saved normalization parameters.", file=str(params_out))
