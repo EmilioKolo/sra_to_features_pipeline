@@ -47,6 +47,18 @@ def main():
     snpeff_genome = config['Parameters']['GENOME_NAME']
     snpeff_url = config['Links']['SNPEFF_URL']
 
+    # Index fasta file using samtools faidx
+    print(f'Indexing {fasta_file} using samtools faidx...')
+    try:
+        subprocess.run(['samtools', 'faidx', fasta_file], check=True)
+        print(f'Indexing of {fasta_file} completed.')
+    except subprocess.CalledProcessError as e:
+        print(f'Error indexing {fasta_file}: {e}')
+        # Remove partially created index file if it exists
+        fai_file = fasta_file + '.fai'
+        if Path(fai_file).exists():
+            Path(fai_file).unlink()
+
     # Creation of genome.sizes file
     print(f'Creating {genome_sizes} file...')
     with open(fasta_file, 'r') as f:
