@@ -18,7 +18,9 @@ from ..utils.ml_features import (
     normalize_feature_table,
     merge_with_metadata,
     per_feature_analysis,
-    cross_validated_feature_analysis
+    cross_validated_feature_analysis,
+    run_model_validation_and_test,
+    full_evaluation_manager
 )
 from .. import __version__
 
@@ -706,8 +708,6 @@ def run_model_validation_test(
                   "and test...[/bold blue]")
     
     try:
-        from ..utils.ml_features import run_model_validation_and_test
-        
         # Setup logging
         logger = setup_logging(log_level=log_level)
 
@@ -811,6 +811,85 @@ def create_ml_table(
         
     except Exception as e:
         console.print(f"[red]Error creating ML feature table: {e}[/red]")
+        sys.exit(1)
+
+
+@cli.command()
+@click.option(
+    "--model-path",
+    required=True,
+    help="Pickled model file path.",
+    type=click.Path(exists=True, path_type=Path),
+)
+@click.option(
+    "--data-table-path",
+    required=True,
+    help="Data table file path to run the model on (CSV format).",
+    type=click.Path(exists=True, path_type=Path),
+)
+@click.option(
+    "--output-folder",
+    required=True,
+    type=click.Path(path_type=Path),
+    help="Output folder path.",
+)
+@click.option(
+    "--log-level",
+    default="INFO",
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"]),
+    help="Logging level",
+)
+@click.option(
+    "--target-variable",
+    default="Diagnosis",
+    type=str,
+    help=str(
+        "Name of the target variable column in the data "+\
+        "(default: 'Diagnosis')."
+    ),
+)
+@click.option(
+    "--out-name",
+    default="",
+    type=str,
+    help=str(
+        "Name suffix for output files (default: '')."
+    ),
+)
+def evaluate_pickled_model(
+    model_path: Path,
+    data_table_path: Path,
+    output_folder: Path,
+    log_level: str,
+    target_variable: Optional[str]='Diagnosis',
+    out_name: Optional[str]=''
+):
+    """
+    Run a pickled model performance assessment.
+    Generates figures and performance metrics.
+    """
+    console.print(
+        "[bold blue]Running pickled model evaluation...[/bold blue]"
+    )
+    
+    try:
+        # Setup logging
+        logger = setup_logging(log_level=log_level)
+
+        full_evaluation_manager(
+            model_path=model_path,
+            data_table_path=data_table_path,
+            output_folder=output_folder,
+            logger=logger,
+            target_variable=target_variable,
+            all_labels=['Healthy','CRC','BRC'],
+            pdf_title=out_name
+        )
+        
+    except Exception as e:
+        console.print(
+            f"[red]Error during model evaluation: {e}[/red]"
+        )
         sys.exit(1)
 
 

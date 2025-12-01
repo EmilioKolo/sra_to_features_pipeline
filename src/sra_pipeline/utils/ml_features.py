@@ -15,7 +15,7 @@ from sklearn.model_selection import (
     train_test_split, GridSearchCV, StratifiedKFold
 )
 from sklearn.preprocessing import (
-    RobustScaler, LabelBinarizer, LabelEncoder
+    RobustScaler, LabelBinarizer, LabelEncoder, label_binarize
 )
 from typing import List, Dict, Any, Optional
 
@@ -27,6 +27,7 @@ matplotlib.use('Agg')
 # Supress font messages
 logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import os
 import pandas as pd
@@ -1916,6 +1917,466 @@ def evaluate_model(
         out_name=out_name
     )
 
+    return None
+
+
+def full_evaluation(
+    model_path: Path,
+    X: pd.DataFrame,
+    y_true: pd.Series,
+    output_dir: Path,
+    logger: structlog.BoundLogger,
+    all_labels: Optional[List[str]] = None,
+    pdf_title: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Evaluate a pickled multiclass classifier.
+
+    Args:
+        model_path (Path): Path to a pickled model file.
+        X (pd.DataFrame): Feature matrix (rows aligned with y_true).
+        y_true (pd.Series): True labels for X.
+        output_dir (Path): Directory where outputs will be saved. 
+                           Will be created if missing.
+        all_labels (list[str]): Complete, canonical order of labels. 
+                                Default is ["Healthy", "CRC", "BRC"].
+        pdf_title (str): If provided, included as title page on the 
+                         PDF report. If None or "", PDF still created 
+                         but without title text.
+        logger (structlog.BoundLogger): Logger instance
+    Returns:
+        dict: A dictionary summarizing paths to generated files and 
+              main metrics.
+    """
+
+    logger.info('Evaluating model.', model_path=model_path)
+
+    # Prepare output dir
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Default label order
+    if all_labels is None:
+        label_order = ["Healthy", "CRC", "BRC"]
+    else:
+        label_order = list(all_labels)
+
+    # Load model
+    model = load_pickled_model(Path(model_path))
+
+    # Check predict_proba availability
+    if not hasattr(model, "predict_proba"):
+        raise AttributeError("Model has no predict_proba(); ROC curves require probability outputs. Exiting as requested.")
+
+    # Ensure X matches the model's expected feature names
+    if hasattr(model, "feature_names_in_"):
+        expected = list(model.feature_names_in_)
+
+        # Add missing columns as zeros
+        for col in expected:
+            if col not in X.columns:
+                X[col] = 0
+
+        # Drop extra columns not used by the model
+        X = X[expected]
+
+    # Get predicted labels and probabilities
+    y_pred = pd.Series(model.predict(X), index=X.index)
+    proba = model.predict_proba(X) # columns correspond to model.classes_
+    model_classes = list(getattr(model, "classes_", []))
+
+    # align probability columns to label_order
+    # create proba_aligned shape (n_samples, n_labels)
+    n_samples = proba.shape[0]
+    n_labels = len(label_order)
+    proba_aligned = np.zeros((n_samples, n_labels), dtype=float)
+
+    # map model classes to column indices
+    model_class_to_idx = {c: i for i, c in enumerate(model_classes)}
+    for j, label in enumerate(label_order):
+        if label in model_class_to_idx:
+            proba_aligned[:, j] = proba[:, model_class_to_idx[label]]
+        else:
+            # label not present in model outputs: leave column zeros
+            proba_aligned[:, j] = 0.0
+
+    # Binarize y_true using the canonical label_order
+    y_true_list = list(y_true)
+    try:
+        y_true_bin = label_binarize(y_true_list, classes=label_order)
+    except Exception as e:
+        # fallback: manual binarization
+        y_true_bin = np.zeros((len(y_true_list), n_labels), dtype=int)
+        for i, lab in enumerate(y_true_list):
+            if lab in label_order:
+                y_true_bin[i, label_order.index(lab)] = 1
+
+    # Compute per-class ROC curves and AUC
+    per_class_curves = {} # stores fpr,tpr,auc or None if not computable
+    per_class_auc = {}
+    for j, label in enumerate(label_order):
+        # Check if label occurs in y_true
+        positives = y_true_bin[:, j].sum()
+        negatives = len(y_true_bin) - positives
+        if positives == 0 or negatives == 0:
+            # cannot compute ROC for this class (need both classes)
+            per_class_curves[label] = None
+            per_class_auc[label] = float("nan")
+        else:
+            fpr, tpr, _ = roc_curve(y_true_bin[:, j], 
+                                    proba_aligned[:, j])
+            try:
+                a = auc(fpr, tpr)
+            except Exception:
+                a = float("nan")
+            per_class_curves[label] = {"fpr": fpr, "tpr": tpr}
+            per_class_auc[label] = float(a)
+
+    # Compute macro and micro AUCs robustly:
+    # macro: mean of available per-class AUCs (ignoring NaN)
+    valid_aucs = [v for v in per_class_auc.values() if not (np.isnan(v))]
+    macro_auc = float(np.mean(valid_aucs)) if len(valid_aucs) > 0 else float("nan")
+
+    # micro: try sklearn roc_auc_score with multilabel indicator; if fails set nan
+    micro_auc = float("nan")
+    try:
+        # requires at least one positive and one negative across all classes
+        micro_auc = float(roc_auc_score(y_true_bin, proba_aligned, 
+                                        average="micro"))
+    except Exception:
+        micro_auc = float("nan")
+
+    # Build and save ROC plots
+    roc_per_class_path = output_dir / "roc_per_class.png"
+    roc_macro_path = output_dir / "roc_macro.png"
+    roc_micro_path = output_dir / "roc_micro.png"
+
+    # Per-class ROC plot (plot only classes with computable curves)
+    plt.figure(figsize=(8, 6))
+    any_plotted = False
+    for label in label_order:
+        curve = per_class_curves[label]
+        if curve is not None:
+            plt.plot(curve["fpr"], curve["tpr"], 
+                     label=f"{label} (AUC={per_class_auc[label]:.3f})")
+            any_plotted = True
+        else:
+            # skip plotting missing curves
+            pass
+    if any_plotted:
+        plt.plot([0, 1], [0, 1], linestyle="--", linewidth=1)  # diagonal
+        plt.xlabel("False Positive Rate")
+        plt.ylabel("True Positive Rate")
+        plt.title("Per-class ROC curves")
+        plt.legend(loc="lower right")
+        plt.tight_layout()
+        plt.savefig(roc_per_class_path, dpi=150)
+    else:
+        # create an empty image indicating no per-class ROC available
+        plt.text(0.5, 0.5, "No per-class ROC curves could be computed\n(need both positive and negative samples per class).",
+                 ha="center", va="center")
+        plt.axis("off")
+        plt.tight_layout()
+        plt.savefig(roc_per_class_path, dpi=150)
+    plt.close()
+
+    # Macro ROC: create a plot showing macro as mean curve if possible
+    plt.figure(figsize=(8, 6))
+    any_plotted = False
+    # Plot per-class curves (if any)
+    #for label in label_order:
+    #    curve = per_class_curves[label]
+    #    if curve is not None:
+    #        plt.plot(curve["fpr"], curve["tpr"], lw=1, alpha=0.6, label=f"{label}")
+    #        any_plotted = True
+    plt.plot([0, 1], [0, 1], linestyle="--", linewidth=1)
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title(f"Macro-average ROC (macro AUC = {macro_auc:.3f})")
+    if any_plotted:
+        plt.legend(loc="lower right")
+    plt.tight_layout()
+    plt.savefig(roc_macro_path, dpi=150)
+    plt.close()
+
+    # Micro ROC: compute aggregate micro ROC if possible
+    # micro curve: flatten all true/score pairs
+    micro_roc_path_exists = False
+    plt.figure(figsize=(8, 6))
+    try:
+        # Only compute if roc_curve supports the flattened arrays (requires positive and negative)
+        y_true_flat = y_true_bin.ravel()
+        y_score_flat = proba_aligned.ravel()
+        # only if y_true_flat contains both 0 and 1
+        if (y_true_flat.sum() > 0) and \
+            (y_true_flat.sum() < len(y_true_flat)):
+            fpr_m, tpr_m, _ = roc_curve(y_true_flat, y_score_flat)
+            auc_m = auc(fpr_m, tpr_m)
+            plt.plot(fpr_m, tpr_m, 
+                     label=f"micro-average (AUC={auc_m:.3f})")
+            plt.plot([0, 1], [0, 1], linestyle="--", linewidth=1)
+            plt.xlabel("False Positive Rate")
+            plt.ylabel("True Positive Rate")
+            plt.title("Micro-average ROC")
+            plt.legend(loc="lower right")
+            plt.tight_layout()
+            plt.savefig(roc_micro_path, dpi=150)
+            micro_roc_path_exists = True
+    except Exception:
+        micro_roc_path_exists = False
+
+    if not micro_roc_path_exists:
+        plt.text(0.5, 0.5, 
+                 "Micro-average ROC could not be computed\n(need both positive and negative labels across classes).",
+                 ha="center", va="center")
+        plt.axis("off")
+        plt.tight_layout()
+        plt.savefig(roc_micro_path, dpi=150)
+    plt.close()
+
+    # Confusion matrix heatmap
+    conf = confusion_matrix(y_true, y_pred, labels=label_order)
+    cm_path = output_dir / "confusion_matrix.png"
+    plt.figure(figsize=(6, 5))
+    im = plt.imshow(conf, interpolation="nearest") # Default colormap
+    plt.title("Confusion Matrix")
+    plt.colorbar(im)
+    tick_marks = np.arange(len(label_order))
+    plt.xticks(tick_marks, label_order, rotation=45)
+    plt.yticks(tick_marks, label_order)
+    # Annotate cells
+    thresh = conf.max() / 2.0 if conf.max() > 0 else 0
+    for i in range(conf.shape[0]):
+        for j in range(conf.shape[1]):
+            plt.text(j, i, format(conf[i, j], "d"),
+                     ha="center", va="center",
+                     color="white" if conf[i, j] > thresh else "black")
+    plt.ylabel("True label")
+    plt.xlabel("Predicted label")
+    plt.tight_layout()
+    plt.savefig(cm_path, dpi=150)
+    plt.close()
+
+    # Metrics table (per-class and global)
+    metrics_rows = []
+    for j, label in enumerate(label_order):
+        # Compute binary confusion components for one-vs-rest
+        y_true_bin_col = y_true_bin[:, j]
+        y_pred_bin_col = (y_pred == label).astype(int)
+        TP = int(((y_pred_bin_col == 1) & (y_true_bin_col == 1)).sum())
+        TN = int(((y_pred_bin_col == 0) & (y_true_bin_col == 0)).sum())
+        FP = int(((y_pred_bin_col == 1) & (y_true_bin_col == 0)).sum())
+        FN = int(((y_pred_bin_col == 0) & (y_true_bin_col == 1)).sum())
+
+        precision = precision_score(y_true_bin_col, y_pred_bin_col, 
+                                    zero_division=0)
+        recall = recall_score(y_true_bin_col, y_pred_bin_col, 
+                              zero_division=0)
+        f1 = f1_score(y_true_bin_col, y_pred_bin_col, zero_division=0)
+        # Accuracy for one-vs-rest
+        accuracy = (TP + TN) / max(1, (TP + TN + FP + FN))
+
+        roc_auc_val = per_class_auc[label]
+
+        metrics_rows.append({
+            "label": label,
+            "TP": TP,
+            "TN": TN,
+            "FP": FP,
+            "FN": FN,
+            "accuracy": float(accuracy),
+            "precision": float(precision),
+            "recall": float(recall),
+            "f1": float(f1),
+            "roc_auc": (None if np.isnan(roc_auc_val) else float(roc_auc_val)),
+            "n_true_samples": int(y_true_bin_col.sum()),
+            "n_pred_samples": int((y_pred == label).sum()),
+        })
+
+    # Global metrics
+    global_accuracy = accuracy_score(y_true, y_pred)
+    # Macro-precision/recall/f1 using sklearn
+    global_precision_macro = precision_score(
+        y_true,
+        y_pred,
+        labels=label_order,
+        average="macro",
+        zero_division=0
+    )
+    global_recall_macro = recall_score(
+        y_true,
+        y_pred,
+        labels=label_order,
+        average="macro",
+        zero_division=0
+    )
+    global_f1_macro = f1_score(
+        y_true,
+        y_pred,
+        labels=label_order,
+        average="macro",
+        zero_division=0
+    )
+
+    # Add a global row
+    metrics_rows.append({
+        "label": "GLOBAL",
+        "TP": None,
+        "TN": None,
+        "FP": None,
+        "FN": None,
+        "accuracy": float(global_accuracy),
+        "precision": float(global_precision_macro),
+        "recall": float(global_recall_macro),
+        "f1": float(global_f1_macro),
+        "roc_auc": None,
+        "n_true_samples": int(len(y_true)),
+        "n_pred_samples": None,
+    })
+
+    metrics_df = pd.DataFrame(metrics_rows)
+
+    # Save metrics to CSV and JSON
+    csv_path = output_dir / "metrics_table.csv"
+    json_path = output_dir / "metrics_table.json"
+    metrics_df.to_csv(csv_path, index=False)
+
+    # For JSON, convert DataFrame to list of dicts with JSON serializable values
+    metrics_json_ready = []
+    for r in metrics_rows:
+        r_copy = dict(r)
+        # Convert numpy types to native python
+        for k, v in r_copy.items():
+            if isinstance(v, (np.generic,)):
+                r_copy[k] = v.item()
+            # Convert NaN to None
+            if isinstance(v, float) and (np.isnan(v)):
+                r_copy[k] = None
+        metrics_json_ready.append(r_copy)
+
+    with open(json_path, "w") as fjson:
+        json.dump(metrics_json_ready, fjson, indent=2)
+
+    # Create PDF report with the three images and a metrics page
+    pdf_path = output_dir / "evaluation_report.pdf"
+    with PdfPages(pdf_path) as pdf:
+        # Title / Summary page
+        fig = plt.figure(figsize=(8.27, 11.69)) # A4 portrait in inches
+        plt.axis("off")
+        title_lines = []
+        if pdf_title:
+            title_lines.append(pdf_title)
+        title_lines.append("Model evaluation report")
+        title_lines.append(f"Model path: {model_path}")
+        title_lines.append(f"Number of samples: {len(y_true)}")
+        title_lines.append("")
+        title_lines.append(f"Labels (canonical order): {label_order}")
+        title_lines.append(f"Macro AUC (mean of per-class AUCs): {macro_auc:.4f}" if not np.isnan(macro_auc) else "Macro AUC: N/A")
+        title_lines.append(f"Micro AUC: {micro_auc:.4f}" if not np.isnan(micro_auc) else "Micro AUC: N/A")
+        txt = "\n".join(title_lines)
+        plt.text(0.5, 0.5, txt, ha="center", va="center", wrap=True, 
+                 fontsize=10)
+        pdf.savefig(fig)
+        plt.close()
+
+        # Append per-class ROC image
+        try:
+            img = plt.imread(str(roc_per_class_path))
+            fig = plt.figure(figsize=(8.27, 6))
+            plt.imshow(img)
+            plt.axis("off")
+            pdf.savefig(fig)
+            plt.close()
+        except Exception:
+            pass
+
+        # Append macro ROC
+        try:
+            img = plt.imread(str(roc_macro_path))
+            fig = plt.figure(figsize=(8.27, 6))
+            plt.imshow(img)
+            plt.axis("off")
+            pdf.savefig(fig)
+            plt.close()
+        except Exception:
+            pass
+
+        # Append micro ROC
+        try:
+            img = plt.imread(str(roc_micro_path))
+            fig = plt.figure(figsize=(8.27, 6))
+            plt.imshow(img)
+            plt.axis("off")
+            pdf.savefig(fig)
+            plt.close()
+        except Exception:
+            pass
+
+        # Append confusion matrix
+        try:
+            img = plt.imread(str(cm_path))
+            fig = plt.figure(figsize=(8.27, 6))
+            plt.imshow(img)
+            plt.axis("off")
+            pdf.savefig(fig)
+            plt.close()
+        except Exception:
+            pass
+
+        # Append a metrics table page (raw text)
+        fig = plt.figure(figsize=(8.27, 11.69))
+        plt.axis("off")
+        # Convert metrics_df to text nicely
+        tbl_str = metrics_df.to_string(index=False)
+        plt.text(0.01, 0.99, "Metrics table (CSV/JSON also saved):", 
+                 ha="left", va="top", fontsize=10)
+        plt.text(0.01, 0.95, tbl_str, ha="left", va="top", fontsize=8, 
+                 family="monospace")
+        pdf.savefig(fig)
+        plt.close()
+
+    # Return paths and a summary
+    result = {
+        "roc_per_class_png": str(roc_per_class_path),
+        "roc_macro_png": str(roc_macro_path),
+        "roc_micro_png": str(roc_micro_path),
+        "confusion_matrix_png": str(cm_path),
+        "metrics_csv": str(csv_path),
+        "metrics_json": str(json_path),
+        "pdf_report": str(pdf_path),
+        "per_class_auc": per_class_auc,
+        "macro_auc": macro_auc,
+        "micro_auc": micro_auc,
+        "label_order": label_order,
+    }
+    return result
+
+
+def full_evaluation_manager(
+    model_path: Path,
+    data_table_path: Path,
+    output_folder: Path,
+    logger: structlog.BoundLogger,
+    target_variable: Optional[str]='Diagnosis',
+    all_labels: Optional[List[str]] = None,
+    pdf_title: Optional[str] = None,
+):
+    # Load data
+    df = pd.read_csv(data_table_path, sep=',', index_col=0)
+
+    X = df.T.drop(columns=[target_variable])
+    y = df.T[target_variable]
+    
+    # Run full evaluation
+    eval_out = full_evaluation(
+        model_path=model_path,
+        X=X,
+        y_true=y,
+        output_dir=output_folder,
+        logger=logger,
+        all_labels=all_labels,
+        pdf_title=pdf_title
+    )
     return None
 
 
