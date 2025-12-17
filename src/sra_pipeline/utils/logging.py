@@ -165,12 +165,15 @@ class PerformanceMonitor:
         self.peak_ram_mb = 0.0
         self.peak_cpu = 0.0
         self.peak_gpu_mem_mb = 0.0
-        self.peak_gpu_util = 0.0
-
+        self.peak_gpu_mem_percent = 0.0
         self.peak_ram_mb_section = 0.0
         self.peak_cpu_section = 0.0
         self.peak_gpu_mem_mb_section = 0.0
-        self.peak_gpu_util_section = 0.0
+        self.peak_gpu_mem_percent_section = 0.0
+        # Disk usage tracking
+        self.disk_base_bytes_section = 0
+        self.peak_disk_delta_mb_section = 0.0
+        self.disk_path = None # set per run
     
     def start_timer(self, name: str):
         """Start a timer for a named operation."""
@@ -220,6 +223,22 @@ class PerformanceMonitor:
         except ImportError:
             self.logger.warning("psutil not available, cannot log system info")
     
+    def set_disk_path(self, path: Path):
+        """
+        Set the path whose filesystem will be monitored for disk usage.
+        Must be called before start_monitoring().
+        """
+        self.disk_path = path
+        # Initialize baseline immediately
+        self.disk_base_bytes_section = psutil.disk_usage(self.disk_path).used
+
+    def _get_disk_used_bytes(self) -> int:
+        if self.disk_path is None:
+            raise RuntimeError(
+                "disk_path is not set. Call set_disk_path() before start_monitoring()."
+            )
+        return psutil.disk_usage(self.disk_path).used
+
     def get_summary(self) -> Dict[str, float]:
         """Get a summary of all recorded metrics."""
         return self.metrics.copy()
@@ -228,11 +247,19 @@ class PerformanceMonitor:
         header = [
             "timestamp",
             "section",
-            "cpu_percent",
-            "ram_percent",
+            # CPU
+            "cpu_total_percent",
+            "proc_cpu_percent",
+            "proc_cpu_cores",
+            # RAM
+            "ram_total_percent",
+            "system_ram_used_mb",
             "proc_ram_mb",
+            # GPU
             "gpu_mem_mb",
-            "gpu_util"
+            "gpu_util",
+            # Disk
+            "disk_delta_mb"
         ]
         with open(self.csv_path, "w", newline="") as f:
             writer = csv.writer(f)
@@ -241,33 +268,46 @@ class PerformanceMonitor:
     async def _monitor_loop(self, interval: float):
         """Run until stop is requested."""
         process = psutil.Process()
+        process.cpu_percent(interval=None) # prime the CPU counter
 
         while not self._stop_event.is_set():
-
+            # Timestamp
             timestamp = datetime.datetime.now().isoformat()
+            # CPU
             cpu_total = psutil.cpu_percent(interval=None)
-            ram_total = psutil.virtual_memory().percent
-            proc_ram = process.memory_info().rss / 1024**2  # MB
-
+            proc_cpu_percent = process.cpu_percent(interval=None)
+            proc_cpu_cores = proc_cpu_percent / 100.0
+            # RAM
+            vm = psutil.virtual_memory()
+            ram_total_percent = vm.percent
+            system_ram_used_mb = vm.used / 1024**2
+            proc_ram = process.memory_info().rss / 1024**2 # MB
+            # Disk
+            disk_used = self._get_disk_used_bytes()
+            disk_delta_mb = (disk_used - self.disk_base_bytes_section) / 1024**2 # MB
+            self.peak_disk_delta_mb_section = max(
+                self.peak_disk_delta_mb_section,
+                disk_delta_mb
+            )
+            # GPU
             gpu_mem = None
-            gpu_util = None
             if GPU_AVAILABLE:
                 handle = pynvml.nvmlDeviceGetHandleByIndex(0)
                 mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-                util = pynvml.nvmlDeviceGetUtilizationRates(handle)
                 gpu_mem = mem_info.used / 1024**2
-                gpu_util = util.gpu
+                gpu_mem_total = mem_info.total / 1024**2
+                gpu_mem_percent = 100.0 * mem_info.used / mem_info.total
 
             # Update peaks
-            self.peak_cpu = max(self.peak_cpu, cpu_total)
-            self.peak_cpu_section = max(self.peak_cpu_section, cpu_total)
-            self.peak_ram_mb = max(self.peak_ram_mb, proc_ram)
-            self.peak_ram_mb_section = max(self.peak_ram_mb_section, proc_ram)
+            self.peak_cpu = max(self.peak_cpu, proc_cpu_cores)
+            self.peak_cpu_section = max(self.peak_cpu_section, proc_cpu_cores)
+            self.peak_ram_mb = max(self.peak_ram_mb, system_ram_used_mb)
+            self.peak_ram_mb_section = max(self.peak_ram_mb_section, system_ram_used_mb)
             if GPU_AVAILABLE and gpu_mem is not None:
                 self.peak_gpu_mem_mb = max(self.peak_gpu_mem_mb, gpu_mem)
                 self.peak_gpu_mem_mb_section = max(self.peak_gpu_mem_mb_section, gpu_mem)
-                self.peak_gpu_util = max(self.peak_gpu_util, gpu_util)
-                self.peak_gpu_util_section = max(self.peak_gpu_util_section, gpu_util)
+                self.peak_gpu_mem_percent = max(self.peak_gpu_mem_percent, gpu_mem_percent)
+                self.peak_gpu_mem_percent_section = max(self.peak_gpu_mem_percent_section, gpu_mem_percent)
 
             # Write CSV row
             with open(self.csv_path, "a", newline="") as f:
@@ -275,11 +315,19 @@ class PerformanceMonitor:
                 writer.writerow([
                     timestamp,
                     self.current_section,
+                    # CPU
                     cpu_total,
-                    ram_total,
+                    proc_cpu_percent,
+                    proc_cpu_cores,
+                    # RAM
+                    ram_total_percent,
+                    system_ram_used_mb,
                     proc_ram,
+                    # GPU
                     gpu_mem,
-                    gpu_util
+                    gpu_mem_total,
+                    # Disk
+                    disk_delta_mb
                 ])
 
             await asyncio.sleep(interval)
@@ -310,11 +358,11 @@ class PerformanceMonitor:
 
     def report_peaks(self):
         self.logger.info(
-            "Peak resource usage",
+            "Peak resource usage (total)",
             peak_cpu_percent=self.peak_cpu,
             peak_ram_mb=self.peak_ram_mb,
             peak_gpu_mem_mb=self.peak_gpu_mem_mb,
-            peak_gpu_util=self.peak_gpu_util
+            peak_gpu_mem_percent=self.peak_gpu_mem_percent
         )
         if self.current_section != "global":
             self.logger.info(
@@ -322,7 +370,8 @@ class PerformanceMonitor:
                 peak_cpu_percent_section=self.peak_cpu_section,
                 peak_ram_mb_section=self.peak_ram_mb_section,
                 peak_gpu_mem_mb_section=self.peak_gpu_mem_mb_section,
-                peak_gpu_util_section=self.peak_gpu_util_section
+                peak_gpu_mem_percent_section=self.peak_gpu_mem_percent_section,
+                peak_disk_delta_mb_section=self.peak_disk_delta_mb_section
             )
         # Reset section peaks
         self.reset_section_peaks()
@@ -333,6 +382,9 @@ class PerformanceMonitor:
         self.peak_cpu_section = 0.0
         self.peak_gpu_mem_mb_section = 0.0
         self.peak_gpu_util_section = 0.0
+        # Reset disk usage stats
+        self.disk_base_bytes_section = self._get_disk_used_bytes()
+        self.peak_disk_delta_mb_section = 0.0
 
     async def section(self, name: str, func: Callable, *args, **kwargs):
         # Reset section peaks

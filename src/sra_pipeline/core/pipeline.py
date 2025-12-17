@@ -102,12 +102,16 @@ class Pipeline:
         self.monitor.csv_path.parent.mkdir(parents=True, exist_ok=True)
         # Initialize csv file
         self.monitor.init_csv()
+        # Disk usage tracking
+        self.monitor.set_disk_path(self.config.get_data_dir())
         # Start performance monitoring
         self.monitor.start_monitoring(section="global")
         
         if download_fastq:
             # Download FASTQ files
-            fastq_files = self._download_sra_data(sample_id)
+            fastq_files = await self.monitor.section(
+                "download_sra", self._download_sra_data, sample_id
+            )
         else:
             # Use given fastq files
             fastq_files = fq_files
@@ -198,43 +202,32 @@ class Pipeline:
             bam_file = await self.monitor.section(
                 "alignment", self._run_alignment, sample_id, fastq_files
             )
-            #bam_file = self._run_alignment(sample_id, fastq_files)
             
             # Step 2: Variant Calling
             vcf_file, snpeff_file = await self.monitor.section(
                 "variant_calling", self._run_variant_calling, sample_id, bam_file
             )
-            #vcf_file, snpeff_file = self._run_variant_calling(sample_id, bam_file)
 
             # Step 3: Quality Control
             qc_results = await self.monitor.section(
                 "quality_control", self._run_quality_control, fastq_files, bam_file
             )
-            #qc_results = self._run_quality_control(fastq_files, bam_file)
             
             # Step 4: Feature Extraction
             features = await self.monitor.section(
                 "feature_extraction", self._extract_features, sample_id, bam_file, vcf_file, snpeff_file
             )
-            #features = self._extract_features(sample_id, bam_file, vcf_file, snpeff_file)
             
             # Step 5: Create FeatureSet
             feature_set = await self.monitor.section(
                 "create_feature_set", self._create_feature_set,
                 sample_id, features, qc_results, time.time() - start_time
             )
-            #feature_set = self._create_feature_set(
-            #    sample_id=sample_id,
-            #    features=features,
-            #    qc_results=qc_results,
-            #    processing_time=time.time() - start_time
-            #)
             
             # Step 6: Save results
             await self.monitor.section(
                 "save_results", self._save_results, sample_id, feature_set
             )
-            #self._save_results(sample_id, feature_set)
             
             # Stop performance monitoring and report peaks
             await self.monitor.stop_monitoring()
