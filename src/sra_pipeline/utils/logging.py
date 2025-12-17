@@ -257,7 +257,7 @@ class PerformanceMonitor:
             "proc_ram_mb",
             # GPU
             "gpu_mem_mb",
-            "gpu_util",
+            "gpu_mem_total",
             # Disk
             "disk_delta_mb"
         ]
@@ -267,71 +267,87 @@ class PerformanceMonitor:
     
     async def _monitor_loop(self, interval: float):
         """Run until stop is requested."""
-        process = psutil.Process()
-        process.cpu_percent(interval=None) # prime the CPU counter
+        try:
+            process = psutil.Process()
+            process.cpu_percent(interval=None) # prime the CPU counter
 
-        while not self._stop_event.is_set():
-            # Timestamp
-            timestamp = datetime.datetime.now().isoformat()
-            # CPU
-            cpu_total = psutil.cpu_percent(interval=None)
-            proc_cpu_percent = process.cpu_percent(interval=None)
-            proc_cpu_cores = proc_cpu_percent / 100.0
-            # RAM
-            vm = psutil.virtual_memory()
-            ram_total_percent = vm.percent
-            system_ram_used_mb = vm.used / 1024**2
-            proc_ram = process.memory_info().rss / 1024**2 # MB
-            # Disk
-            disk_used = self._get_disk_used_bytes()
-            disk_delta_mb = (disk_used - self.disk_base_bytes_section) / 1024**2 # MB
-            self.peak_disk_delta_mb_section = max(
-                self.peak_disk_delta_mb_section,
-                disk_delta_mb
-            )
-            # GPU
-            gpu_mem = None
-            if GPU_AVAILABLE:
-                handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-                mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-                gpu_mem = mem_info.used / 1024**2
-                gpu_mem_total = mem_info.total / 1024**2
-                gpu_mem_percent = 100.0 * mem_info.used / mem_info.total
-
-            # Update peaks
-            self.peak_cpu = max(self.peak_cpu, proc_cpu_cores)
-            self.peak_cpu_section = max(self.peak_cpu_section, proc_cpu_cores)
-            self.peak_ram_mb = max(self.peak_ram_mb, system_ram_used_mb)
-            self.peak_ram_mb_section = max(self.peak_ram_mb_section, system_ram_used_mb)
-            if GPU_AVAILABLE and gpu_mem is not None:
-                self.peak_gpu_mem_mb = max(self.peak_gpu_mem_mb, gpu_mem)
-                self.peak_gpu_mem_mb_section = max(self.peak_gpu_mem_mb_section, gpu_mem)
-                self.peak_gpu_mem_percent = max(self.peak_gpu_mem_percent, gpu_mem_percent)
-                self.peak_gpu_mem_percent_section = max(self.peak_gpu_mem_percent_section, gpu_mem_percent)
-
-            # Write CSV row
-            with open(self.csv_path, "a", newline="") as f:
-                writer = csv.writer(f)
-                writer.writerow([
-                    timestamp,
-                    self.current_section,
-                    # CPU
-                    cpu_total,
-                    proc_cpu_percent,
-                    proc_cpu_cores,
-                    # RAM
-                    ram_total_percent,
-                    system_ram_used_mb,
-                    proc_ram,
-                    # GPU
-                    gpu_mem,
-                    gpu_mem_total,
-                    # Disk
+            while not self._stop_event.is_set():
+                # Timestamp
+                timestamp = datetime.datetime.now().isoformat()
+                # CPU
+                cpu_total = psutil.cpu_percent(interval=None)
+                proc_cpu_percent = process.cpu_percent(interval=None)
+                proc_cpu_cores = proc_cpu_percent / 100.0
+                # RAM
+                vm = psutil.virtual_memory()
+                ram_total_percent = vm.percent
+                system_ram_used_mb = vm.used / 1024**2
+                proc_ram = process.memory_info().rss / 1024**2 # MB
+                # Disk
+                disk_used = self._get_disk_used_bytes()
+                disk_delta_mb = (disk_used - self.disk_base_bytes_section) / 1024**2 # MB
+                self.peak_disk_delta_mb_section = max(
+                    self.peak_disk_delta_mb_section,
                     disk_delta_mb
-                ])
+                )
+                # GPU
+                gpu_mem = None
+                gpu_mem_percent = None
+                gpu_mem_total = None
+                if GPU_AVAILABLE:
+                    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+                    mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                    gpu_mem = mem_info.used / 1024**2
+                    gpu_mem_total = mem_info.total / 1024**2
+                    gpu_mem_percent = 100.0 * mem_info.used / mem_info.total
 
-            await asyncio.sleep(interval)
+                # Update peaks
+                self.peak_cpu = max(self.peak_cpu, proc_cpu_cores)
+                self.peak_cpu_section = max(self.peak_cpu_section, proc_cpu_cores)
+                self.peak_ram_mb = max(self.peak_ram_mb, system_ram_used_mb)
+                self.peak_ram_mb_section = max(self.peak_ram_mb_section, system_ram_used_mb)
+                if GPU_AVAILABLE and gpu_mem is not None:
+                    self.peak_gpu_mem_mb = max(self.peak_gpu_mem_mb, gpu_mem)
+                    self.peak_gpu_mem_mb_section = max(self.peak_gpu_mem_mb_section, gpu_mem)
+                    self.peak_gpu_mem_percent = max(self.peak_gpu_mem_percent, gpu_mem_percent)
+                    self.peak_gpu_mem_percent_section = max(self.peak_gpu_mem_percent_section, gpu_mem_percent)
+
+                # Write CSV row
+                with open(self.csv_path, "a", newline="") as f:
+                    writer = csv.writer(f)
+                    writer.writerow([
+                        timestamp,
+                        self.current_section,
+                        # CPU
+                        cpu_total,
+                        proc_cpu_percent,
+                        proc_cpu_cores,
+                        # RAM
+                        ram_total_percent,
+                        system_ram_used_mb,
+                        proc_ram,
+                        # GPU
+                        gpu_mem,
+                        gpu_mem_total,
+                        # Disk
+                        disk_delta_mb
+                    ])
+
+                await asyncio.sleep(interval)
+        except Exception as e:
+            self.logger.exception(f"Performance monitor crashed with error {e}")
+            raise
     
+    def _monitor_task_done(self, task: asyncio.Task):
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            self.logger.error(
+                "Performance monitor task failed.",
+                exc_info=exc
+            )
+
     def start_monitoring(
         self,
         interval: float = 1.0,
@@ -341,6 +357,7 @@ class PerformanceMonitor:
         self._stop_event.clear()
         self.current_section = section
         self._monitor_task = asyncio.create_task(self._monitor_loop(interval))
+        self._monitor_task.add_done_callback(self._monitor_task_done)
 
     async def stop_monitoring(self):
         """Stop async monitor and wait for its task to finish."""
