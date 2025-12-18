@@ -197,7 +197,16 @@ def _run_mpileup_by_chr(
 
         logger.info(f"Running mpileup on {chrom}...", 
                     sample_id=sample_id, chromosome=chrom)
-        subprocess.run(cmd, check=True)
+        result = subprocess.run(
+            cmd,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        if result.stderr:
+            logger.debug(f'Mpileup stderr: {result.stderr.strip()}')
+        
         per_chrom_bcf.append(str(chrom_bcf))
 
     # Combine all partial BCFs
@@ -208,7 +217,15 @@ def _run_mpileup_by_chr(
     cmd_concat = [
         "bcftools", "concat", "-o", str(final_bcf), "-O", "b"
     ] + per_chrom_bcf
-    subprocess.run(cmd_concat, check=True)
+    result = subprocess.run(
+        cmd_concat, 
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+    if result.stderr:
+        logger.debug(f'Mpileup stderr: {result.stderr.strip()}')
 
     logger.info(f"Final BCF generated at: {final_bcf}. " + \
                 "Cleaning up temporary chromosome BCF files...", 
